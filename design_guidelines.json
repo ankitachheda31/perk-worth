@@ -121,6 +121,6 @@
     "pin_screen": "Minimalist layout. Large numbers. Use a keypad grid. Empty state for dots should be subtle border circles, filled state should be solid emerald circles.",
     "home_feed": "Prioritize 'Ending Soon' cards at the top with a distinct red/terracotta subtle alert tint. Followed by a smart search bar.",
     "my_coupons": "Tabs should be pill-shaped under a sticky header. 'Add New' should trigger a bottom sheet modal.",
-    "reward_circle": "Use a subtle pattern or the gold premium texture for the share card. Must look exclusive."
+    "family_circle": "Use a subtle pattern or the gold premium texture for the share card. Must look exclusive."
   }
 }

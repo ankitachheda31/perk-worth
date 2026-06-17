@@ -4,7 +4,7 @@ Provides:
 - OCR voucher extraction (image → structured voucher JSON) via GPT-4o vision
 - SMS parsing (text → structured voucher JSON) via GPT-4o
 - CRUD for vouchers and memberships persisted in MongoDB
-- Reward Circle invite/share endpoints
+- Family Circle invite/share endpoints
 - Membership ROI tracking
 """
 from __future__ import annotations
@@ -153,7 +153,7 @@ class ShareInviteCreate(BaseModel):
     family_member_id: str  # ID of the circle member from /api/circle/members
 
 
-class RewardCircleMember(BaseDocument):
+class FamilyCircleMember(BaseDocument):
     user_pin: str
     name: str
     relation: Optional[str] = None
@@ -161,7 +161,7 @@ class RewardCircleMember(BaseDocument):
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
-class RewardCircleAdd(BaseModel):
+class FamilyCircleAdd(BaseModel):
     user_pin: str
     name: str
     relation: Optional[str] = None
@@ -570,9 +570,9 @@ async def search_brand(q: str = Query(...), user_pin: Optional[str] = None):
     }
 
 
-# -------- Reward Circle --------
+# -------- Family Circle --------
 @api.post("/circle/members")
-async def add_circle_member(payload: RewardCircleAdd):
+async def add_circle_member(payload: FamilyCircleAdd):
     token = secrets.token_urlsafe(10)
     doc = {
         "user_pin": payload.user_pin,

@@ -83,7 +83,7 @@ function ProfileMenu({ open, onClose, onNavigate, memberStatus }) {
         </button>
         <button data-testid="menu-circle" onClick={() => { onNavigate('circle'); onClose() }} className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-ink-50">
           <UserPlus className="w-4 h-4 text-ink-700" />
-          <span className="text-sm font-semibold text-ink-800">Reward Circle</span>
+          <span className="text-sm font-semibold text-ink-800">Family Circle</span>
         </button>
         <button data-testid="menu-settings" onClick={() => { onNavigate('settings'); onClose() }} className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-ink-50">
           <SettingsIcon className="w-4 h-4 text-ink-700" />
@@ -773,7 +773,7 @@ function MembershipPage({ onBack, pin, status, refresh, toast }) {
             <div className="flex items-center gap-2 mb-2"><Star className="w-4 h-4 text-gold-400" /><span className="text-[10px] uppercase tracking-[0.18em] font-bold text-gold-100">Perk Orbit Pro</span></div>
             <p className="font-display text-2xl font-bold leading-tight">₹99 for 6 months</p>
             <ul className="mt-4 space-y-2 text-sm">
-              {['Unlimited voucher storage', 'AI scan & SMS extract', 'Reward Circle family sharing', 'Membership ROI tracker', 'Smart expiry alerts'].map(t => (
+              {['Unlimited voucher storage', 'AI scan & SMS extract', 'Family Circle sharing', 'Membership ROI tracker', 'Smart expiry alerts'].map(t => (
                 <li key={t} className="flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-gold-300" /> {t}</li>
               ))}
             </ul>
@@ -808,7 +808,7 @@ function CirclePage({ onBack, pin, toast, onOpenMember }) {
 
   return (
     <>
-      <TopBar title="Reward Circle" onBack={onBack} subtitle="Selectively share vouchers with family" />
+      <TopBar title="Family Circle" onBack={onBack} subtitle="Selectively share vouchers with family" />
       <main className="px-5 space-y-4">
         <Card className="p-5 space-y-3">
           <FormField label="Family member name" testid="circle-name" value={name} onChange={setName} placeholder="e.g. Priya (Wife)" />
@@ -954,7 +954,7 @@ function ShareSheet({ open, onClose, voucher, pin, toast, refresh }) {
   return (
     <Sheet open={open} onClose={onClose} title={`Share "${voucher?.brand || 'voucher'}"`} testid="share-sheet">
       {members.length === 0 ? (
-        <Empty title="No circle members yet" sub="Add family in Profile → Reward Circle to share." icon={<UserPlus className="w-6 h-6" />} />
+        <Empty title="No circle members yet" sub="Add family in Profile → Family Circle to share." icon={<UserPlus className="w-6 h-6" />} />
       ) : (
         <div className="space-y-2">
           {members.map(m => (

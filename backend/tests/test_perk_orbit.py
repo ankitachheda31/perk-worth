@@ -1,6 +1,6 @@
 """Perk Orbit Backend API tests.
 Covers: health, voucher CRUD, brand search, SMS extract, image extract,
-ending-soon filter, points summary, memberships ROI, reward circle,
+ending-soon filter, points summary, memberships ROI, family circle,
 share/unshare, membership activate (mocked Razorpay).
 """
 import base64
@@ -208,7 +208,7 @@ def test_memberships_roi(session, cleanup):
     session.delete(f"{API}/vouchers/{m['id']}")
 
 
-# ---------- Reward Circle ----------
+# ---------- Family Circle ----------
 def test_circle_member_crud(session, cleanup):
     r = session.post(f"{API}/circle/members", json={
         "user_pin": PIN, "name": "TEST_Priya", "relation": "Wife"

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Home, Ticket, Coins, Users, ChevronRight, Search, Plus, Sparkles, Copy, Clock, Share2, BadgeCheck, ArrowLeft, X, ScanLine, MessageSquareText, KeyRound, Trash2, Star, ShieldCheck, Camera, LinkIcon, UserPlus, Settings as SettingsIcon, LogOut, ChevronDown, Bell, Mic, RefreshCw, ImageDown, LifeBuoy } from 'lucide-react'
+import { Home, Ticket, Coins, Users, ChevronRight, Search, Plus, Sparkles, Copy, Clock, Share2, BadgeCheck, ArrowLeft, X, ScanLine, MessageSquareText, KeyRound, Trash2, Star, ShieldCheck, Camera, LinkIcon, UserPlus, Settings as SettingsIcon, LogOut, ChevronDown, Bell, Mic, RefreshCw, ImageDown, LifeBuoy, FileText, MessageCircle, Smartphone } from 'lucide-react'
 import { Card, GhostButton, PrimaryButton, ProgressBar, Sheet, Tag, TopBar, Shell, Empty, Toast } from './components/ui'
 import PinLock from './screens/PinLock'
 import { Vouchers, Points, Memberships, Search as SearchApi, Extract, Circle, Membership, Notifications, Referrals, Support } from './lib/api'
@@ -9,6 +9,7 @@ import { OfflineBanner } from './components/ui'
 import { ensureServiceWorker, requestNotificationPermission, maybeFireBrowserNotifications } from './lib/push'
 import usePullToRefresh from './lib/usePullToRefresh'
 import { isVoiceSupported, startVoiceRecognition } from './lib/voice'
+import { isNativeSmsAvailable, checkSmsPermission, requestSmsPermission, readRecentSms, getLastScanTs, setLastScanTs, isLikelyVoucherSms } from './lib/smsScanner'
 import { toPng } from 'html-to-image'
 
 const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID
@@ -117,7 +118,22 @@ function buildWaHelpUrl(v) {
   return `https://wa.me/${WA_SUPPORT_NUMBER}?text=${text}`
 }
 
-function VoucherCard({ v, onCopy, onHowTo, onDelete, onShare, onUnshare }) {
+async function logSupportThenOpenWa(v, pin) {
+  try {
+    await Support.log({
+      user_pin: pin,
+      voucher_id: v.id,
+      brand: v.brand,
+      title: v.title,
+      code: v.code,
+      issue: 'code-not-working',
+      channel: 'whatsapp',
+    })
+  } catch { /* ignore logging failure */ }
+  window.open(buildWaHelpUrl(v), '_blank', 'noopener,noreferrer')
+}
+
+function VoucherCard({ v, onCopy, onHowTo, onDelete, onShare, onUnshare, pin }) {
   const dleft = daysUntil(v.expiry)
   const endingSoon = dleft != null && dleft <= 7 && dleft >= 0
   return (
@@ -160,6 +176,7 @@ function VoucherCard({ v, onCopy, onHowTo, onDelete, onShare, onUnshare }) {
         <a
           data-testid={`wa-help-${v.id}`}
           href={buildWaHelpUrl(v)}
+          onClick={(e) => { if (pin) { e.preventDefault(); logSupportThenOpenWa(v, pin) } }}
           target="_blank"
           rel="noopener noreferrer"
           className="text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 py-2 px-3 rounded-full active:scale-95 transition flex items-center justify-center"
@@ -632,18 +649,25 @@ function HomeScreen({ pin, onProfileClick, memberStatus, onOpenAdd, toast, refre
 }
 
 // ---------- My Coupons Screen ----------
-function MyCouponsScreen({ pin, onProfileClick, onOpenAdd, toast, refreshKey, openHowTo, openShareSheet, setRefreshKey }) {
+function MyCouponsScreen({ pin, onProfileClick, onOpenAdd, toast, refreshKey, openHowTo, openShareSheet, setRefreshKey, bumpRefresh }) {
   const [tab, setTab] = useState('all') // all | memberships | vouchers
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [roi, setRoi] = useState([])
 
-  const load = () => {
+  const load = async () => {
     setLoading(true)
-    Vouchers.list(pin, tab === 'all' ? undefined : tab).then(setItems).finally(() => setLoading(false))
-    if (tab === 'memberships' || tab === 'all') Memberships.roi(pin).then(setRoi).catch(() => {})
+    try {
+      const list = await Vouchers.list(pin, tab === 'all' ? undefined : tab)
+      setItems(list)
+      if (tab === 'memberships' || tab === 'all') {
+        try { setRoi(await Memberships.roi(pin)) } catch { /* ignore */ }
+      }
+    } finally { setLoading(false) }
   }
   useEffect(() => { load() /* eslint-disable-next-line */ }, [pin, tab, refreshKey])
+
+  const { pullY, refreshing } = usePullToRefresh(async () => { await load(); bumpRefresh?.() })
 
   const handleCopy = async (v) => { if (!v.code) return; try { await navigator.clipboard.writeText(v.code); toast(`Copied ${v.code}`) } catch { toast('Copy failed') } }
   const handleDelete = async (v) => { await Vouchers.remove(v.id); toast('Deleted'); load(); setRefreshKey(k => k + 1) }
@@ -658,6 +682,7 @@ function MyCouponsScreen({ pin, onProfileClick, onOpenAdd, toast, refreshKey, op
 
   return (
     <>
+      <PtrIndicator pullY={pullY} refreshing={refreshing} />
       <TopBar
         title="My Coupons"
         right={
@@ -691,6 +716,7 @@ function MyCouponsScreen({ pin, onProfileClick, onOpenAdd, toast, refreshKey, op
               <VoucherCard
                 key={v.id}
                 v={v}
+                pin={pin}
                 onCopy={handleCopy}
                 onHowTo={openHowTo}
                 onDelete={handleDelete}
@@ -706,13 +732,20 @@ function MyCouponsScreen({ pin, onProfileClick, onOpenAdd, toast, refreshKey, op
 }
 
 // ---------- My Points Screen ----------
-function MyPointsScreen({ pin, onProfileClick, refreshKey, openHowTo }) {
+function MyPointsScreen({ pin, onProfileClick, refreshKey, openHowTo, bumpRefresh }) {
   const [data, setData] = useState({ total_points: 0, approx_value_inr: 0, breakdown: [] })
   const [loading, setLoading] = useState(true)
-  useEffect(() => { setLoading(true); Points.summary(pin).then(setData).finally(() => setLoading(false)) }, [pin, refreshKey])
+  const load = async () => {
+    setLoading(true)
+    try { setData(await Points.summary(pin)) } finally { setLoading(false) }
+  }
+  useEffect(() => { load() /* eslint-disable-next-line */ }, [pin, refreshKey])
+
+  const { pullY, refreshing } = usePullToRefresh(async () => { await load(); bumpRefresh?.() })
 
   return (
     <>
+      <PtrIndicator pullY={pullY} refreshing={refreshing} />
       <TopBar
         title="My Points"
         right={<button data-testid="profile-avatar-points" onClick={onProfileClick} className="w-10 h-10 rounded-full bg-emerald-800 grid place-items-center text-white font-display font-bold border-2 border-white shadow-soft">{(getProfile().name || 'M')[0].toUpperCase()}</button>}

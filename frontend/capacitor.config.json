@@ -6,7 +6,27 @@
   "server": {
     "androidScheme": "https",
     "iosScheme": "https",
-    "cleartext": false
+    "cleartext": false,
+    "errorPath": "/"
+  },
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false,
+    "minWebViewVersion": 60,
+    "buildOptions": {
+      "keystorePath": "perk-orbit-release.jks",
+      "keystoreAlias": "perkorbit",
+      "releaseType": "AAB"
+    }
+  },
+  "ios": {
+    "scheme": "Perk Orbit",
+    "contentInset": "automatic",
+    "limitsNavigationsToAppBoundDomains": false,
+    "scrollEnabled": true,
+    "preferredContentMode": "mobile",
+    "backgroundColor": "#F4F1EC"
   },
   "plugins": {
     "SplashScreen": {
@@ -17,12 +37,20 @@
       "androidScaleType": "CENTER_CROP",
       "showSpinner": false,
       "splashFullScreen": true,
-      "splashImmersive": true
+      "splashImmersive": true,
+      "iosSpinnerStyle": "small",
+      "spinnerColor": "#064E3B"
     },
     "StatusBar": {
       "style": "DARK",
       "backgroundColor": "#F4F1EC",
       "overlaysWebView": false
+    },
+    "SMSInboxReader": {
+      "permissions": ["android.permission.READ_SMS", "android.permission.RECEIVE_SMS"]
+    },
+    "App": {
+      "launchUrl": "https://perkorbit.app"
     }
   }
 }

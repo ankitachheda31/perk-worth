@@ -93,3 +93,22 @@
 - v1.2: SMS bulk paste, offline banner, WhatsApp Help, Capacitor scaffold
 - v1.3: Voice search, pull-to-refresh, Savings Report, SMS Scanner UI, Privacy screen, Support History
 - **v2.0**: Cloud Sync (email/password auth + JWT) + Market Intelligence (APScheduler + 19 seed programs + auto-notify on terms_changed)
+- **v3.0 (Trust + Onboarding + Masterclass + Zero-Break)**:
+  - **Trust Suite**: HowWeProtectYou modal, expanded DPDP+GDPR Privacy Policy, Security FAQ (8 Qs, aria-expanded), Privacy Control dashboard (4 a11y-compliant role=switch toggles), "Secure & Encrypted" badge on Membership + ProfileMenu, secure note on Add Voucher SMS/Camera tabs, Camera pre-permission overlay, SMS bilingual Permission Context with acknowledge checkbox, top-LEFT Panic Lock floating button (relocated after iteration_4 overlay bug), `/api/auth/wipe` (DPDP §13 / GDPR Art.17 erasure)
+  - **Onboarding**: 4-screen interactive Walkthrough (tracking → growing → family → safe) with dummy demos, replayable from Settings
+  - **Smart Discovery**: Post-walkthrough screen with native SMS scan OR PWA paste fallback; review & one-tap "Add to wallet"; pre-fills wallet
+  - **Masterclass (Optimizer)**: `/api/optimizer/tips` hybrid engine — rules library covers Tata Neu, Amazon Pay, Flipkart SuperCoins, Swiggy, HDFC SmartBuy, Axis Edge, SBI Rewardz + expiry + dud-membership warnings; GPT-4o fallback for unknown brands; Free=2 tips, Pro=unlimited; Free-vs-Pro comparison card with 9 features
+  - **AuthScreen humane errors**: 422 array errors → "Password must be at least 6 characters" / "Please enter a valid email address" / "This email is already registered" (no more generic "Authentication failed")
+  - **Zero-Break Health Check**: `/app/scripts/health_check.py` — 6-stage verifier (backend, auth+Mongo, 13 API routes, route↔screen integrity, frontend boot, 13 core modules). Exit 0/1 for CI gates. Live build = **HEALTHY · 12/12 passing**.
+
+## Backlog (P0/P1/P2)
+| Pri | Item |
+|---|---|
+| **P0** | Razorpay live keys flip (test → prod) |
+| **P1** | Refactor monolithic `App.jsx` (~2160 lines) into `/screens` + `/sheets` |
+| **P1** | Native Android APK with real `READ_SMS` (current PWA uses paste fallback) |
+| **P2** | Razorpay webhook for async payment events |
+| **P2** | SendGrid/Resend email invites for Circle Members |
+| **P2** | Real SMTP for forgot-password flow |
+| **P2** | Wallet export (JSON/CSV) per DPDP §13 access right |
+

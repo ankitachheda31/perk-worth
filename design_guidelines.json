@@ -1,0 +1,126 @@
+{
+  "project_name": "Perk Orbit",
+  "theme": "LIGHT",
+  "archetype": "Swiss & High-Contrast (Premium Fintech Blend)",
+  "design_philosophy": "Minimalist, Premium, professional, and clean UI. Think premium Indian fintech meets minimal Swiss design. No dead UI, zero tolerance for white/black screens. Cross-platform mobile feel.",
+  "typography": {
+    "font_families": {
+      "headings": "Cabinet Grotesk",
+      "body": "Manrope",
+      "monospace": "JetBrains Mono"
+    },
+    "hierarchy": {
+      "h1_hero": "text-4xl sm:text-5xl font-bold tracking-tight text-slate-900",
+      "h2_section": "text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900",
+      "h3_card": "text-lg sm:text-xl font-medium tracking-tight text-slate-900",
+      "body": "text-base font-normal text-slate-600 leading-relaxed",
+      "body_small": "text-sm font-normal text-slate-500",
+      "overline": "text-xs font-bold uppercase tracking-[0.2em] text-slate-500"
+    },
+    "font_install_instructions": "Import Cabinet Grotesk from Fontshare and Manrope from Google Fonts via CSS @import."
+  },
+  "colors": {
+    "background": {
+      "base": "#F9FAFB",
+      "surface": "#FFFFFF",
+      "glass": "bg-white/80 backdrop-blur-xl"
+    },
+    "text": {
+      "primary": "#0F172A",
+      "secondary": "#64748B",
+      "muted": "#94A3B8",
+      "inverse": "#FFFFFF"
+    },
+    "brand": {
+      "primary": "#064E3B",
+      "primary_hover": "#047857",
+      "primary_light": "#D1FAE5",
+      "accent_gold": "#B48B36",
+      "accent_gold_light": "#FEF3C7"
+    },
+    "status": {
+      "ending_soon_warning": "#991B1B",
+      "ending_soon_bg": "#FEE2E2",
+      "success": "#166534",
+      "success_bg": "#DCFCE7",
+      "info": "#1E40AF"
+    },
+    "border": {
+      "default": "#E2E8F0",
+      "focus": "#064E3B"
+    }
+  },
+  "spacing_and_layout": {
+    "container": "max-w-md mx-auto w-full min-h-screen relative pb-20 (to account for sticky bottom nav)",
+    "padding": "px-5 py-6",
+    "card_gap": "gap-4",
+    "section_gap": "gap-8",
+    "border_radius": {
+      "sm": "rounded-md",
+      "md": "rounded-xl",
+      "lg": "rounded-2xl",
+      "pill": "rounded-full",
+      "bottom_sheet": "rounded-t-3xl"
+    }
+  },
+  "components": {
+    "bottom_nav": {
+      "style": "fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/85 backdrop-blur-2xl border-t border-slate-200 flex justify-around items-center h-16 pb-safe z-50",
+      "active_state": "text-emerald-900 font-medium",
+      "inactive_state": "text-slate-400"
+    },
+    "cards": {
+      "voucher_card": "bg-white border border-slate-200 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden",
+      "ending_soon_card": "border-red-200 bg-red-50/30",
+      "membership_card": "bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl p-5 border border-slate-700 relative overflow-hidden"
+    },
+    "buttons": {
+      "primary": "w-full bg-emerald-900 hover:bg-emerald-800 text-white font-medium rounded-full py-3.5 transition-transform active:scale-95 flex items-center justify-center gap-2",
+      "secondary": "w-full bg-white border border-slate-200 text-slate-800 font-medium rounded-full py-3.5 transition-transform active:scale-95 hover:bg-slate-50",
+      "danger": "w-full bg-red-50 text-red-700 border border-red-100 font-medium rounded-full py-3.5 active:scale-95"
+    },
+    "inputs": {
+      "search": "bg-slate-100 border-transparent rounded-full px-4 py-3 w-full focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all text-sm",
+      "pin_input": "w-14 h-14 text-center text-2xl font-bold bg-slate-50 border border-slate-200 rounded-xl focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+    },
+    "progress_bar": {
+      "track": "h-2 w-full bg-slate-100 rounded-full overflow-hidden",
+      "fill_asset": "h-full bg-emerald-600 rounded-full",
+      "fill_content": "h-full bg-amber-500 rounded-full"
+    },
+    "modals": {
+      "bottom_sheet": "bg-white rounded-t-3xl p-6 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] fixed bottom-0 left-0 right-0 max-w-md mx-auto z-[60]"
+    }
+  },
+  "motion_and_interactions": {
+    "click_targets": "active:scale-95 transition-transform duration-200",
+    "page_transitions": "framer-motion initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}",
+    "list_stagger": "staggerChildren: 0.05"
+  },
+  "icons_library": "@phosphor-icons/react (Use regular weight for general UI, duotone for premium embellishments)",
+  "testing": "All interactive elements MUST include a data-testid attribute in kebab-case representing their role.",
+  "media_assets": {
+    "avatar_profile": {
+      "url": "https://images.pexels.com/photos/20157010/pexels-photo-20157010.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "description": "Elegant portrait of a young male professional in a suit. Use for the top-right profile avatar."
+    },
+    "premium_texture": {
+      "url": "https://images.unsplash.com/photo-1545873509-33e944ca7655?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1OTN8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMGdvbGQlMjBwcmVtaXVtJTIwdGV4dHVyZXxlbnwwfHx8fDE3ODE2ODU0MzR8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Gold metallic foil texture. Use as a subtle background or badge accent for the ₹99 Premium Membership."
+    },
+    "brand_logo_1": {
+      "url": "https://images.unsplash.com/photo-1770219695510-1f281b3ac6f9?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzN8MHwxfHNlYXJjaHwxfHxzaG9wcGluZyUyMGJyYW5kJTIwbG9nbyUyMG1pbmltYWx8ZW58MHx8fHwxNzgxNjg1NDM0fDA&ixlib=rb-4.1.0&q=85",
+      "description": "Miniso store sign. Use as a sample image for retail/asset vouchers."
+    },
+    "brand_logo_2": {
+      "url": "https://images.unsplash.com/photo-1769345330775-fae9fbc0a3ea?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzN8MHwxfHNlYXJjaHw0fHxzaG9wcGluZyUyMGJyYW5kJTIwbG9nbyUyMG1pbmltYWx8ZW58MHx8fHwxNzgxNjg1NDM0fDA&ixlib=rb-4.1.0&q=85",
+      "description": "Neon swan sign. Use as a sample image for premium/luxury brand vouchers."
+    }
+  },
+  "specific_flow_guidelines": {
+    "pin_screen": "Minimalist layout. Large numbers. Use a keypad grid. Empty state for dots should be subtle border circles, filled state should be solid emerald circles.",
+    "home_feed": "Prioritize 'Ending Soon' cards at the top with a distinct red/terracotta subtle alert tint. Followed by a smart search bar.",
+    "my_coupons": "Tabs should be pill-shaped under a sticky header. 'Add New' should trigger a bottom sheet modal.",
+    "reward_circle": "Use a subtle pattern or the gold premium texture for the share card. Must look exclusive."
+  }
+}

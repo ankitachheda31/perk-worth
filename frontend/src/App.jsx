@@ -8,7 +8,7 @@ import { openRazorpayCheckout } from './lib/razorpay'
 import { OfflineBanner } from './components/ui'
 
 const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID
-const WA_SUPPORT_NUMBER = '919999999999' // Perk Orbit support — replace with real number
+const WA_SUPPORT_NUMBER = '919820204866' // Perk Orbit support
 
 // ---------- Helpers ----------
 function daysUntil(iso) {

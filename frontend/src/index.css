@@ -1,0 +1,157 @@
+@import url('https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@800,500,700,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  -webkit-tap-highlight-color: transparent;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html, body, #root {
+  height: 100%;
+  background: #F4F1EC;
+}
+
+body {
+  font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  color: #0F172A;
+  font-feature-settings: "ss01", "cv01";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior-y: contain;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Cabinet Grotesk', ui-sans-serif, system-ui;
+  letter-spacing: -0.015em;
+}
+
+/* Subtle paper grain background applied to viewport edges */
+.app-shell {
+  background:
+    radial-gradient(1200px 600px at -10% -10%, rgba(6,78,59,0.06), transparent 60%),
+    radial-gradient(800px 500px at 110% 10%, rgba(180,139,54,0.06), transparent 60%),
+    linear-gradient(180deg, #F7F4EE 0%, #F4F1EC 100%);
+  min-height: 100dvh;
+}
+
+/* Hide native scrollbar in mobile column */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+/* Pin dot animation */
+.pin-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  border: 1.5px solid #94A3B8;
+  transition: all .18s ease-out;
+}
+.pin-dot.filled {
+  background: #064E3B;
+  border-color: #064E3B;
+  transform: scale(1.08);
+}
+
+/* Keypad button */
+.keypad-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 64px;
+  font-family: 'Cabinet Grotesk';
+  font-weight: 500;
+  font-size: 26px;
+  color: #0F172A;
+  background: rgba(255,255,255,0.6);
+  backdrop-filter: blur(8px);
+  border-radius: 22px;
+  border: 1px solid rgba(15,23,42,0.05);
+  transition: transform .12s ease, background .15s ease;
+  user-select: none;
+}
+.keypad-btn:active {
+  transform: scale(0.94);
+  background: rgba(255,255,255,0.95);
+}
+
+/* Pill tabs */
+.pill-tab {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 13px;
+  color: #64748B;
+  text-align: center;
+  transition: all .2s ease;
+  letter-spacing: 0.01em;
+}
+.pill-tab.active {
+  background: #0F172A;
+  color: #FFFFFF;
+  box-shadow: 0 4px 14px -6px rgba(15, 23, 42, 0.35);
+}
+
+/* Voucher ticket with notch */
+.ticket {
+  position: relative;
+  background: #fff;
+  border: 1px solid #E8E4DC;
+  border-radius: 20px;
+  overflow: hidden;
+}
+.ticket::before, .ticket::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  background: #F4F1EC;
+  border: 1px solid #E8E4DC;
+  border-radius: 9999px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.ticket::before { left: -9px; }
+.ticket::after { right: -9px; }
+
+/* Dashed code box */
+.code-box {
+  border: 1px dashed #94A3B8;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  color: #0F172A;
+  background: #FAF7F0;
+}
+
+/* Page transitions */
+.page-enter { animation: fadeIn .25s ease-out both, slideUp .35s cubic-bezier(.22,.61,.36,1) both; }
+
+/* Bottom sheet backdrop */
+.sheet-backdrop {
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(6px);
+}
+
+button { -webkit-tap-highlight-color: transparent; }
+input, textarea { font-family: inherit; }
+input:focus, textarea:focus { outline: none; }
+
+/* Custom checkbox/toggle */
+.toggle {
+  width: 42px; height: 24px; border-radius: 9999px;
+  background: #CBD5E1; position: relative; transition: background .2s;
+}
+.toggle::after {
+  content: ''; position: absolute; top: 3px; left: 3px;
+  width: 18px; height: 18px; border-radius: 9999px;
+  background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,.15);
+  transition: transform .2s ease;
+}
+.toggle.on { background: #064E3B; }
+.toggle.on::after { transform: translateX(18px); }

@@ -52,6 +52,7 @@ function FaqItem({ item, open, onToggle, idx }) {
       <button
         data-testid={`faq-toggle-${idx}`}
         onClick={onToggle}
+        aria-expanded={open}
         className="w-full flex items-center gap-3 p-4 text-left hover:bg-ink-50 transition"
       >
         <div className="w-9 h-9 rounded-full bg-emerald-50 grid place-items-center shrink-0">

@@ -26,6 +26,8 @@ function Toggle({ checked, onChange, testid }) {
   return (
     <button
       data-testid={testid}
+      role="switch"
+      aria-checked={checked}
       onClick={() => onChange(!checked)}
       className={`relative w-11 h-6 rounded-full transition shrink-0 ${checked ? 'bg-emerald-700' : 'bg-ink-300'}`}
     >

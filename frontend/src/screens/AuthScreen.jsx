@@ -14,16 +14,44 @@ export default function AuthScreen({ onAuthed, existingPin }) {
     setErr(''); setBusy(true)
     try {
       const fn = mode === 'login' ? Auth.login : Auth.signup
+      const cleanEmail = email.trim().toLowerCase()
       const body = mode === 'login'
-        ? { email, password }
-        : { email, password, name, pin_to_claim: existingPin || undefined }
+        ? { email: cleanEmail, password }
+        : { email: cleanEmail, password, name: name.trim(), pin_to_claim: existingPin || undefined }
       const res = await fn(body)
       if (res.access_token) localStorage.setItem('perk_orbit_token', res.access_token)
       localStorage.setItem('perk_orbit_user', JSON.stringify({ id: res.id, email: res.email, name: res.name, phone: res.phone }))
       onAuthed(res)
     } catch (e) {
+      let msg = ''
       const d = e.response?.data?.detail
-      setErr(typeof d === 'string' ? d : 'Authentication failed')
+      if (typeof d === 'string') {
+        msg = d
+      } else if (Array.isArray(d) && d.length) {
+        // FastAPI 422 validation errors → surface a humane message
+        const first = d[0] || {}
+        const loc = Array.isArray(first.loc) ? first.loc[first.loc.length - 1] : 'input'
+        const fieldName = ({ email: 'Email', password: 'Password', name: 'Name' })[loc] || loc
+        msg = `${fieldName}: ${first.msg || 'invalid'}`
+        // Pretty-print common cases
+        if (/string_too_short/i.test(first.type || '') && loc === 'password') {
+          msg = 'Password must be at least 6 characters.'
+        }
+        if (/value_error\.email|email/i.test(first.type || '') && loc === 'email') {
+          msg = 'Please enter a valid email address.'
+        }
+      } else if (e.message === 'Network Error') {
+        msg = 'Network error — check your connection and try again.'
+      } else if (e.code === 'ECONNABORTED') {
+        msg = 'Request timed out. Please try again.'
+      } else if (e.response?.status === 401) {
+        msg = 'Invalid email or password.'
+      } else if (e.response?.status === 409) {
+        msg = 'This email is already registered. Try signing in instead.'
+      } else {
+        msg = `Could not ${mode === 'login' ? 'sign in' : 'create account'}. Please try again.`
+      }
+      setErr(msg)
     } finally { setBusy(false) }
   }
 

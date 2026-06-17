@@ -1,0 +1,27 @@
+{
+  "summary": "Frontend-only retest of iteration_4's CRITICAL panic-lock overlay bug + 3 a11y/humane-error fixes. All 7 verification points PASS. The panic-lock-btn was moved from top-RIGHT to top-LEFT (x=16) so the top-RIGHT profile-avatar (x=330) is now fully tappable. document.elementFromPoint at avatar center now returns the avatar BUTTON (data-testid=profile-avatar), not panic-lock. ProfileMenu opens on a REAL Playwright click (no force=true), all 12 menu entries are present including Perk Tips with Masterclass badge. PrivacyControl toggles correctly expose role=switch + aria-checked that flips on click (4 switches verified). SecurityFAQ buttons expose aria-expanded that flips (8 FAQs verified). Auth signup error messages are now humane: 'Password must be at least 6 characters.' for short passwords, 'Email: value is not a valid email address...' for bad email, and a 409 'Email already registered' for duplicates (the AuthScreen surfaces this as 'This email is already registered. Try signing in instead.' via the e.response.status===409 branch — directly confirmed via fetch). Full first-launch regression PASSED: signup → PIN set+confirm (1234 x2) → Walkthrough (4 next clicks) → Smart Discovery skip → Home renders → ProfileMenu/back nav works → panic-lock from any screen returns to PIN-verify ('Welcome back · Enter your PIN to unlock Perk Orbit') → PIN unlock returns to Home. Build is production-ready from a frontend QA perspective.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_5.json",
+    "/app/test_reports/pytest/pytest_optimizer_wipe.xml (from iteration_4)"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "App.jsx is ~2200 lines — recommend splitting per-screen components into /screens/* (HomeScreen, MyCouponsScreen, MyPointsScreen, ProfileMenu, AddVoucherSheet etc.) for maintainability. Not blocking.",
+    "AuthScreen 422 handler is robust but FastAPI's pydantic 'type' field formatting can vary across versions; the regex 'value_error.email|email' is broad enough today but consider a unit/integration test pinning the exact error shape.",
+    "PIN keypad buttons don't have data-testid (e.g. pin-key-1). Adding them would harden future automation. Tests currently rely on button:has-text(digit)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a — not retested this iteration", "frontend": "100% (7/7 verification points)"},
+  "test_credentials": "Created fresh per-run e2e-{ts}@perkorbit.app / test1234. Cloud credentials at /app/memory/test_credentials.md (test@perkorbit.app / Perk@1234) untouched.",
+  "seed_data_creation": "None. Each run creates a throwaway e2e-{timestamp}@perkorbit.app account.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Critical overlay bug from iteration_4 is fixed and verified — panic-lock-btn now top-LEFT (className 'top-4 left-4'), avatar top-RIGHT clear and clickable. All a11y action items completed. Auth humane-error refactor works for 422 (password too short, invalid email) and 409 (duplicate email) cases. Walkthrough has data-testid='walkthrough-next' for each Next button (4 slides). Smart Discovery has a 'Skip' button. PrivacyControl toggle is the only [role=switch] interactive on its screen; SecurityFAQ exposes [aria-expanded] on each collapsible question. PIN screen does NOT have data-testid on digit keys — use button:has-text(d) when scripting.",
+  "rca_of_the_issue": "RCA from iteration_4 (now fixed): Two elements at viewport top-right z-index 40+ — the ProfileMenu trigger (avatar) inside TopBar at right-3, AND a fixed-positioned panic-lock-btn at top-4 right-4 z-50. The panic-lock had higher z-index and a 40x40 hit-target overlapping the avatar's 40x40 region, so document.elementFromPoint at the avatar center returned the panic-lock button, making the avatar unreachable. Mitigation: moved panic-lock to top-4 left-4 (App.jsx line ~2168). Avatar at x=330 + panic-lock at x=16 on 390px viewport ⇒ 230px gap, zero overlap. Verified with bounding boxes and elementFromPoint."
+}

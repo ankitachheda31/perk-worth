@@ -2158,13 +2158,14 @@ export default function App() {
 
       <Toast message={toastMsg} />
       {isTab && <BottomNav active={current.screen} onChange={switchTab} />}
-      {/* Panic Lock floating button — always available */}
+      {/* Panic Lock floating button — top-LEFT so it doesn't overlap the
+          profile avatar / notification bell that already live at top-right. */}
       <button
         data-testid="panic-lock-btn"
         onClick={() => { setLocked(true); setStack([{ screen: 'home' }]) }}
         aria-label="Lock app"
         title="Lock app instantly"
-        className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full bg-white/90 backdrop-blur border border-ink-200 shadow-card grid place-items-center text-emerald-800 hover:bg-emerald-50 active:scale-90 transition"
+        className="fixed top-4 left-4 z-50 w-10 h-10 rounded-full bg-white/90 backdrop-blur border border-ink-200 shadow-card grid place-items-center text-emerald-800 hover:bg-emerald-50 active:scale-90 transition"
         style={{ top: 'calc(env(safe-area-inset-top, 0px) + 14px)' }}
       >
         <Lock className="w-4 h-4" />

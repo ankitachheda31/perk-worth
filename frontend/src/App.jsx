@@ -1,11 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Home, Ticket, Coins, Users, ChevronRight, Search, Plus, Sparkles, Copy, Clock, Share2, BadgeCheck, ArrowLeft, X, ScanLine, MessageSquareText, KeyRound, Trash2, Star, ShieldCheck, Camera, LinkIcon, UserPlus, Settings as SettingsIcon, LogOut, ChevronDown, Bell } from 'lucide-react'
+import { Home, Ticket, Coins, Users, ChevronRight, Search, Plus, Sparkles, Copy, Clock, Share2, BadgeCheck, ArrowLeft, X, ScanLine, MessageSquareText, KeyRound, Trash2, Star, ShieldCheck, Camera, LinkIcon, UserPlus, Settings as SettingsIcon, LogOut, ChevronDown, Bell, Mic, RefreshCw, ImageDown, LifeBuoy } from 'lucide-react'
 import { Card, GhostButton, PrimaryButton, ProgressBar, Sheet, Tag, TopBar, Shell, Empty, Toast } from './components/ui'
 import PinLock from './screens/PinLock'
-import { Vouchers, Points, Memberships, Search as SearchApi, Extract, Circle, Membership, Notifications, Referrals } from './lib/api'
+import { Vouchers, Points, Memberships, Search as SearchApi, Extract, Circle, Membership, Notifications, Referrals, Support } from './lib/api'
 import { getStoredPin, setStoredPin, getProfile, setProfile } from './lib/store'
 import { openRazorpayCheckout } from './lib/razorpay'
 import { OfflineBanner } from './components/ui'
+import { ensureServiceWorker, requestNotificationPermission, maybeFireBrowserNotifications } from './lib/push'
+import usePullToRefresh from './lib/usePullToRefresh'
+import { isVoiceSupported, startVoiceRecognition } from './lib/voice'
+import { toPng } from 'html-to-image'
 
 const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID
 const WA_SUPPORT_NUMBER = '919820204866' // Perk Orbit support
@@ -502,15 +506,18 @@ function SearchResult({ q, pin, onOpenVoucher }) {
 }
 
 // ---------- Home Screen ----------
-function HomeScreen({ pin, onProfileClick, memberStatus, onOpenAdd, toast, refreshKey, openHowTo, onOpenNotifs, unread }) {
+function HomeScreen({ pin, onProfileClick, memberStatus, onOpenAdd, toast, refreshKey, openHowTo, onOpenNotifs, unread, bumpRefresh }) {
   const [ending, setEnding] = useState([])
   const [q, setQ] = useState('')
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
+  const load = async () => {
     setLoading(true)
-    Vouchers.endingSoon(pin, 7).then((data) => { setEnding(data); setLoading(false) }).catch(() => setLoading(false))
-  }, [pin, refreshKey])
+    try { setEnding(await Vouchers.endingSoon(pin, 7)) } finally { setLoading(false) }
+  }
+  useEffect(() => { load() /* eslint-disable-next-line */ }, [pin, refreshKey])
+
+  const { pullY, refreshing } = usePullToRefresh(async () => { await load(); bumpRefresh?.() })
 
   const handleCopy = async (v) => {
     if (!v.code) return
@@ -519,6 +526,7 @@ function HomeScreen({ pin, onProfileClick, memberStatus, onOpenAdd, toast, refre
 
   return (
     <>
+      <PtrIndicator pullY={pullY} refreshing={refreshing} />
       <TopBar
         title="Perk Orbit"
         subtitle="Voucher-first wallet"
@@ -547,8 +555,9 @@ function HomeScreen({ pin, onProfileClick, memberStatus, onOpenAdd, toast, refre
               placeholder="Search brand (e.g. Croma → Tata)…"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              className="w-full bg-white border border-ink-200 rounded-full pl-11 pr-4 py-3 text-sm focus:border-emerald-700 focus:ring-2 focus:ring-emerald-200 transition"
+              className="w-full bg-white border border-ink-200 rounded-full pl-11 pr-12 py-3 text-sm focus:border-emerald-700 focus:ring-2 focus:ring-emerald-200 transition"
             />
+            <VoiceMicButton onText={(t) => setQ(t)} />
           </div>
           <SearchResult q={q} pin={pin} onOpenVoucher={(u) => openHowTo(u)} />
         </section>
@@ -1345,6 +1354,35 @@ export default function App() {
             onBack={pop}
             pin={pin}
             member={current.params.member}
+            toast={toast}
+            refresh={() => setRefreshKey(k => k + 1)}
+            openHowTo={setHowToFor}
+          />
+        )}
+      </div>
+
+      <ProfileMenu open={profileOpen} onClose={() => setProfileOpen(false)} onNavigate={handleNavigate} memberStatus={memberStatus} />
+      <AddVoucherSheet open={addOpen} onClose={() => setAddOpen(false)} pin={pin} onSaved={() => setRefreshKey(k => k + 1)} toast={toast} />
+      <HowToSheet voucher={howToFor} open={!!howToFor} onClose={() => setHowToFor(null)} />
+      <ShareSheet open={!!shareFor} onClose={() => setShareFor(null)} voucher={shareFor} pin={pin} toast={toast} refresh={() => setRefreshKey(k => k + 1)} />
+      <NotificationSheet
+        open={notifsOpen}
+        onClose={() => setNotifsOpen(false)}
+        pin={pin}
+        toast={toast}
+        onJumpToScreen={(screen) => {
+          if (['home','coupons','points','circle'].includes(screen)) switchTab(screen)
+          else if (screen === 'membership') push('membership')
+        }}
+        refreshNotifs={refreshNotifs}
+      />
+
+      <Toast message={toastMsg} />
+      {isTab && <BottomNav active={current.screen} onChange={switchTab} />}
+    </Shell>
+  )
+}
+current.params.member}
             toast={toast}
             refresh={() => setRefreshKey(k => k + 1)}
             openHowTo={setHowToFor}

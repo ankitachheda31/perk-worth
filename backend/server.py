@@ -932,7 +932,7 @@ async def _generate_dynamic_notifications(user_pin: str) -> list[dict]:
     cutoff = today + timedelta(days=7)
     items: list[dict] = []
 
-    # Ending-soon vouchers (≤7 days)
+    # Ending-soon vouchers (≤7 days) — with urgent_expiry escalation for <24h
     async for v in db.vouchers.find(
         {"user_pin": user_pin, "category": "vouchers"}
     ):
@@ -945,15 +945,20 @@ async def _generate_dynamic_notifications(user_pin: str) -> list[dict]:
             continue
         if today <= exp_date <= cutoff:
             days_left = (exp_date - today).days
+            kind = "urgent_expiry" if days_left <= 1 else "ending_soon"
             items.append(
                 {
                     "user_pin": user_pin,
-                    "kind": "ending_soon",
+                    "kind": kind,
                     "ref_voucher_id": str(v["_id"]),
                     "ref_screen": "coupons",
-                    "title": f"{v.get('brand', 'Voucher')} expires in {days_left} day{'s' if days_left != 1 else ''}",
+                    "title": (
+                        f"⚠️ {v.get('brand', 'Voucher')} expires {'today' if days_left == 0 else 'tomorrow'}"
+                        if kind == "urgent_expiry"
+                        else f"{v.get('brand', 'Voucher')} expires in {days_left} day{'s' if days_left != 1 else ''}"
+                    ),
                     "body": v.get("title") or v.get("code") or "Tap to view",
-                    "priority": 1 if days_left <= 2 else 2,
+                    "priority": 0 if kind == "urgent_expiry" else (1 if days_left <= 2 else 2),
                 }
             )
 
@@ -988,12 +993,13 @@ async def _generate_dynamic_notifications(user_pin: str) -> list[dict]:
             {"$setOnInsert": {**n, "read": False}},
             upsert=True,
         )
-    # Clean stale ending-soon for vouchers that no longer qualify
+    # Clean stale ending-soon / urgent_expiry for vouchers that no longer qualify
+    keep_voucher_ids = [n["ref_voucher_id"] for n in items if n["kind"] in ("ending_soon", "urgent_expiry")]
     await db.notifications.delete_many(
         {
             "user_pin": user_pin,
-            "kind": "ending_soon",
-            "ref_voucher_id": {"$nin": [n["ref_voucher_id"] for n in items if n["kind"] == "ending_soon"]},
+            "kind": {"$in": ["ending_soon", "urgent_expiry"]},
+            "ref_voucher_id": {"$nin": keep_voucher_ids},
         }
     )
     return items
@@ -1011,6 +1017,34 @@ async def list_notifications(user_pin: str = Query(...)):
             unread += 1
         items.append(d)
     return {"items": items, "unread": unread}
+
+
+# -------- Support / WhatsApp History --------
+class SupportLog(BaseModel):
+    user_pin: str
+    voucher_id: Optional[str] = None
+    brand: Optional[str] = None
+    title: Optional[str] = None
+    code: Optional[str] = None
+    issue: str = "code-not-working"
+    channel: str = "whatsapp"
+
+
+@api.post("/support/log")
+async def log_support(payload: SupportLog):
+    doc = payload.model_dump()
+    doc["created_at"] = datetime.now(timezone.utc).isoformat()
+    res = await db.support_history.insert_one(doc)
+    return {"id": str(res.inserted_id), "logged": True}
+
+
+@api.get("/support/history")
+async def support_history(user_pin: str = Query(...)):
+    cursor = db.support_history.find({"user_pin": user_pin}).sort("created_at", -1).limit(50)
+    return [
+        {**{k: v for k, v in d.items() if k != "_id"}, "id": str(d["_id"])}
+        async for d in cursor
+    ]
 
 
 @api.post("/notifications/{notification_id}/read")

@@ -85,4 +85,8 @@ export const Referrals = {
   stats: (pin) => api.get('/referrals/stats', { params: { user_pin: pin } }).then(r => r.data),
 }
 
+export const Optimizer = {
+  tips: (pin) => api.get('/optimizer/tips', { params: { user_pin: pin } }).then(r => r.data),
+}
+
 export default api

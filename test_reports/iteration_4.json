@@ -1,0 +1,60 @@
+{
+  "summary": "Tested Phase A/B/C feature pass (Trust & Security, Walkthrough+SmartDiscovery, Optimizer/Perk Tips). Backend: 5/5 new pytest tests PASS — /api/optimizer/tips returns {tips:[],total:0} for empty wallet; Tata Neu rules tip with kind=redeem/transfer fires; expiry urgent tip fires for voucher expiring in 5 days; full signup/login/me/logout flow works; /api/auth/wipe deletes user-scoped vouchers and removes user account (subsequent /api/auth/me returns 401 'User not found'). Existing backend pytest suite remains intact. Frontend: full first-launch journey works — Auth signup → PinLock set+confirm → 4-slide Walkthrough (eyebrows tracking/growing/family/safe, Skip tour, Continue×3, Get started) → SmartDiscovery (Paste recent SMS + Maybe later; paste 'Flat Rs 150 off on Swiggy! Code SWIGGY150...' → review → Add to wallet succeeded). Home renders with panic-lock-btn. Profile menu (when opened via JS) shows all required entries: Encrypted badge, Perk Tips + Masterclass tag, Security FAQ, Privacy Control, How we protect you. Perk Tips screen shows 'No tips yet' empty state + data-testid=free-vs-pro comparison card. Security FAQ screen renders with first question expanded by default ('Can you read my bank OTPs?'). Privacy Control screen persists 4 prefs in localStorage perk_orbit_privacy_prefs across reload (smsScanEnabled/cameraScanEnabled/notificationsEnabled/pasteSmsExtractionEnabled). HOWEVER — discovered one CRITICAL UX-blocking overlay bug (see below).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "HomeScreen TopBar / App.jsx panic-lock-btn",
+        "issue": "CRITICAL: The floating panic-lock-btn (fixed top-4 right-4, z-50) completely overlaps the profile-avatar (fixed-positioned at top right, ~y=26 x=330, 40x40). document.elementFromPoint at the avatar's visual center returns 'panic-lock-btn'. Result: every tap a user makes on their avatar fires Lock instead of opening the Profile menu. This blocks the user from reaching Perk Tips, Security FAQ, Privacy Control, How-we-protect modal, Settings, Membership, Family Circle, SMS Auto-Scanner, Support History, Privacy Policy, and Logout via the Profile route. Reproduced by tapping the avatar → app navigates to PIN-unlock screen.",
+        "selector": "[data-testid=\"panic-lock-btn\"] vs [data-testid=\"profile-avatar\"]",
+        "priority": "CRITICAL"
+      },
+      {
+        "component": "PrivacyControlScreen toggles",
+        "issue": "Toggles do NOT expose role=\"switch\" / aria-checked, making them invisible to assistive tech and to standard a11y-based testing selectors. Functionality works (localStorage persists), but consider adding role=\"switch\" + aria-checked or using a proper Switch primitive.",
+        "selector": "PrivacyControlScreen.jsx toggle buttons",
+        "priority": "MEDIUM"
+      },
+      {
+        "component": "SecurityFAQScreen collapsibles",
+        "issue": "FAQ question buttons do not expose aria-expanded — a11y miss. Functionality verified (first question 'Can you read my bank OTPs?' shows expanded, others collapsed with chevrons).",
+        "selector": "SecurityFAQScreen.jsx",
+        "priority": "LOW"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "HomeScreen top-right cluster", "issues": ["panic-lock-btn (white circle, lock icon) sits directly on top of profile-avatar (green M circle) — visually you can see both, but the lock button shifted +4px right and -12px up creates a confusing dual-control area where the lock dominates the tap target."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_optimizer_and_auth_wipe.py",
+    "/app/test_reports/pytest/pytest_optimizer_wipe.xml",
+    "/app/backend/tests/test_perk_orbit.py"
+  ],
+  "action_items": [
+    "CRITICAL: Move panic-lock-btn so it does NOT overlap profile-avatar. Options: (a) place panic-lock-btn at top-LEFT (top-4 left-4) since the bell+avatar already occupy top-right; (b) move it below the TopBar (e.g. fixed bottom-24 right-4 above BottomNav); or (c) integrate it INTO the TopBar as a sibling button beside the bell, with sufficient gap. Until fixed, end users cannot reach the Profile menu and therefore cannot reach Perk Tips, Security FAQ, Privacy Control, Settings, etc.",
+    "Add role=\"switch\" + aria-checked to PrivacyControlScreen toggle buttons (a11y).",
+    "Add aria-expanded on SecurityFAQScreen question buttons (a11y)."
+  ],
+  "critical_code_review_comments": [
+    "App.jsx panic-lock-btn z-index/position collides with TopBar avatar — both `fixed top-4 right-4`. Position one of them differently.",
+    "optimizer.py is clean and well-structured; _rule_for() loose-match logic is reasonable. Consider tightening: when key='hdfc' and brand='HDFC Diners' it still matches via substring — fine for now.",
+    "auth_intel.wipe_all_data does not delete documents whose user_pin is the legacy short PIN (e.g. '1234') if the account was created with pin_to_claim — it relies on uid matching. Should also wipe by referrer_pin/referee_pin AND by any stored user_pin equal to user['email'] or original pin if persisted. Currently relies on _bind_legacy_pin having migrated them, which is fine if signup was used.",
+    "PrivacyControlScreen toggles missing role=switch / aria-checked (a11y miss).",
+    "SecurityFAQScreen question buttons missing aria-expanded (a11y miss)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_optimizer_and_auth_wipe.py (new)"
+  ],
+  "success_rate": {"backend": "100% (5/5 new + existing suite intact)", "frontend": "~85% (all screens render and integrate correctly; one CRITICAL overlay bug blocks the Profile menu via touch)"},
+  "test_credentials": "Brand-new accounts created per run: e2e-{ts}@perkorbit.app / test1234. PIN '1234' set on first launch. Existing cloud account test@perkorbit.app / Perk@1234 also valid.",
+  "seed_data_creation": "Created throwaway accounts e2e-1781694xxx@perkorbit.app during UI run; wipe-test account deleted itself via /api/auth/wipe. A few TEST_-prefixed vouchers were created and deleted during backend tests.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Re-test focus after fix: tap profile-avatar with REAL click (not force=True / not JS .click()) on a fresh mobile viewport (390x844). Verify avatar opens the dropdown menu (Membership, Perk Tips, Family Circle, Settings, Lock app, etc.) instead of triggering Lock. Also re-verify panic-lock-btn still works after relocation. Backend regression: `pytest backend/tests/ -v --junitxml=/app/test_reports/pytest/pytest_results.xml` should be 23/23 (18 existing + 5 new). For LLM-fallback path in optimizer, pass use_llm_fallback=true and brand='Croma' (unknown brand) — that branch is untested here to avoid LLM latency. Walkthrough only triggers when localStorage 'perk_orbit_tour_done' != '1' AND user just completed PIN set — use a fresh browser context or call page.evaluate localStorage.clear() before navigation.",
+  "rca of the issue": "PANIC-LOCK OVERLAY BUG ROOT CAUSE: App.jsx renders a global `<button data-testid=\"panic-lock-btn\" className=\"fixed top-4 right-4 z-50 ...\">` near the bottom of the App component. The HomeScreen TopBar also positions the profile avatar at top-right via flex layout, but at the same visual coordinates. document.elementFromPoint(350, 46) returns panic-lock-btn (z-50 wins). Reproduction: 1) Sign up fresh account, 2) Set PIN, 3) Skip tour, 4) Skip discovery, 5) On Home, tap green 'M' avatar in top-right corner → app navigates to PIN-unlock screen ('Welcome back, Enter your PIN'). Mitigation: Move panic-lock-btn to top-left (top-4 left-4) — that corner is empty. Quick fix is a 4-character change in App.jsx where panic-lock-btn className includes 'right-4' → change to 'left-4'."
+}

@@ -3,6 +3,11 @@ import { Home, Ticket, Coins, Users, ChevronRight, Search, Plus, Sparkles, Copy,
 import { Card, GhostButton, PrimaryButton, ProgressBar, Sheet, Tag, TopBar, Shell, Empty, Toast } from './components/ui'
 import PinLock from './screens/PinLock'
 import AuthScreen from './screens/AuthScreen'
+import Walkthrough from './screens/Walkthrough'
+import SmartDiscoveryScreen from './screens/SmartDiscoveryScreen'
+import PerkTipsScreen from './screens/PerkTipsScreen'
+import SecurityFAQScreen from './screens/SecurityFAQScreen'
+import PrivacyControlScreen from './screens/PrivacyControlScreen'
 import { Auth, Vouchers, Points, Memberships, Search as SearchApi, Extract, Circle, Membership, Notifications, Referrals, Support } from './lib/api'
 import { getStoredPin, setStoredPin, getProfile, setProfile } from './lib/store'
 import { openRazorpayCheckout } from './lib/razorpay'
@@ -96,6 +101,13 @@ function ProfileMenu({ open, onClose, onNavigate, memberStatus }) {
           </div>
           {memberStatus?.active ? <Tag tone="gold">Active</Tag> : <Tag tone="neutral">₹99</Tag>}
         </button>
+        <button data-testid="menu-perk-tips" onClick={() => { onNavigate('perk-tips'); onClose() }} className="w-full flex items-center justify-between gap-3 px-5 py-3.5 hover:bg-ink-50">
+          <div className="flex items-center gap-3">
+            <Sparkles className="w-4 h-4 text-emerald-700" />
+            <span className="text-sm font-semibold text-ink-800">Perk Tips</span>
+          </div>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">Masterclass</span>
+        </button>
         <button data-testid="menu-circle" onClick={() => { onNavigate('circle'); onClose() }} className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-ink-50">
           <UserPlus className="w-4 h-4 text-ink-700" />
           <span className="text-sm font-semibold text-ink-800">Family Circle</span>
@@ -115,6 +127,14 @@ function ProfileMenu({ open, onClose, onNavigate, memberStatus }) {
         <button data-testid="menu-protect" onClick={() => { onNavigate('protect'); onClose() }} className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-ink-50">
           <ShieldCheck className="w-4 h-4 text-emerald-800" />
           <span className="text-sm font-semibold text-ink-800">How we protect you</span>
+        </button>
+        <button data-testid="menu-faq" onClick={() => { onNavigate('faq'); onClose() }} className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-ink-50">
+          <MessageCircle className="w-4 h-4 text-ink-700" />
+          <span className="text-sm font-semibold text-ink-800">Security FAQ</span>
+        </button>
+        <button data-testid="menu-privacy-control" onClick={() => { onNavigate('privacy-control'); onClose() }} className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-ink-50">
+          <Lock className="w-4 h-4 text-ink-700" />
+          <span className="text-sm font-semibold text-ink-800">Privacy Control</span>
         </button>
         <button data-testid="menu-settings" onClick={() => { onNavigate('settings'); onClose() }} className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-ink-50">
           <SettingsIcon className="w-4 h-4 text-ink-700" />
@@ -784,6 +804,10 @@ function AddVoucherSheet({ open, onClose, pin, onSaved, toast }) {
       {mode === 'sms' ? (
         <div className="space-y-3">
           <p className="text-xs text-ink-500">Paste a promotional SMS, or <span className="font-semibold text-emerald-800">paste many at once</span> separated by a blank line — we'll save them all in one go.</p>
+          <div className="flex items-start gap-2 bg-emerald-50 border border-emerald-200 rounded-2xl p-2.5" data-testid="add-sms-secure-note">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-800 mt-0.5 shrink-0" />
+            <p className="text-[11px] text-emerald-900 leading-relaxed">Your SMS data is processed securely and is never stored on external servers. We only extract the voucher fields.</p>
+          </div>
           <textarea data-testid="sms-input" value={smsText} onChange={(e) => setSmsText(e.target.value)} rows={8}
             className="w-full bg-ink-50 border border-ink-200 rounded-2xl p-3 text-sm placeholder:text-ink-400"
             placeholder={'Flat ₹150 off on Swiggy! Code SWIGGY150 by 25 Nov.\n\nMyntra Bonanza — 20% off, code MYNTRA20, till 30 Nov.'} />
@@ -795,6 +819,10 @@ function AddVoucherSheet({ open, onClose, pin, onSaved, toast }) {
       ) : mode === 'scan' ? (
         <div className="space-y-3">
           <p className="text-xs text-ink-500">Snap or upload a screenshot of a coupon, gift card or membership card. We extract details using AI.</p>
+          <div className="flex items-start gap-2 bg-emerald-50 border border-emerald-200 rounded-2xl p-2.5" data-testid="add-camera-secure-note">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-800 mt-0.5 shrink-0" />
+            <p className="text-[11px] text-emerald-900 leading-relaxed">Why we need this: AI reads the image once to extract brand, code, and expiry. The image is <span className="font-bold">not retained</span> on our servers.</p>
+          </div>
           <label data-testid="scan-upload" className="block border-2 border-dashed border-ink-200 rounded-2xl p-6 text-center cursor-pointer hover:border-emerald-700 transition">
             <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImage(e.target.files?.[0])} />
             {imagePreview ? (
@@ -1219,7 +1247,7 @@ function ProfilePage({ onBack }) {
   )
 }
 
-function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpenPrivacy, onWipe, onLogout, toast }) {
+function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpenPrivacy, onOpenFAQ, onOpenPrivacyControl, onOpenPerkTips, onReplayTour, onWipe, onLogout, toast }) {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [confirmText, setConfirmText] = useState('')
   const [busy, setBusy] = useState(false)
@@ -1267,8 +1295,28 @@ function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpenPrivacy, onWipe
             <span className="text-sm text-ink-800 inline-flex items-center gap-2"><FileText className="w-4 h-4 text-ink-700" /> Privacy Policy</span>
             <ChevronRight className="w-4 h-4 text-ink-400" />
           </button>
+          <button data-testid="settings-faq" onClick={onOpenFAQ} className="w-full flex items-center justify-between py-3 border-b border-ink-100">
+            <span className="text-sm text-ink-800 inline-flex items-center gap-2"><MessageCircle className="w-4 h-4 text-ink-700" /> Security FAQ</span>
+            <ChevronRight className="w-4 h-4 text-ink-400" />
+          </button>
+          <button data-testid="settings-privacy-control" onClick={onOpenPrivacyControl} className="w-full flex items-center justify-between py-3 border-b border-ink-100">
+            <span className="text-sm text-ink-800 inline-flex items-center gap-2"><Lock className="w-4 h-4 text-ink-700" /> Privacy Control</span>
+            <ChevronRight className="w-4 h-4 text-ink-400" />
+          </button>
           <button data-testid="settings-protect" onClick={onOpenProtect} className="w-full flex items-center justify-between py-3">
             <span className="text-sm text-ink-800 inline-flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-emerald-800" /> How we protect you</span>
+            <ChevronRight className="w-4 h-4 text-ink-400" />
+          </button>
+        </Card>
+
+        <Card className="p-5">
+          <p className="font-display font-bold text-ink-900 mb-2">Features</p>
+          <button data-testid="settings-perk-tips" onClick={onOpenPerkTips} className="w-full flex items-center justify-between py-3 border-b border-ink-100">
+            <span className="text-sm text-ink-800 inline-flex items-center gap-2"><Sparkles className="w-4 h-4 text-emerald-700" /> Perk Tips · Masterclass</span>
+            <ChevronRight className="w-4 h-4 text-ink-400" />
+          </button>
+          <button data-testid="settings-replay-tour" onClick={onReplayTour} className="w-full flex items-center justify-between py-3">
+            <span className="text-sm text-ink-800 inline-flex items-center gap-2"><Sparkles className="w-4 h-4 text-emerald-700" /> Take the tour again</span>
             <ChevronRight className="w-4 h-4 text-ink-400" />
           </button>
         </Card>
@@ -1433,7 +1481,7 @@ function MembershipPage({ onBack, pin, status, refresh, toast, online = true }) 
 
   return (
     <>
-      <TopBar title="Membership" onBack={onBack} />
+      <TopBar title="Membership" onBack={onBack} right={<span data-testid="membership-encrypted-badge" className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5"><ShieldCheck className="w-3 h-3" /> Secure</span>} />
       <main className="px-5 space-y-4">
         {status?.active ? (
           <>
@@ -1860,6 +1908,8 @@ export default function App() {
   const [unread, setUnread] = useState(0)
   const [online, setOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true)
   const [protectOpen, setProtectOpen] = useState(false)
+  const [tourDone, setTourDone] = useState(() => localStorage.getItem('perk_orbit_tour_done') === '1')
+  const [discoveryDone, setDiscoveryDone] = useState(() => localStorage.getItem('perk_orbit_discovery_done') === '1')
 
   // Online / offline detection
   useEffect(() => {
@@ -1943,6 +1993,27 @@ export default function App() {
     return <PinLock mode="verify" expected={pin} onSuccess={() => setLocked(false)} />
   }
 
+  // First-launch walkthrough (after PIN setup, before HomeScreen)
+  if (!tourDone) {
+    return <Walkthrough onComplete={() => { localStorage.setItem('perk_orbit_tour_done', '1'); setTourDone(true) }} />
+  }
+
+  // Smart Discovery — pre-fill the wallet using SMS scan / paste
+  if (!discoveryDone) {
+    return (
+      <Shell>
+        <SmartDiscoveryScreen
+          pin={authUser?.id || pin}
+          toast={(m) => { setToastMsg(m); setTimeout(() => setToastMsg(''), 2200) }}
+          onOpenProtect={() => setProtectOpen(true)}
+          onComplete={() => { localStorage.setItem('perk_orbit_discovery_done', '1'); setDiscoveryDone(true) }}
+        />
+        <HowWeProtectYouModal open={protectOpen} onClose={() => setProtectOpen(false)} />
+        <Toast message={toastMsg} />
+      </Shell>
+    )
+  }
+
   // After auth: use user's id as canonical scope (cloud sync). Legacy PIN data
   // was migrated via signup's pin_to_claim. PIN remains as device-unlock.
   const effectivePin = authUser?.id || pin
@@ -1957,6 +2028,10 @@ export default function App() {
     if (where === 'support') push('support')
     if (where === 'privacy') push('privacy')
     if (where === 'protect') setProtectOpen(true)
+    if (where === 'perk-tips') push('perk-tips')
+    if (where === 'faq') push('faq')
+    if (where === 'privacy-control') push('privacy-control')
+    if (where === 'replay-tour') { localStorage.removeItem('perk_orbit_tour_done'); setTourDone(false) }
   }
 
   const handleLogout = async () => {
@@ -2009,6 +2084,10 @@ export default function App() {
             onResetPin={() => { setStoredPin(null); setPin(null) }}
             onOpenProtect={() => setProtectOpen(true)}
             onOpenPrivacy={() => push('privacy')}
+            onOpenFAQ={() => push('faq')}
+            onOpenPrivacyControl={() => push('privacy-control')}
+            onOpenPerkTips={() => push('perk-tips')}
+            onReplayTour={() => { localStorage.removeItem('perk_orbit_tour_done'); setTourDone(false) }}
             onLogout={handleLogout}
             onWipe={handleWipeComplete}
             toast={toast}
@@ -2037,6 +2116,26 @@ export default function App() {
         {current.screen === 'sms-scanner' && (<SmsScannerScreen onBack={pop} pin={effectivePin} toast={toast} onSaved={() => setRefreshKey(k => k + 1)} onOpenProtect={() => setProtectOpen(true)} />)}
         {current.screen === 'support' && (<SupportHistoryScreen onBack={pop} pin={effectivePin} />)}
         {current.screen === 'privacy' && (<PrivacyScreen onBack={pop} onOpenProtect={() => setProtectOpen(true)} />)}
+        {current.screen === 'perk-tips' && (
+          <PerkTipsScreen
+            onBack={pop}
+            pin={effectivePin}
+            isPro={!!memberStatus?.active}
+            onUpgrade={() => push('membership')}
+          />
+        )}
+        {current.screen === 'faq' && (
+          <SecurityFAQScreen onBack={pop} onOpenProtect={() => setProtectOpen(true)} />
+        )}
+        {current.screen === 'privacy-control' && (
+          <PrivacyControlScreen
+            onBack={pop}
+            onOpenProtect={() => setProtectOpen(true)}
+            onOpenFAQ={() => push('faq')}
+            onOpenPrivacy={() => push('privacy')}
+            onWipeOpen={() => push('settings')}
+          />
+        )}
       </div>
 
       <HowWeProtectYouModal open={protectOpen} onClose={() => setProtectOpen(false)} />
@@ -2059,6 +2158,17 @@ export default function App() {
 
       <Toast message={toastMsg} />
       {isTab && <BottomNav active={current.screen} onChange={switchTab} />}
+      {/* Panic Lock floating button — always available */}
+      <button
+        data-testid="panic-lock-btn"
+        onClick={() => { setLocked(true); setStack([{ screen: 'home' }]) }}
+        aria-label="Lock app"
+        title="Lock app instantly"
+        className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full bg-white/90 backdrop-blur border border-ink-200 shadow-card grid place-items-center text-emerald-800 hover:bg-emerald-50 active:scale-90 transition"
+        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 14px)' }}
+      >
+        <Lock className="w-4 h-4" />
+      </button>
     </Shell>
   )
 }

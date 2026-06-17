@@ -122,3 +122,16 @@ export function Toast({ message }) {
     </div>
   )
 }
+
+export function OfflineBanner({ online }) {
+  if (online) return null
+  return (
+    <div data-testid="offline-banner" className="fixed top-0 left-1/2 -translate-x-1/2 z-[90] w-full max-w-md px-3 pt-3 page-enter">
+      <div className="rounded-2xl bg-terracotta-700 text-white px-4 py-2.5 shadow-card flex items-center gap-2.5">
+        <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+        <p className="text-xs font-semibold leading-tight">You're offline · आप ऑफलाइन हैं</p>
+        <span className="ml-auto text-[10px] text-white/70 font-medium">Some features paused</span>
+      </div>
+    </div>
+  )
+}

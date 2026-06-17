@@ -2,11 +2,13 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Home, Ticket, Coins, Users, ChevronRight, Search, Plus, Sparkles, Copy, Clock, Share2, BadgeCheck, ArrowLeft, X, ScanLine, MessageSquareText, KeyRound, Trash2, Star, ShieldCheck, Camera, LinkIcon, UserPlus, Settings as SettingsIcon, LogOut, ChevronDown, Bell } from 'lucide-react'
 import { Card, GhostButton, PrimaryButton, ProgressBar, Sheet, Tag, TopBar, Shell, Empty, Toast } from './components/ui'
 import PinLock from './screens/PinLock'
-import { Vouchers, Points, Memberships, Search as SearchApi, Extract, Circle, Membership, Notifications } from './lib/api'
+import { Vouchers, Points, Memberships, Search as SearchApi, Extract, Circle, Membership, Notifications, Referrals } from './lib/api'
 import { getStoredPin, setStoredPin, getProfile, setProfile } from './lib/store'
 import { openRazorpayCheckout } from './lib/razorpay'
+import { OfflineBanner } from './components/ui'
 
 const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID
+const WA_SUPPORT_NUMBER = '919999999999' // Perk Orbit support — replace with real number
 
 // ---------- Helpers ----------
 function daysUntil(iso) {
@@ -104,6 +106,13 @@ function ProfileMenu({ open, onClose, onNavigate, memberStatus }) {
 }
 
 // ---------- Voucher Card ----------
+function buildWaHelpUrl(v) {
+  const text = encodeURIComponent(
+    `Hi Perk Orbit support — I need help with this voucher:\n\n• Brand: ${v.brand || '—'}\n• Title: ${v.title || '—'}\n• Code: ${v.code || '—'}\n• Issue: This code is not working / I cannot redeem it.\n\nPlease assist.`
+  )
+  return `https://wa.me/${WA_SUPPORT_NUMBER}?text=${text}`
+}
+
 function VoucherCard({ v, onCopy, onHowTo, onDelete, onShare, onUnshare }) {
   const dleft = daysUntil(v.expiry)
   const endingSoon = dleft != null && dleft <= 7 && dleft >= 0
@@ -144,6 +153,16 @@ function VoucherCard({ v, onCopy, onHowTo, onDelete, onShare, onUnshare }) {
         <button data-testid={`share-${v.id}`} onClick={() => v.is_sharing ? onUnshare(v) : onShare(v)} className="text-xs font-semibold text-ink-700 bg-ink-100 hover:bg-ink-200 py-2 px-3 rounded-full active:scale-95 transition flex items-center justify-center">
           <Share2 className="w-3.5 h-3.5" />
         </button>
+        <a
+          data-testid={`wa-help-${v.id}`}
+          href={buildWaHelpUrl(v)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 py-2 px-3 rounded-full active:scale-95 transition flex items-center justify-center"
+          title="Get help on WhatsApp"
+        >
+          <MessageSquareText className="w-3.5 h-3.5" />
+        </a>
         <button data-testid={`delete-${v.id}`} onClick={() => onDelete(v)} className="text-xs font-semibold text-terracotta-700 bg-terracotta-50 hover:bg-terracotta-50 py-2 px-3 rounded-full active:scale-95 transition flex items-center justify-center">
           <Trash2 className="w-3.5 h-3.5" />
         </button>
@@ -248,21 +267,53 @@ function AddVoucherSheet({ open, onClose, pin, onSaved, toast }) {
   const handleSmsExtract = async () => {
     if (!smsText.trim()) return
     setBusy(true)
+    // Split into chunks separated by blank lines or "---" so users can paste many SMS at once
+    const chunks = smsText
+      .split(/\n\s*\n|---+/)
+      .map(s => s.trim())
+      .filter(s => s.length > 10)
     try {
-      const data = await Extract.sms(smsText)
-      setForm(f => ({
-        ...f,
-        brand: data.brand || f.brand,
-        title: data.title || f.title,
-        code: data.code || f.code,
-        value: data.value || f.value,
-        expiry: data.expiry || f.expiry,
-        category: data.category || f.category,
-        membership_kind: data.membership_kind || f.membership_kind,
-        how_to_redeem: data.how_to_redeem || f.how_to_redeem,
-      }))
-      setMode('manual')
-      toast('Extracted from SMS')
+      if (chunks.length <= 1) {
+        const data = await Extract.sms(smsText)
+        setForm(f => ({
+          ...f,
+          brand: data.brand || f.brand,
+          title: data.title || f.title,
+          code: data.code || f.code,
+          value: data.value || f.value,
+          expiry: data.expiry || f.expiry,
+          category: data.category || f.category,
+          membership_kind: data.membership_kind || f.membership_kind,
+          how_to_redeem: data.how_to_redeem || f.how_to_redeem,
+        }))
+        setMode('manual')
+        toast('Extracted from SMS')
+      } else {
+        // Bulk: extract each chunk and save directly
+        let saved = 0
+        for (const chunk of chunks) {
+          try {
+            const data = await Extract.sms(chunk)
+            if (data?.brand && data?.title) {
+              await Vouchers.create({
+                user_pin: pin,
+                type: data.category === 'memberships' ? 'membership' : 'voucher',
+                brand: data.brand,
+                title: data.title,
+                code: data.code || null,
+                value: data.value || null,
+                expiry: data.expiry || null,
+                category: data.category || 'vouchers',
+                membership_kind: data.membership_kind || null,
+                how_to_redeem: data.how_to_redeem || null,
+              })
+              saved++
+            }
+          } catch { /* skip this chunk */ }
+        }
+        toast(`Saved ${saved} of ${chunks.length} vouchers`)
+        reset(); onClose(); onSaved?.()
+      }
     } catch (e) {
       toast('Could not parse SMS')
     } finally { setBusy(false) }
@@ -311,10 +362,10 @@ function AddVoucherSheet({ open, onClose, pin, onSaved, toast }) {
 
       {mode === 'sms' ? (
         <div className="space-y-3">
-          <p className="text-xs text-ink-500">Paste a promotional SMS or email text. AI will pre-fill voucher fields.</p>
-          <textarea data-testid="sms-input" value={smsText} onChange={(e) => setSmsText(e.target.value)} rows={6}
+          <p className="text-xs text-ink-500">Paste a promotional SMS, or <span className="font-semibold text-emerald-800">paste many at once</span> separated by a blank line — we'll save them all in one go.</p>
+          <textarea data-testid="sms-input" value={smsText} onChange={(e) => setSmsText(e.target.value)} rows={8}
             className="w-full bg-ink-50 border border-ink-200 rounded-2xl p-3 text-sm placeholder:text-ink-400"
-            placeholder="e.g., Flat ₹150 off on Swiggy! Use code SWIGGY150 by 25 Nov..." />
+            placeholder={'Flat ₹150 off on Swiggy! Code SWIGGY150 by 25 Nov.\n\nMyntra Bonanza — 20% off, code MYNTRA20, till 30 Nov.'} />
           <PrimaryButton data-testid="sms-extract" onClick={handleSmsExtract} disabled={busy || !smsText.trim()}>
             <Sparkles className="w-4 h-4" />
             {busy ? 'Extracting…' : 'Extract details'}
@@ -745,8 +796,21 @@ function SettingsPage({ onBack, onResetPin }) {
   )
 }
 
-function MembershipPage({ onBack, pin, status, refresh, toast }) {
+function MembershipPage({ onBack, pin, status, refresh, toast, online = true }) {
   const [busy, setBusy] = useState(false)
+  const [refInput, setRefInput] = useState('')
+  const [refPreview, setRefPreview] = useState(null)
+  const [stats, setStats] = useState({ total_referrals: 0, bonus_days_earned: 0 })
+
+  useEffect(() => { Referrals.stats(pin).then(setStats).catch(() => {}) }, [pin, status?.active])
+
+  useEffect(() => {
+    if (!refInput.trim() || refInput.length < 6) { setRefPreview(null); return }
+    const id = setTimeout(() => {
+      Referrals.preview(refInput.trim()).then(setRefPreview).catch(() => setRefPreview(null))
+    }, 250)
+    return () => clearTimeout(id)
+  }, [refInput])
 
   const startCheckout = async () => {
     setBusy(true)
@@ -765,14 +829,19 @@ function MembershipPage({ onBack, pin, status, refresh, toast }) {
         },
         onSuccess: async (resp) => {
           try {
-            await Membership.verifyPayment({
+            const result = await Membership.verifyPayment({
               user_pin: pin,
               razorpay_order_id: resp.razorpay_order_id,
               razorpay_payment_id: resp.razorpay_payment_id,
               razorpay_signature: resp.razorpay_signature,
+              referral_code: refPreview?.valid ? refInput.trim().toUpperCase() : undefined,
             })
             await refresh()
-            toast('Welcome to Perk Orbit Pro!')
+            if (result.referral?.applied) {
+              toast(`Welcome to Pro! +${result.referral.bonus_days} bonus days applied`)
+            } else {
+              toast('Welcome to Perk Orbit Pro!')
+            }
           } catch (e) {
             toast('Payment verification failed')
           } finally { setBusy(false) }
@@ -788,7 +857,11 @@ function MembershipPage({ onBack, pin, status, refresh, toast }) {
 
   const shareRef = async () => {
     const link = `https://perkorbit.app/?ref=${status?.referral_code}`
-    try { await navigator.clipboard.writeText(link); toast('Referral link copied') } catch { toast('Copy failed') }
+    const text = `Join me on Perk Orbit — India's voucher-first wallet. Use my code ${status?.referral_code} when you upgrade to Pro and get 1 month FREE on top of your 6-month plan (I get 1 month free too 🎁): ${link}`
+    try {
+      if (navigator.share) { await navigator.share({ title: 'Perk Orbit Pro', text }) }
+      else { await navigator.clipboard.writeText(text); toast('Referral message copied') }
+    } catch { toast('Share cancelled') }
   }
 
   return (
@@ -796,39 +869,84 @@ function MembershipPage({ onBack, pin, status, refresh, toast }) {
       <TopBar title="Membership" onBack={onBack} />
       <main className="px-5 space-y-4">
         {status?.active ? (
-          <Card className="p-6 bg-gradient-to-br from-gold-500 to-gold-600 text-white border-gold-500 relative overflow-hidden">
-            <div className="absolute -top-10 -right-12 w-44 h-44 rounded-full bg-white/15 blur-2xl" />
-            <div className="flex items-center gap-2 mb-2"><Star className="w-4 h-4" /><span className="text-[10px] uppercase tracking-[0.18em] font-bold">Active</span></div>
-            <p className="font-display text-2xl font-bold leading-tight">{status.plan}</p>
-            <p className="text-sm text-white/85 mt-1">Renews on {fmtDate(status.expires_at)}</p>
-            <div className="mt-4 pt-4 border-t border-white/20">
-              <p className="text-[10px] uppercase tracking-wider font-bold text-white/80">Referral code</p>
-              <div className="mt-1 flex items-center justify-between gap-2">
-                <code className="font-mono font-bold text-lg">{status.referral_code}</code>
-                <button data-testid="share-referral" onClick={shareRef} className="bg-white/15 hover:bg-white/25 text-xs font-semibold px-3 py-2 rounded-full inline-flex items-center gap-1"><LinkIcon className="w-3.5 h-3.5" /> Share link</button>
+          <>
+            <Card className="p-6 bg-gradient-to-br from-gold-500 to-gold-600 text-white border-gold-500 relative overflow-hidden">
+              <div className="absolute -top-10 -right-12 w-44 h-44 rounded-full bg-white/15 blur-2xl" />
+              <div className="flex items-center gap-2 mb-2"><Star className="w-4 h-4" /><span className="text-[10px] uppercase tracking-[0.18em] font-bold">Active</span></div>
+              <p className="font-display text-2xl font-bold leading-tight">{status.plan}</p>
+              <p className="text-sm text-white/85 mt-1">Renews on {fmtDate(status.expires_at)}</p>
+              <div className="mt-4 pt-4 border-t border-white/20">
+                <p className="text-[10px] uppercase tracking-wider font-bold text-white/80">Your referral code</p>
+                <div className="mt-1 flex items-center justify-between gap-2">
+                  <code className="font-mono font-bold text-lg" data-testid="my-referral-code">{status.referral_code}</code>
+                  <button data-testid="share-referral" onClick={shareRef} className="bg-white/15 hover:bg-white/25 text-xs font-semibold px-3 py-2 rounded-full inline-flex items-center gap-1"><LinkIcon className="w-3.5 h-3.5" /> Share & earn</button>
+                </div>
+                <p className="text-[11px] text-white/85 mt-3 leading-relaxed">
+                  🎁 Refer a friend → both of you get <span className="font-bold">+1 month</span> FREE on Perk Orbit Pro.
+                </p>
               </div>
-            </div>
-          </Card>
+            </Card>
+
+            <Card className="p-5">
+              <p className="text-[11px] uppercase tracking-wider font-bold text-ink-500">Your referral impact</p>
+              <div className="mt-2 flex items-end gap-6">
+                <div>
+                  <p className="font-display text-3xl font-bold text-emerald-800 leading-none" data-testid="ref-total">{stats.total_referrals}</p>
+                  <p className="text-[11px] text-ink-500 mt-1">friends joined</p>
+                </div>
+                <div>
+                  <p className="font-display text-3xl font-bold text-gold-600 leading-none" data-testid="ref-bonus">+{stats.bonus_days_earned}d</p>
+                  <p className="text-[11px] text-ink-500 mt-1">bonus days earned</p>
+                </div>
+              </div>
+            </Card>
+          </>
         ) : (
-          <Card className="p-6 bg-gradient-to-br from-ink-900 to-emerald-900 text-white border-ink-800 relative overflow-hidden">
-            <div className="absolute -top-10 -right-12 w-44 h-44 rounded-full bg-gold-500/20 blur-2xl" />
-            <div className="flex items-center gap-2 mb-2"><Star className="w-4 h-4 text-gold-400" /><span className="text-[10px] uppercase tracking-[0.18em] font-bold text-gold-100">Perk Orbit Pro</span></div>
-            <p className="font-display text-2xl font-bold leading-tight">₹99 for 6 months</p>
-            <ul className="mt-4 space-y-2 text-sm">
-              {['Unlimited voucher storage', 'AI scan & SMS extract', 'Family Circle sharing', 'Membership ROI tracker', 'Smart expiry alerts'].map(t => (
-                <li key={t} className="flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-gold-300" /> {t}</li>
-              ))}
-            </ul>
-            <PrimaryButton data-testid="activate-pro" onClick={startCheckout} disabled={busy} className="mt-5 bg-gold-500 hover:bg-gold-600 shadow-none">
-              {busy ? 'Opening checkout…' : 'Pay ₹99 with Razorpay'}
-            </PrimaryButton>
-            <p className="text-center text-[10px] text-white/60 mt-3">Razorpay test mode · UPI / Card / NetBanking</p>
-          </Card>
+          <>
+            <Card className="p-6 bg-gradient-to-br from-ink-900 to-emerald-900 text-white border-ink-800 relative overflow-hidden">
+              <div className="absolute -top-10 -right-12 w-44 h-44 rounded-full bg-gold-500/20 blur-2xl" />
+              <div className="flex items-center gap-2 mb-2"><Star className="w-4 h-4 text-gold-400" /><span className="text-[10px] uppercase tracking-[0.18em] font-bold text-gold-100">Perk Orbit Pro</span></div>
+              <p className="font-display text-2xl font-bold leading-tight">₹99 for 6 months</p>
+              <ul className="mt-4 space-y-2 text-sm">
+                {['Unlimited voucher storage', 'AI scan & SMS extract', 'Family Circle sharing', 'Membership ROI tracker', 'Smart expiry alerts'].map(t => (
+                  <li key={t} className="flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-gold-300" /> {t}</li>
+                ))}
+              </ul>
+              <PrimaryButton data-testid="activate-pro" onClick={startCheckout} disabled={busy || !online} className="mt-5 bg-gold-500 hover:bg-gold-600 shadow-none">
+                {busy ? 'Opening checkout…' : online ? 'Pay ₹99 with Razorpay' : 'Offline · reconnect to pay'}
+              </PrimaryButton>
+              <p className="text-center text-[10px] text-white/60 mt-3">Razorpay test mode · UPI / Card / NetBanking</p>
+            </Card>
+
+            <Card className="p-5">
+              <label className="text-[11px] font-bold text-ink-500 uppercase tracking-wider">Have a referral code?</label>
+              <input
+                data-testid="referral-input"
+                value={refInput}
+                onChange={(e) => setRefInput(e.target.value.toUpperCase())}
+                placeholder="e.g. PERK-09092A"
+                className="mt-1.5 w-full bg-ink-50 border border-ink-200 rounded-2xl px-3 py-3 text-sm font-mono tracking-wider placeholder:text-ink-400"
+              />
+              {refPreview ? (
+                <p data-testid="referral-preview" className={`text-xs mt-2 leading-relaxed ${refPreview.valid ? 'text-emerald-800' : 'text-terracotta-700'}`}>
+                  {refPreview.valid ? '🎁 ' : '⚠️ '}{refPreview.message}
+                </p>
+              ) : (
+                <p className="text-xs text-ink-500 mt-2">Get +30 bonus days when you use a friend's code (they get +30 too).</p>
+              )}
+            </Card>
+          </>
         )}
       </main>
     </>
   )
 }
+
+function _online() {
+  return typeof navigator === 'undefined' || navigator.onLine
+}
+// eslint-disable-next-line no-unused-vars
+const _unused = _online
 
 function CirclePage({ onBack, pin, toast, onOpenMember, onProfileClick }) {
   const [members, setMembers] = useState([])
@@ -1120,6 +1238,19 @@ export default function App() {
   const [refreshKey, setRefreshKey] = useState(0)
   const [notifsOpen, setNotifsOpen] = useState(false)
   const [unread, setUnread] = useState(0)
+  const [online, setOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true)
+
+  // Online / offline detection
+  useEffect(() => {
+    const goOnline = () => { setOnline(true) }
+    const goOffline = () => { setOnline(false) }
+    window.addEventListener('online', goOnline)
+    window.addEventListener('offline', goOffline)
+    return () => {
+      window.removeEventListener('online', goOnline)
+      window.removeEventListener('offline', goOffline)
+    }
+  }, [])
 
   const current = stack[stack.length - 1]
   const isTab = ['home', 'coupons', 'points', 'circle'].includes(current.screen)
@@ -1175,6 +1306,7 @@ export default function App() {
 
   return (
     <Shell>
+      <OfflineBanner online={online} />
       {/* Page content */}
       <div key={current.screen} className="page-enter">
         {current.screen === 'home' && (
@@ -1198,7 +1330,7 @@ export default function App() {
         )}
         {current.screen === 'profile' && (<ProfilePage onBack={pop} />)}
         {current.screen === 'settings' && (<SettingsPage onBack={pop} onResetPin={() => { setStoredPin(null); setPin(null) }} />)}
-        {current.screen === 'membership' && (<MembershipPage onBack={pop} pin={pin} status={memberStatus} refresh={refreshMember} toast={toast} />)}
+        {current.screen === 'membership' && (<MembershipPage onBack={pop} pin={pin} status={memberStatus} refresh={refreshMember} toast={toast} online={online} />)}
         {current.screen === 'circle' && (
           <CirclePage
             onBack={stack.length > 1 ? pop : undefined}

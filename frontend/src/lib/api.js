@@ -54,4 +54,9 @@ export const Notifications = {
   remove: (id) => api.delete(`/notifications/${id}`).then(r => r.data),
 }
 
+export const Referrals = {
+  preview: (code) => api.get('/referrals/preview', { params: { code } }).then(r => r.data),
+  stats: (pin) => api.get('/referrals/stats', { params: { user_pin: pin } }).then(r => r.data),
+}
+
 export default api

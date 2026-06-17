@@ -735,6 +735,7 @@ async def activate_membership(user_pin: str = Query(...)):
 class RzpOrderRequest(BaseModel):
     user_pin: str
     amount_inr: int = 99  # rupees; converted to paise
+    referral_code: Optional[str] = None  # apply a friend's code for bonus
 
 
 class RzpVerifyRequest(BaseModel):
@@ -742,6 +743,68 @@ class RzpVerifyRequest(BaseModel):
     razorpay_order_id: str
     razorpay_payment_id: str
     razorpay_signature: str
+    referral_code: Optional[str] = None
+
+
+REFERRAL_BONUS_DAYS = 30  # both referrer & referee get +30 days
+
+
+async def _apply_referral_bonus(user_pin: str, referral_code: str) -> dict:
+    """If referral_code is valid (belongs to another active member),
+    extend BOTH the referrer's and referee's expiry by REFERRAL_BONUS_DAYS."""
+    if not referral_code:
+        return {"applied": False, "reason": "no code"}
+    code = referral_code.strip().upper()
+    referrer = await db.app_membership.find_one({"referral_code": code, "active": True})
+    if not referrer:
+        return {"applied": False, "reason": "code not found"}
+    if referrer.get("user_pin") == user_pin:
+        return {"applied": False, "reason": "cannot self-refer"}
+
+    bonus = timedelta(days=REFERRAL_BONUS_DAYS).total_seconds()
+    # Track redemption (idempotent — one bonus per (referrer, referee))
+    existing = await db.referrals.find_one({"referrer_pin": referrer["user_pin"], "referee_pin": user_pin})
+    if existing:
+        return {"applied": False, "reason": "already redeemed"}
+
+    await db.referrals.insert_one(
+        {
+            "referrer_pin": referrer["user_pin"],
+            "referee_pin": user_pin,
+            "code": code,
+            "bonus_days": REFERRAL_BONUS_DAYS,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+    )
+    # extend referrer's expiry
+    try:
+        cur_exp = datetime.fromisoformat(referrer["expires_at"])
+    except Exception:
+        cur_exp = datetime.now(timezone.utc)
+    new_exp = (cur_exp + timedelta(days=REFERRAL_BONUS_DAYS)).isoformat()
+    await db.app_membership.update_one(
+        {"user_pin": referrer["user_pin"]}, {"$set": {"expires_at": new_exp}}
+    )
+    # drop a notification for the referrer
+    await db.notifications.insert_one(
+        {
+            "user_pin": referrer["user_pin"],
+            "kind": "referral_bonus",
+            "title": f"Bonus! +{REFERRAL_BONUS_DAYS} days added",
+            "body": f"A friend used your code {code}. Your membership now extends to {fmtdt_short(new_exp)}.",
+            "ref_screen": "membership",
+            "read": False,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+    )
+    return {"applied": True, "bonus_days": REFERRAL_BONUS_DAYS, "referrer_pin": referrer["user_pin"]}
+
+
+def fmtdt_short(iso: str) -> str:
+    try:
+        return datetime.fromisoformat(iso).strftime("%d %b %Y")
+    except Exception:
+        return iso
 
 
 @api.post("/payments/order")
@@ -818,36 +881,46 @@ async def verify_payment(payload: RzpVerifyRequest):
         },
     )
 
-    # Activate membership (6 months)
-    expires = (datetime.now(timezone.utc) + timedelta(days=183)).isoformat()
+    # Activate membership (6 months + optional referee bonus)
+    bonus_days = 0
+    referral_outcome = await _apply_referral_bonus(payload.user_pin, payload.referral_code or "")
+    if referral_outcome.get("applied"):
+        bonus_days = REFERRAL_BONUS_DAYS
+    expires = (
+        datetime.now(timezone.utc) + timedelta(days=183 + bonus_days)
+    ).isoformat()
     ref = f"PERK-{secrets.token_hex(3).upper()}"
     doc = {
         "user_pin": payload.user_pin,
         "active": True,
-        "plan": "Perk Orbit Pro ₹99 / 6 months",
+        "plan": "Perk Orbit Pro ₹99 / 6 months" + (f" (+{bonus_days}d referral bonus)" if bonus_days else ""),
         "expires_at": expires,
         "referral_code": ref,
         "activated_at": datetime.now(timezone.utc).isoformat(),
         "last_payment_id": payload.razorpay_payment_id,
         "last_order_id": payload.razorpay_order_id,
+        "applied_referral": payload.referral_code or None,
     }
     await db.app_membership.update_one(
         {"user_pin": payload.user_pin}, {"$set": doc}, upsert=True
     )
 
     # Drop a notification
+    welcome_body = "Your ₹99 membership is active for 6 months. Tap to view benefits."
+    if bonus_days:
+        welcome_body = f"Your ₹99 membership is active for 6 months + {bonus_days} bonus days from your referral. Tap to view benefits."
     await db.notifications.insert_one(
         {
             "user_pin": payload.user_pin,
             "kind": "membership_activated",
             "title": "Welcome to Perk Orbit Pro",
-            "body": "Your ₹99 membership is active for 6 months. Tap to view benefits.",
+            "body": welcome_body,
             "ref_screen": "membership",
             "read": False,
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
     )
-    return doc
+    return {**doc, "referral": referral_outcome}
 
 
 # -------- Notifications --------
@@ -964,6 +1037,32 @@ async def delete_notification(notification_id: str):
         raise HTTPException(status_code=400, detail="Invalid id")
     await db.notifications.delete_one({"_id": ObjectId(notification_id)})
     return {"ok": True}
+
+
+@api.get("/referrals/preview")
+async def referral_preview(code: str = Query(...)):
+    """Allow the UI to validate a referral code before checkout."""
+    code = code.strip().upper()
+    found = await db.app_membership.find_one({"referral_code": code, "active": True})
+    return {
+        "valid": bool(found),
+        "code": code,
+        "bonus_days": REFERRAL_BONUS_DAYS,
+        "message": (
+            f"Valid code! You'll get +{REFERRAL_BONUS_DAYS} bonus days, and your friend will also get +{REFERRAL_BONUS_DAYS} days."
+            if found
+            else "Invalid or inactive referral code."
+        ),
+    }
+
+
+@api.get("/referrals/stats")
+async def referral_stats(user_pin: str = Query(...)):
+    count = await db.referrals.count_documents({"referrer_pin": user_pin})
+    return {
+        "total_referrals": count,
+        "bonus_days_earned": count * REFERRAL_BONUS_DAYS,
+    }
 
 
 app.include_router(api)

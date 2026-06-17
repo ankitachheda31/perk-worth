@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Home, Ticket, Coins, Users, ChevronRight, Search, Plus, Sparkles, Copy, Clock, Share2, BadgeCheck, ArrowLeft, X, ScanLine, MessageSquareText, KeyRound, Trash2, Star, ShieldCheck, Camera, LinkIcon, UserPlus, Settings as SettingsIcon, LogOut, ChevronDown, Bell, Mic, RefreshCw, ImageDown, LifeBuoy, FileText, MessageCircle, Smartphone } from 'lucide-react'
 import { Card, GhostButton, PrimaryButton, ProgressBar, Sheet, Tag, TopBar, Shell, Empty, Toast } from './components/ui'
 import PinLock from './screens/PinLock'
@@ -96,6 +96,18 @@ function ProfileMenu({ open, onClose, onNavigate, memberStatus }) {
           <UserPlus className="w-4 h-4 text-ink-700" />
           <span className="text-sm font-semibold text-ink-800">Family Circle</span>
         </button>
+        <button data-testid="menu-sms-scanner" onClick={() => { onNavigate('sms-scanner'); onClose() }} className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-ink-50">
+          <Smartphone className="w-4 h-4 text-ink-700" />
+          <span className="text-sm font-semibold text-ink-800">SMS Auto-Scanner</span>
+        </button>
+        <button data-testid="menu-support" onClick={() => { onNavigate('support'); onClose() }} className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-ink-50">
+          <LifeBuoy className="w-4 h-4 text-ink-700" />
+          <span className="text-sm font-semibold text-ink-800">Support History</span>
+        </button>
+        <button data-testid="menu-privacy" onClick={() => { onNavigate('privacy'); onClose() }} className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-ink-50">
+          <FileText className="w-4 h-4 text-ink-700" />
+          <span className="text-sm font-semibold text-ink-800">Privacy Policy</span>
+        </button>
         <button data-testid="menu-settings" onClick={() => { onNavigate('settings'); onClose() }} className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-ink-50">
           <SettingsIcon className="w-4 h-4 text-ink-700" />
           <span className="text-sm font-semibold text-ink-800">Settings</span>
@@ -107,6 +119,220 @@ function ProfileMenu({ open, onClose, onNavigate, memberStatus }) {
         </button>
       </div>
     </div>
+  )
+}
+
+// ---------- SMS Auto-Scanner Screen ----------
+function PtrIndicator({ pullY, refreshing }) {
+  if (!pullY && !refreshing) return null
+  const opacity = refreshing ? 1 : Math.min(1, pullY / 70)
+  return (
+    <div
+      data-testid="ptr-indicator"
+      className="fixed left-1/2 -translate-x-1/2 z-[45] w-9 h-9 rounded-full bg-white border border-ink-200 shadow-card grid place-items-center"
+      style={{ top: `${Math.min(60, 10 + (refreshing ? 40 : pullY * 0.6))}px`, opacity }}
+    >
+      <RefreshCw className={`w-4 h-4 text-emerald-800 ${refreshing ? 'animate-spin' : ''}`} />
+    </div>
+  )
+}
+
+function VoiceMicButton({ onText, lang = 'en-IN' }) {
+  const [listening, setListening] = useState(false)
+  if (!isVoiceSupported) return null
+  const handle = () => {
+    if (listening) return
+    setListening(true)
+    startVoiceRecognition({
+      lang,
+      onResult: (t) => onText(t),
+      onEnd: () => setListening(false),
+      onError: () => setListening(false),
+    })
+  }
+  return (
+    <button
+      data-testid="voice-search-btn"
+      onClick={handle}
+      aria-label="Voice search"
+      className={`absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 grid place-items-center rounded-full transition ${listening ? 'bg-terracotta-600 text-white animate-pulse' : 'bg-ink-100 text-ink-700 hover:bg-ink-200'} active:scale-95`}
+    >
+      <Mic className="w-4 h-4" />
+    </button>
+  )
+}
+
+function SmsScannerScreen({ onBack, pin, toast, onSaved }) {
+  const native = isNativeSmsAvailable()
+  const [perm, setPerm] = useState({ granted: false })
+  const [scanning, setScanning] = useState(false)
+  const [candidates, setCandidates] = useState([]) // [{address, body, extracted}]
+  const [busyId, setBusyId] = useState(null)
+
+  useEffect(() => { if (native) checkSmsPermission().then(setPerm) }, [native])
+
+  const grant = async () => { setPerm(await requestSmsPermission()) }
+
+  const scan = async () => {
+    setScanning(true); setCandidates([])
+    try {
+      const last = getLastScanTs()
+      const list = await readRecentSms({ maxCount: 50, lastDate: last })
+      const filtered = list.filter(s => isLikelyVoucherSms(s.body))
+      // Pre-extract each in parallel (max 5)
+      const out = []
+      for (const sms of filtered.slice(0, 10)) {
+        try {
+          const extracted = await Extract.sms(sms.body)
+          if (extracted?.brand && extracted?.title) {
+            out.push({ ...sms, extracted })
+          }
+        } catch { /* skip */ }
+      }
+      setCandidates(out)
+      setLastScanTs(Date.now())
+      toast(`Scanned · ${out.length} voucher${out.length === 1 ? '' : 's'} detected`)
+    } finally { setScanning(false) }
+  }
+
+  const saveOne = async (c) => {
+    setBusyId(c.body)
+    try {
+      const d = c.extracted
+      await Vouchers.create({
+        user_pin: pin,
+        type: d.category === 'memberships' ? 'membership' : 'voucher',
+        brand: d.brand,
+        title: d.title,
+        code: d.code || null,
+        value: d.value || null,
+        expiry: d.expiry || null,
+        category: d.category || 'vouchers',
+        how_to_redeem: d.how_to_redeem || null,
+      })
+      setCandidates(prev => prev.filter(x => x !== c))
+      toast(`Saved ${d.brand}`)
+      onSaved?.()
+    } catch { toast('Save failed') } finally { setBusyId(null) }
+  }
+
+  return (
+    <>
+      <TopBar title="SMS Auto-Scanner" onBack={onBack} subtitle="Auto-detect vouchers from your inbox" />
+      <main className="px-5 space-y-4">
+        {!native ? (
+          <Card className="p-5 text-center" data-testid="sms-web-fallback">
+            <div className="w-14 h-14 rounded-full bg-ink-100 mx-auto grid place-items-center mb-3 text-ink-500">
+              <Smartphone className="w-6 h-6" />
+            </div>
+            <p className="font-display font-bold text-ink-900">Available on Android app</p>
+            <p className="text-sm text-ink-500 mt-1">Browsers cannot read SMS due to platform security. Install the Perk Orbit Android app from Play Store to enable automatic SMS scanning.</p>
+            <p className="text-xs text-ink-400 mt-3">Meanwhile, use <span className="font-semibold text-emerald-800">Add new → Paste SMS</span> to import multiple SMS at once.</p>
+          </Card>
+        ) : !perm.granted ? (
+          <Card className="p-5">
+            <p className="font-display font-bold text-ink-900">Grant SMS permission</p>
+            <p className="text-sm text-ink-500 mt-1 mb-4">Perk Orbit reads incoming SMS on this device only. SMS contents never leave your phone unless you tap "Save". See our <span className="font-semibold text-emerald-800">Privacy Policy</span> for details.</p>
+            <PrimaryButton data-testid="sms-grant" onClick={grant}><ShieldCheck className="w-4 h-4" /> Allow SMS access</PrimaryButton>
+          </Card>
+        ) : (
+          <>
+            <Card className="p-5 flex items-center justify-between gap-3">
+              <div>
+                <p className="font-display font-bold text-ink-900">Inbox scanner</p>
+                <p className="text-xs text-ink-500 mt-0.5">{scanning ? 'Scanning…' : 'Tap to scan recent SMS for vouchers'}</p>
+              </div>
+              <PrimaryButton data-testid="sms-scan-now" onClick={scan} disabled={scanning} className="w-auto px-5">
+                <ScanLine className="w-4 h-4" /> {scanning ? '…' : 'Scan now'}
+              </PrimaryButton>
+            </Card>
+
+            {candidates.length === 0 && !scanning ? (
+              <Empty title="Nothing new" sub="No voucher-like SMS found since your last scan." icon={<MessageSquareText className="w-6 h-6" />} testid="empty-sms-scan" />
+            ) : (
+              <div className="space-y-2" data-testid="sms-candidate-list">
+                {candidates.map((c, i) => (
+                  <Card key={i} className="p-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="font-display font-bold text-ink-900">{c.extracted.brand}</p>
+                        <p className="text-xs text-ink-500">{c.address}</p>
+                      </div>
+                      {c.extracted.code ? <span className="code-box text-xs">{c.extracted.code}</span> : null}
+                    </div>
+                    <p className="text-sm text-ink-700 mt-2">{c.extracted.title}</p>
+                    {c.extracted.expiry ? <p className="text-[11px] text-ink-500 mt-1">Expires {fmtDate(c.extracted.expiry)}</p> : null}
+                    <div className="flex gap-2 mt-3">
+                      <PrimaryButton data-testid={`sms-save-${i}`} onClick={() => saveOne(c)} disabled={busyId === c.body} className="w-auto px-4">
+                        {busyId === c.body ? 'Saving…' : 'Save to Perk Orbit'}
+                      </PrimaryButton>
+                      <GhostButton onClick={() => setCandidates(prev => prev.filter(x => x !== c))} className="w-auto px-4">Skip</GhostButton>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </main>
+    </>
+  )
+}
+
+// ---------- Support History ----------
+function SupportHistoryScreen({ onBack, pin }) {
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
+  useEffect(() => { Support.history(pin).then(setItems).finally(() => setLoading(false)) }, [pin])
+  return (
+    <>
+      <TopBar title="Support History" onBack={onBack} subtitle="Your WhatsApp Help requests" />
+      <main className="px-5 space-y-3">
+        {loading ? (
+          <div className="space-y-3">{[0,1].map(i => <div key={i} className="h-20 bg-white rounded-3xl border border-ink-200 animate-pulse" />)}</div>
+        ) : items.length === 0 ? (
+          <Empty title="No support requests yet" sub="Tap the WhatsApp icon on any voucher to get help — we'll log it here." icon={<LifeBuoy className="w-6 h-6" />} testid="empty-support" />
+        ) : (
+          <div className="space-y-2" data-testid="support-list">
+            {items.map(s => (
+              <Card key={s.id} className="p-4" data-testid={`support-${s.id}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="font-display font-bold text-ink-900">{s.brand || 'Help request'}</p>
+                    <p className="text-[11px] text-ink-500">{fmtDate(s.created_at)} · via {s.channel}</p>
+                  </div>
+                  <Tag tone="emerald"><MessageCircle className="w-3 h-3 mr-0.5" /> WhatsApp</Tag>
+                </div>
+                {s.title ? <p className="text-xs text-ink-700 mt-1">{s.title}</p> : null}
+                {s.code ? <code className="text-[10px] code-box inline-block mt-2">{s.code}</code> : null}
+              </Card>
+            ))}
+          </div>
+        )}
+      </main>
+    </>
+  )
+}
+
+// ---------- Privacy Policy ----------
+function PrivacyScreen({ onBack }) {
+  return (
+    <>
+      <TopBar title="Privacy Policy" onBack={onBack} />
+      <main className="px-5 space-y-4 text-sm text-ink-700 leading-relaxed">
+        <Card className="p-5 space-y-3">
+          <p className="font-display text-lg font-bold text-ink-900">Your data, your control</p>
+          <p>Perk Orbit was designed privacy-first. Your 4-digit PIN never leaves your device. We don't sell data, don't run ads, don't profile you.</p>
+          <p className="font-semibold text-ink-900">SMS permission (Android only)</p>
+          <p>When you grant SMS access, Perk Orbit scans incoming SMS <span className="font-bold">on your device only</span>. The full SMS body is sent to our backend only when you tap "Save to Perk Orbit" on a detected voucher — and only that one message, never in bulk.</p>
+          <p className="font-semibold text-ink-900">Payments</p>
+          <p>₹99 quarterly membership is processed by Razorpay. We never see or store your card number, UPI ID, or bank credentials. Only the order ID and signature are retained for verification.</p>
+          <p className="font-semibold text-ink-900">Your rights</p>
+          <p>Access, delete, or export your wallet anytime. Email <span className="font-semibold text-emerald-800">support@perkorbit.app</span> for any data request. Compliant with India's DPDP Act 2023.</p>
+          <p className="text-[11px] text-ink-500 pt-2 border-t border-ink-100">Full policy: perkorbit.app/privacy</p>
+        </Card>
+      </main>
+    </>
   )
 }
 
@@ -593,7 +819,7 @@ function HomeScreen({ pin, onProfileClick, memberStatus, onOpenAdd, toast, refre
             </div>
             <p className="font-display font-bold text-xl leading-tight">Unlock unlimited vouchers, family sharing & ROI tracking</p>
             <div className="mt-3 flex items-center justify-between">
-              <span className="text-sm text-white/80">₹99 / 6 months</span>
+              <span className="text-sm text-white/80">₹99 / 3 months</span>
               <span className="inline-flex items-center gap-1 text-gold-200 text-xs font-bold">Upgrade <ChevronRight className="w-4 h-4" /></span>
             </div>
           </button>
@@ -897,9 +1123,30 @@ function MembershipPage({ onBack, pin, status, refresh, toast, online = true }) 
     }
   }
 
+  const cardRef = useRef(null)
+
+  const shareSavingsReport = async () => {
+    if (!cardRef.current) return
+    try {
+      const dataUrl = await toPng(cardRef.current, { cacheBust: true, pixelRatio: 2 })
+      const blob = await (await fetch(dataUrl)).blob()
+      const file = new File([blob], 'perk-orbit-savings.png', { type: 'image/png' })
+      const link = `https://perkorbit.app/?ref=${status?.referral_code}`
+      const text = `I'm saving smarter with Perk Orbit 💎\nReferred ${stats.total_referrals} friends · earned +${stats.bonus_days_earned} bonus days\nJoin me with code ${status?.referral_code} — both get 3 months FREE: ${link}`
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], text, title: 'My Perk Orbit savings' })
+      } else if (navigator.share) {
+        await navigator.share({ text, title: 'My Perk Orbit savings' })
+      } else {
+        const a = document.createElement('a'); a.href = dataUrl; a.download = 'perk-orbit-savings.png'; a.click()
+        toast('Image downloaded')
+      }
+    } catch (e) { toast('Could not generate report') }
+  }
+
   const shareRef = async () => {
     const link = `https://perkorbit.app/?ref=${status?.referral_code}`
-    const text = `Join me on Perk Orbit — India's voucher-first wallet. Use my code ${status?.referral_code} when you upgrade to Pro and get 1 month FREE on top of your 6-month plan (I get 1 month free too 🎁): ${link}`
+    const text = `Join me on Perk Orbit — India's voucher-first wallet. Use my code ${status?.referral_code} when you upgrade to Pro and get 3 months FREE on top of your 3-month plan (I get 3 months free too 🎁): ${link}`
     try {
       if (navigator.share) { await navigator.share({ title: 'Perk Orbit Pro', text }) }
       else { await navigator.clipboard.writeText(text); toast('Referral message copied') }
@@ -942,13 +1189,51 @@ function MembershipPage({ onBack, pin, status, refresh, toast, online = true }) 
                 </div>
               </div>
             </Card>
+
+            {/* Hidden share-card rendered for html-to-image capture */}
+            <div className="fixed -left-[9999px] top-0" aria-hidden="true">
+              <div
+                ref={cardRef}
+                data-testid="savings-report-card"
+                style={{
+                  width: 1080, height: 1080, padding: 80,
+                  background: 'linear-gradient(135deg, #0F172A 0%, #064E3B 100%)',
+                  color: '#fff', fontFamily: 'Cabinet Grotesk, ui-sans-serif',
+                  display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+                }}
+              >
+                <div>
+                  <p style={{ fontSize: 24, color: '#FCD34D', fontWeight: 700, letterSpacing: 4 }}>PERK ORBIT · SAVINGS REPORT</p>
+                  <p style={{ fontSize: 56, fontWeight: 800, marginTop: 24, lineHeight: 1.1 }}>{getProfile().name || 'Saver'}'s wallet is paying off.</p>
+                </div>
+                <div style={{ display: 'flex', gap: 40 }}>
+                  <div>
+                    <p style={{ fontSize: 22, color: '#94A3B8' }}>Friends referred</p>
+                    <p style={{ fontSize: 120, fontWeight: 800, color: '#10B981', lineHeight: 1 }}>{stats.total_referrals}</p>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 22, color: '#94A3B8' }}>Bonus days earned</p>
+                    <p style={{ fontSize: 120, fontWeight: 800, color: '#FCD34D', lineHeight: 1 }}>+{stats.bonus_days_earned}</p>
+                  </div>
+                </div>
+                <div>
+                  <p style={{ fontSize: 26, color: '#E5E7EB' }}>Join me on Perk Orbit · use my code</p>
+                  <p style={{ fontSize: 72, fontWeight: 800, color: '#FCD34D', fontFamily: 'JetBrains Mono, monospace', marginTop: 8 }}>{status?.referral_code}</p>
+                  <p style={{ fontSize: 24, color: '#9CA3AF', marginTop: 16 }}>Both of us get 3 months FREE on Pro 🎁</p>
+                </div>
+              </div>
+            </div>
+
+            <GhostButton data-testid="share-savings-report" onClick={shareSavingsReport}>
+              <ImageDown className="w-4 h-4" /> Share Savings Report card
+            </GhostButton>
           </>
         ) : (
           <>
             <Card className="p-6 bg-gradient-to-br from-ink-900 to-emerald-900 text-white border-ink-800 relative overflow-hidden">
               <div className="absolute -top-10 -right-12 w-44 h-44 rounded-full bg-gold-500/20 blur-2xl" />
               <div className="flex items-center gap-2 mb-2"><Star className="w-4 h-4 text-gold-400" /><span className="text-[10px] uppercase tracking-[0.18em] font-bold text-gold-100">Perk Orbit Pro</span></div>
-              <p className="font-display text-2xl font-bold leading-tight">₹99 for 6 months</p>
+              <p className="font-display text-2xl font-bold leading-tight">₹99 for 3 months</p>
               <ul className="mt-4 space-y-2 text-sm">
                 {['Unlimited voucher storage', 'AI scan & SMS extract', 'Family Circle sharing', 'Membership ROI tracker', 'Smart expiry alerts'].map(t => (
                   <li key={t} className="flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-gold-300" /> {t}</li>
@@ -957,7 +1242,7 @@ function MembershipPage({ onBack, pin, status, refresh, toast, online = true }) 
               <PrimaryButton data-testid="activate-pro" onClick={startCheckout} disabled={busy || !online} className="mt-5 bg-gold-500 hover:bg-gold-600 shadow-none">
                 {busy ? 'Opening checkout…' : online ? 'Pay ₹99 with Razorpay' : 'Offline · reconnect to pay'}
               </PrimaryButton>
-              <p className="text-center text-[10px] text-white/60 mt-3">Razorpay test mode · UPI / Card / NetBanking</p>
+              <p className="text-center text-[10px] text-white/60 mt-3">Razorpay test mode · UPI / Card / NetBanking · Auto-renews quarterly</p>
             </Card>
 
             <Card className="p-5">
@@ -974,7 +1259,7 @@ function MembershipPage({ onBack, pin, status, refresh, toast, online = true }) 
                   {refPreview.valid ? '🎁 ' : '⚠️ '}{refPreview.message}
                 </p>
               ) : (
-                <p className="text-xs text-ink-500 mt-2">Get +30 bonus days when you use a friend's code (they get +30 too).</p>
+                <p className="text-xs text-ink-500 mt-2">Get <span className="font-bold">+3 months</span> bonus when you use a friend's code (they also get +3 months).</p>
               )}
             </Card>
           </>
@@ -1311,10 +1596,18 @@ export default function App() {
 
   const refreshNotifs = async () => {
     if (!pin) return
-    try { const d = await Notifications.list(pin); setUnread(d.unread || 0) } catch { /* ignore */ }
+    try {
+      const d = await Notifications.list(pin)
+      setUnread(d.unread || 0)
+      // Fire OS-level toasts for high-priority unread items
+      maybeFireBrowserNotifications(d.items || [])
+    } catch { /* ignore */ }
   }
   useEffect(() => {
     if (!pin || locked) return
+    // One-shot push permission ask + SW registration
+    ensureServiceWorker()
+    requestNotificationPermission()
     refreshNotifs()
     const t = setInterval(refreshNotifs, 60000)
     return () => clearInterval(t)
@@ -1342,6 +1635,9 @@ export default function App() {
     if (where === 'settings') push('settings')
     if (where === 'membership') push('membership')
     if (where === 'circle') push('circle')
+    if (where === 'sms-scanner') push('sms-scanner')
+    if (where === 'support') push('support')
+    if (where === 'privacy') push('privacy')
   }
 
   const onOpenAdd = (kind) => { if (kind === 'upsell') { push('membership'); return } setAddOpen(true) }
@@ -1362,13 +1658,14 @@ export default function App() {
             openHowTo={setHowToFor}
             onOpenNotifs={() => setNotifsOpen(true)}
             unread={unread}
+            bumpRefresh={() => setRefreshKey(k => k + 1)}
           />
         )}
         {current.screen === 'coupons' && (
-          <MyCouponsScreen pin={pin} onProfileClick={() => setProfileOpen(true)} onOpenAdd={onOpenAdd} toast={toast} refreshKey={refreshKey} openHowTo={setHowToFor} openShareSheet={setShareFor} setRefreshKey={setRefreshKey} />
+          <MyCouponsScreen pin={pin} onProfileClick={() => setProfileOpen(true)} onOpenAdd={onOpenAdd} toast={toast} refreshKey={refreshKey} openHowTo={setHowToFor} openShareSheet={setShareFor} setRefreshKey={setRefreshKey} bumpRefresh={() => setRefreshKey(k => k + 1)} />
         )}
         {current.screen === 'points' && (
-          <MyPointsScreen pin={pin} onProfileClick={() => setProfileOpen(true)} refreshKey={refreshKey} openHowTo={setHowToFor} />
+          <MyPointsScreen pin={pin} onProfileClick={() => setProfileOpen(true)} refreshKey={refreshKey} openHowTo={setHowToFor} bumpRefresh={() => setRefreshKey(k => k + 1)} />
         )}
         {current.screen === 'profile' && (<ProfilePage onBack={pop} />)}
         {current.screen === 'settings' && (<SettingsPage onBack={pop} onResetPin={() => { setStoredPin(null); setPin(null) }} />)}
@@ -1392,35 +1689,9 @@ export default function App() {
             openHowTo={setHowToFor}
           />
         )}
-      </div>
-
-      <ProfileMenu open={profileOpen} onClose={() => setProfileOpen(false)} onNavigate={handleNavigate} memberStatus={memberStatus} />
-      <AddVoucherSheet open={addOpen} onClose={() => setAddOpen(false)} pin={pin} onSaved={() => setRefreshKey(k => k + 1)} toast={toast} />
-      <HowToSheet voucher={howToFor} open={!!howToFor} onClose={() => setHowToFor(null)} />
-      <ShareSheet open={!!shareFor} onClose={() => setShareFor(null)} voucher={shareFor} pin={pin} toast={toast} refresh={() => setRefreshKey(k => k + 1)} />
-      <NotificationSheet
-        open={notifsOpen}
-        onClose={() => setNotifsOpen(false)}
-        pin={pin}
-        toast={toast}
-        onJumpToScreen={(screen) => {
-          if (['home','coupons','points','circle'].includes(screen)) switchTab(screen)
-          else if (screen === 'membership') push('membership')
-        }}
-        refreshNotifs={refreshNotifs}
-      />
-
-      <Toast message={toastMsg} />
-      {isTab && <BottomNav active={current.screen} onChange={switchTab} />}
-    </Shell>
-  )
-}
-current.params.member}
-            toast={toast}
-            refresh={() => setRefreshKey(k => k + 1)}
-            openHowTo={setHowToFor}
-          />
-        )}
+        {current.screen === 'sms-scanner' && (<SmsScannerScreen onBack={pop} pin={pin} toast={toast} onSaved={() => setRefreshKey(k => k + 1)} />)}
+        {current.screen === 'support' && (<SupportHistoryScreen onBack={pop} pin={pin} />)}
+        {current.screen === 'privacy' && (<PrivacyScreen onBack={pop} />)}
       </div>
 
       <ProfileMenu open={profileOpen} onClose={() => setProfileOpen(false)} onNavigate={handleNavigate} memberStatus={memberStatus} />

@@ -714,13 +714,13 @@ async def membership_status(user_pin: str = Query(...)):
 
 @api.post("/membership/activate")
 async def activate_membership(user_pin: str = Query(...)):
-    """MOCKED Razorpay activation — issues a 6-month ₹99 plan."""
-    expires = (datetime.now(timezone.utc) + timedelta(days=183)).isoformat()
+    """MOCKED Razorpay activation — issues a 3-month ₹99 plan."""
+    expires = (datetime.now(timezone.utc) + timedelta(days=PLAN_BASE_DAYS)).isoformat()
     ref = f"PERK-{secrets.token_hex(3).upper()}"
     doc = {
         "user_pin": user_pin,
         "active": True,
-        "plan": "Perk Orbit Pro ₹99 / 6 months",
+        "plan": PLAN_LABEL,
         "expires_at": expires,
         "referral_code": ref,
         "activated_at": datetime.now(timezone.utc).isoformat(),
@@ -746,7 +746,9 @@ class RzpVerifyRequest(BaseModel):
     referral_code: Optional[str] = None
 
 
-REFERRAL_BONUS_DAYS = 30  # both referrer & referee get +30 days
+REFERRAL_BONUS_DAYS = 90  # 3 months free for both referrer & referee
+PLAN_BASE_DAYS = 92  # 3-month quarterly plan
+PLAN_LABEL = "Perk Orbit Pro ₹99 / 3 months"
 
 
 async def _apply_referral_bonus(user_pin: str, referral_code: str) -> dict:
@@ -881,19 +883,19 @@ async def verify_payment(payload: RzpVerifyRequest):
         },
     )
 
-    # Activate membership (6 months + optional referee bonus)
+    # Activate membership (3 months + optional referee bonus)
     bonus_days = 0
     referral_outcome = await _apply_referral_bonus(payload.user_pin, payload.referral_code or "")
     if referral_outcome.get("applied"):
         bonus_days = REFERRAL_BONUS_DAYS
     expires = (
-        datetime.now(timezone.utc) + timedelta(days=183 + bonus_days)
+        datetime.now(timezone.utc) + timedelta(days=PLAN_BASE_DAYS + bonus_days)
     ).isoformat()
     ref = f"PERK-{secrets.token_hex(3).upper()}"
     doc = {
         "user_pin": payload.user_pin,
         "active": True,
-        "plan": "Perk Orbit Pro ₹99 / 6 months" + (f" (+{bonus_days}d referral bonus)" if bonus_days else ""),
+        "plan": PLAN_LABEL + (f" (+{bonus_days}d referral bonus)" if bonus_days else ""),
         "expires_at": expires,
         "referral_code": ref,
         "activated_at": datetime.now(timezone.utc).isoformat(),
@@ -906,9 +908,9 @@ async def verify_payment(payload: RzpVerifyRequest):
     )
 
     # Drop a notification
-    welcome_body = "Your ₹99 membership is active for 6 months. Tap to view benefits."
+    welcome_body = "Your ₹99 membership is active for 3 months. Tap to view benefits."
     if bonus_days:
-        welcome_body = f"Your ₹99 membership is active for 6 months + {bonus_days} bonus days from your referral. Tap to view benefits."
+        welcome_body = f"Your ₹99 membership is active for 3 months + {bonus_days} bonus days from your referral. Tap to view benefits."
     await db.notifications.insert_one(
         {
             "user_pin": payload.user_pin,
@@ -1083,7 +1085,7 @@ async def referral_preview(code: str = Query(...)):
         "code": code,
         "bonus_days": REFERRAL_BONUS_DAYS,
         "message": (
-            f"Valid code! You'll get +{REFERRAL_BONUS_DAYS} bonus days, and your friend will also get +{REFERRAL_BONUS_DAYS} days."
+            f"Valid code! You'll get +{REFERRAL_BONUS_DAYS} bonus days (3 months FREE), and your friend will also get +{REFERRAL_BONUS_DAYS} days."
             if found
             else "Invalid or inactive referral code."
         ),

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Home, Ticket, Coins, ChevronRight, Search, Plus, Sparkles, Copy, Clock, Share2, BadgeCheck, ArrowLeft, X, ScanLine, MessageSquareText, KeyRound, Trash2, Star, ShieldCheck, Camera, LinkIcon, UserPlus, Settings as SettingsIcon, LogOut, ChevronDown, Bell } from 'lucide-react'
+import { Home, Ticket, Coins, Users, ChevronRight, Search, Plus, Sparkles, Copy, Clock, Share2, BadgeCheck, ArrowLeft, X, ScanLine, MessageSquareText, KeyRound, Trash2, Star, ShieldCheck, Camera, LinkIcon, UserPlus, Settings as SettingsIcon, LogOut, ChevronDown, Bell } from 'lucide-react'
 import { Card, GhostButton, PrimaryButton, ProgressBar, Sheet, Tag, TopBar, Shell, Empty, Toast } from './components/ui'
 import PinLock from './screens/PinLock'
 import { Vouchers, Points, Memberships, Search as SearchApi, Extract, Circle, Membership } from './lib/api'
@@ -31,6 +31,7 @@ function BottomNav({ active, onChange }) {
     { id: 'home', label: 'Home', icon: Home },
     { id: 'coupons', label: 'My Coupons', icon: Ticket },
     { id: 'points', label: 'My Points', icon: Coins },
+    { id: 'circle', label: 'Circle', icon: Users },
   ]
   return (
     <nav
@@ -48,7 +49,7 @@ function BottomNav({ active, onChange }) {
             className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 transition ${isActive ? 'text-emerald-800' : 'text-ink-400'}`}
           >
             <Icon strokeWidth={isActive ? 2.4 : 1.8} className="w-[22px] h-[22px]" />
-            <span className={`text-[11px] tracking-wide ${isActive ? 'font-bold' : 'font-medium'}`}>{label}</span>
+            <span className={`text-[10px] tracking-wide ${isActive ? 'font-bold' : 'font-medium'}`}>{label}</span>
           </button>
         )
       })}
@@ -788,7 +789,7 @@ function MembershipPage({ onBack, pin, status, refresh, toast }) {
   )
 }
 
-function CirclePage({ onBack, pin, toast, onOpenMember }) {
+function CirclePage({ onBack, pin, toast, onOpenMember, onProfileClick }) {
   const [members, setMembers] = useState([])
   const [name, setName] = useState('')
   const [relation, setRelation] = useState('Family')
@@ -808,7 +809,16 @@ function CirclePage({ onBack, pin, toast, onOpenMember }) {
 
   return (
     <>
-      <TopBar title="Family Circle" onBack={onBack} subtitle="Selectively share vouchers with family" />
+      <TopBar
+        title="Family Circle"
+        subtitle="Selectively share vouchers with family"
+        onBack={onBack}
+        right={onProfileClick ? (
+          <button data-testid="profile-avatar-circle" onClick={onProfileClick} className="w-10 h-10 rounded-full bg-emerald-800 grid place-items-center text-white font-display font-bold border-2 border-white shadow-soft">
+            {(getProfile().name || 'M')[0].toUpperCase()}
+          </button>
+        ) : null}
+      />
       <main className="px-5 space-y-4">
         <Card className="p-5 space-y-3">
           <FormField label="Family member name" testid="circle-name" value={name} onChange={setName} placeholder="e.g. Priya (Wife)" />
@@ -989,12 +999,12 @@ export default function App() {
   const [refreshKey, setRefreshKey] = useState(0)
 
   const current = stack[stack.length - 1]
-  const isTab = ['home', 'coupons', 'points'].includes(current.screen)
+  const isTab = ['home', 'coupons', 'points', 'circle'].includes(current.screen)
 
   const toast = (m) => { setToastMsg(m); setTimeout(() => setToastMsg(''), 2200) }
   const push = (screen, params = {}) => setStack(s => [...s, { screen, params }])
   const pop = () => setStack(s => s.length > 1 ? s.slice(0, -1) : s)
-  const switchTab = (screen) => setStack([{ screen }])
+  const switchTab = (screen) => setStack([{ screen, params: {} }])
 
   const refreshMember = async () => {
     if (!pin) return
@@ -1044,7 +1054,15 @@ export default function App() {
         {current.screen === 'profile' && (<ProfilePage onBack={pop} />)}
         {current.screen === 'settings' && (<SettingsPage onBack={pop} onResetPin={() => { setStoredPin(null); setPin(null) }} />)}
         {current.screen === 'membership' && (<MembershipPage onBack={pop} pin={pin} status={memberStatus} refresh={refreshMember} toast={toast} />)}
-        {current.screen === 'circle' && (<CirclePage onBack={pop} pin={pin} toast={toast} onOpenMember={(m) => push('family-cards', { member: m })} />)}
+        {current.screen === 'circle' && (
+          <CirclePage
+            onBack={stack.length > 1 ? pop : undefined}
+            pin={pin}
+            toast={toast}
+            onOpenMember={(m) => push('family-cards', { member: m })}
+            onProfileClick={() => setProfileOpen(true)}
+          />
+        )}
         {current.screen === 'family-cards' && (
           <FamilyCardsPage
             onBack={pop}

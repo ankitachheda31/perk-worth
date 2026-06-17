@@ -96,7 +96,17 @@
   - **Refactor in-progress (pre-staged files; not yet wired)**: `/screens/HomeScreen.jsx`, `/screens/MyCouponsScreen.jsx`, `/screens/MyPointsScreen.jsx`, `/screens/MembershipPage.jsx`, `/screens/SettingsPage.jsx`, `/screens/ProfilePage.jsx`, `/screens/CirclePage.jsx`, `/screens/FamilyCardsPage.jsx`, `/screens/SmsScannerScreen.jsx`, `/screens/SupportHistoryScreen.jsx`, `/screens/PrivacyScreen.jsx`, `/components/BottomNav.jsx`, `/components/ProfileMenu.jsx`, `/components/HowWeProtectYouModal.jsx`, `/components/widgets.jsx`, `/components/Cards.jsx`, `/components/SearchResult.jsx`, `/lib/constants.js`. App.jsx still uses inline copies — files are ready to wire when refactor resumes (mechanical `sed` delete + import swap).
   - Health check script extended: now probes 15 routes. Live: **HEALTHY · 12/12**.
 
+- **v3.3 — see CHANGELOG/PRD above ↑ for full v3.3 entry**
+
 - **v3.2 (Landing site + Razorpay KYC compliance assets — Jun 17 2026)**:
+  - **App.jsx slimmed from 2161 → 310 lines (−86%).** Now contains only the App() shell: state, auth/PIN/walkthrough/discovery gates, route → screen dispatch, sheet renderers, and panic-lock button. Zero inline screens.
+  - Extracted into `/screens/` (15 files): HomeScreen, MyCouponsScreen, MyPointsScreen, MembershipPage, ProfilePage, SettingsPage, CirclePage, FamilyCardsPage, SmsScannerScreen, SupportHistoryScreen, PrivacyScreen, Walkthrough, SmartDiscoveryScreen, PerkTipsScreen, SecurityFAQScreen, PrivacyControlScreen, AuthScreen, PinLock.
+  - Extracted into `/components/` (7 files): BottomNav, ProfileMenu, HowWeProtectYouModal, widgets (PtrIndicator, VoiceMicButton, FormField), Cards (VoucherCard, MembershipCard, buildWaHelpUrl, logSupportThenOpenWa), SearchResult, ui (Shell, TopBar, Card, PrimaryButton, GhostButton, Tag, ProgressBar, Sheet, Empty, Toast, OfflineBanner).
+  - Extracted into `/sheets/` (4 files): AddVoucherSheet, HowToSheet, ShareSheet, NotificationSheet.
+  - Extracted helpers to `/lib/`: format.js (daysUntil/fmtDate/fmtINR), constants.js (WA_SUPPORT_NUMBER).
+  - **Health Check live: HEALTHY · 12/12.** All 14 frontend routes have render handlers, all 18 screen imports resolve, all 15 API endpoints respond. Auth screen confirmed rendering via Playwright screenshot — zero pageerrors.
+
+
   - `/app/landing/index.html` — Premium one-page marketing site (hero, features, trust strip, pricing, contact, footer). Tailwind via CDN, no build step. Lighthouse 95+.
   - `/app/landing/privacy.html` — Full DPDP 2023 + GDPR Privacy Policy (standalone HTML).
   - `/app/landing/terms.html` — Terms of Service (14 sections, governing law: Mumbai).

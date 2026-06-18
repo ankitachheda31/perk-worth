@@ -8,6 +8,7 @@ import HowWeProtectYouModal from './components/HowWeProtectYouModal'
 
 import PinLock from './screens/PinLock'
 import AuthScreen from './screens/AuthScreen'
+import ResetPasswordScreen from './screens/ResetPasswordScreen'
 import Walkthrough from './screens/Walkthrough'
 import SmartDiscoveryScreen from './screens/SmartDiscoveryScreen'
 import PerkTipsScreen from './screens/PerkTipsScreen'
@@ -48,6 +49,10 @@ export default function App() {
   const [memberStatus, setMemberStatus] = useState(null)
   const [refreshKey, setRefreshKey] = useState(0)
   const [notifsOpen, setNotifsOpen] = useState(false)
+  // Deep-link: ?reset_token=... (from password-reset email)
+  const [resetToken, setResetToken] = useState(() => {
+    try { return new URLSearchParams(window.location.search).get('reset_token') } catch { return null }
+  })
   const [unread, setUnread] = useState(0)
   const [online, setOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true)
   const [protectOpen, setProtectOpen] = useState(false)

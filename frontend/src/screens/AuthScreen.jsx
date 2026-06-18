@@ -1,18 +1,24 @@
 import React, { useState } from 'react'
-import { Card, PrimaryButton, GhostButton } from '../components/ui'
+import { Card, PrimaryButton } from '../components/ui'
 import { Auth } from '../lib/api'
 
 export default function AuthScreen({ onAuthed, existingPin }) {
-  const [mode, setMode] = useState('login') // login | signup
+  const [mode, setMode] = useState('login') // login | signup | forgot
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
+  const [forgotSent, setForgotSent] = useState(false)
 
   const submit = async () => {
     setErr(''); setBusy(true)
     try {
+      if (mode === 'forgot') {
+        await Auth.forgotPassword(email.trim().toLowerCase())
+        setForgotSent(true)
+        return
+      }
       const fn = mode === 'login' ? Auth.login : Auth.signup
       const cleanEmail = email.trim().toLowerCase()
       const body = mode === 'login'
@@ -49,11 +55,20 @@ export default function AuthScreen({ onAuthed, existingPin }) {
       } else if (e.response?.status === 409) {
         msg = 'This email is already registered. Try signing in instead.'
       } else {
-        msg = `Could not ${mode === 'login' ? 'sign in' : 'create account'}. Please try again.`
+        msg = `Could not ${mode === 'login' ? 'sign in' : mode === 'signup' ? 'create account' : 'send reset link'}. Please try again.`
       }
       setErr(msg)
     } finally { setBusy(false) }
   }
+
+  const switchMode = (next) => { setMode(next); setErr(''); setForgotSent(false) }
+
+  const title = mode === 'login' ? 'Welcome back' : mode === 'signup' ? 'Create your account' : 'Reset your password'
+  const sub = mode === 'login'
+    ? 'Cloud sync · access your wallet on any device'
+    : mode === 'signup'
+      ? 'Your wallet syncs across phones — never lose a voucher.'
+      : "Enter the email tied to your account. We'll send you a reset link."
 
   return (
     <div className="app-shell flex justify-center" data-testid="auth-screen">
@@ -63,42 +78,60 @@ export default function AuthScreen({ onAuthed, existingPin }) {
             <div className="w-9 h-9 rounded-2xl bg-emerald-800 grid place-items-center text-white font-display font-bold">P</div>
             <span className="font-display text-lg font-bold tracking-tight">Perk Orbit</span>
           </div>
-          <h1 className="font-display text-3xl font-bold text-ink-900">
-            {mode === 'login' ? 'Welcome back' : 'Create your account'}
-          </h1>
-          <p className="text-sm text-ink-500 mt-2">
-            {mode === 'login' ? 'Cloud sync · access your wallet on any device' : 'Your wallet syncs across phones — never lose a voucher.'}
-          </p>
+          <h1 className="font-display text-3xl font-bold text-ink-900">{title}</h1>
+          <p className="text-sm text-ink-500 mt-2">{sub}</p>
           {existingPin && mode === 'signup' ? (
             <p className="text-[11px] text-emerald-800 mt-2 font-semibold">Your local PIN-{existingPin.slice(0,2)}** wallet will be migrated to this account.</p>
           ) : null}
         </div>
 
         <Card className="p-5 space-y-3">
-          {mode === 'signup' ? (
-            <div>
-              <label className="text-[11px] font-bold text-ink-500 uppercase tracking-wider">Name</label>
-              <input data-testid="auth-name" value={name} onChange={(e) => setName(e.target.value)} className="mt-1.5 w-full bg-ink-50 border border-ink-200 rounded-2xl px-3 py-3 text-sm" placeholder="Your name" />
+          {mode === 'forgot' && forgotSent ? (
+            <div data-testid="forgot-sent" className="space-y-2 text-center py-3">
+              <p className="text-sm text-emerald-800 font-semibold">If an account exists for that email, a reset link is on its way.</p>
+              <p className="text-xs text-ink-500">Check your inbox (and spam folder). The link expires in 60 minutes.</p>
             </div>
-          ) : null}
-          <div>
-            <label className="text-[11px] font-bold text-ink-500 uppercase tracking-wider">Email</label>
-            <input data-testid="auth-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1.5 w-full bg-ink-50 border border-ink-200 rounded-2xl px-3 py-3 text-sm" placeholder="you@example.com" autoComplete="email" />
-          </div>
-          <div>
-            <label className="text-[11px] font-bold text-ink-500 uppercase tracking-wider">Password</label>
-            <input data-testid="auth-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1.5 w-full bg-ink-50 border border-ink-200 rounded-2xl px-3 py-3 text-sm" placeholder="At least 6 characters" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
-          </div>
-          {err ? <p data-testid="auth-error" className="text-xs text-terracotta-700">{err}</p> : null}
-          <PrimaryButton data-testid="auth-submit" onClick={submit} disabled={busy || !email || !password}>
-            {busy ? '…' : mode === 'login' ? 'Sign in' : 'Create account'}
-          </PrimaryButton>
+          ) : (
+            <>
+              {mode === 'signup' ? (
+                <div>
+                  <label className="text-[11px] font-bold text-ink-500 uppercase tracking-wider">Name</label>
+                  <input data-testid="auth-name" value={name} onChange={(e) => setName(e.target.value)} className="mt-1.5 w-full bg-ink-50 border border-ink-200 rounded-2xl px-3 py-3 text-sm" placeholder="Your name" />
+                </div>
+              ) : null}
+              <div>
+                <label className="text-[11px] font-bold text-ink-500 uppercase tracking-wider">Email</label>
+                <input data-testid="auth-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1.5 w-full bg-ink-50 border border-ink-200 rounded-2xl px-3 py-3 text-sm" placeholder="you@example.com" autoComplete="email" />
+              </div>
+              {mode !== 'forgot' ? (
+                <div>
+                  <label className="text-[11px] font-bold text-ink-500 uppercase tracking-wider">Password</label>
+                  <input data-testid="auth-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1.5 w-full bg-ink-50 border border-ink-200 rounded-2xl px-3 py-3 text-sm" placeholder="At least 6 characters" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
+                </div>
+              ) : null}
+              {err ? <p data-testid="auth-error" className="text-xs text-terracotta-700">{err}</p> : null}
+              <PrimaryButton data-testid="auth-submit" onClick={submit} disabled={busy || !email || (mode !== 'forgot' && !password)}>
+                {busy ? '…' : mode === 'login' ? 'Sign in' : mode === 'signup' ? 'Create account' : 'Send reset link'}
+              </PrimaryButton>
+              {mode === 'login' ? (
+                <button data-testid="auth-forgot" onClick={() => switchMode('forgot')} className="block w-full text-center text-[11px] text-emerald-800 font-semibold pt-1">
+                  Forgot password?
+                </button>
+              ) : null}
+            </>
+          )}
         </Card>
 
         <div className="text-center mt-4">
-          <button data-testid="auth-toggle" onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setErr('') }} className="text-xs text-ink-500">
-            {mode === 'login' ? "New to Perk Orbit? Create an account →" : 'Already have an account? Sign in →'}
-          </button>
+          {mode === 'forgot' ? (
+            <button data-testid="auth-back" onClick={() => switchMode('login')} className="text-xs text-ink-500">
+              ← Back to sign in
+            </button>
+          ) : (
+            <button data-testid="auth-toggle" onClick={() => switchMode(mode === 'login' ? 'signup' : 'login')} className="text-xs text-ink-500">
+              {mode === 'login' ? "New to Perk Orbit? Create an account →" : 'Already have an account? Sign in →'}
+            </button>
+          )}
         </div>
         <p className="text-center text-[10px] text-ink-400 mt-auto pt-6">
           By continuing you agree to our Privacy Policy & Terms.

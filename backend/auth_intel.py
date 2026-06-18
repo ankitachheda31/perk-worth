@@ -118,6 +118,15 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(..., min_length=6)
+
+
 # ---------------------------------------------------------------------------
 # Router factory — takes the running app's db instance
 # ---------------------------------------------------------------------------
@@ -225,6 +234,79 @@ def build_auth_router(db) -> APIRouter:
         response.delete_cookie("access_token", path="/")
         response.delete_cookie("refresh_token", path="/")
         return {"ok": True, "deleted": deleted}
+
+    @router.post("/forgot-password")
+    async def forgot_password(payload: ForgotPasswordRequest):
+        """DPDP-compliant password reset trigger.
+
+        Always returns 200 with the same shape regardless of whether the email
+        exists — this prevents account enumeration attacks. If the email DOES
+        match a user, a one-time reset token (TTL 60 min) is generated and an
+        email is sent via Resend.
+        """
+        from mailer import send_password_reset  # local import to avoid hard dep on startup
+
+        email = payload.email.lower()
+        user = await db.users.find_one({"email": email})
+        if user:
+            # Invalidate any prior unused tokens for this user (one active reset at a time)
+            await db.password_resets.update_many(
+                {"user_id": str(user["_id"]), "used": False},
+                {"$set": {"used": True, "invalidated_at": datetime.now(timezone.utc)}},
+            )
+            token = secrets.token_urlsafe(32)
+            expires_at = datetime.now(timezone.utc) + timedelta(minutes=60)
+            await db.password_resets.insert_one({
+                "user_id": str(user["_id"]),
+                "email": email,
+                "token": token,
+                "expires_at": expires_at,
+                "used": False,
+                "created_at": datetime.now(timezone.utc),
+            })
+            frontend = os.environ.get("FRONTEND_URL", "https://perkorbit.app").rstrip("/")
+            reset_url = f"{frontend}/?reset_token={token}"
+            # Best-effort send — never break the flow if Resend fails
+            try:
+                await send_password_reset(email, reset_url, name=user.get("name") or None)
+            except Exception as e:
+                log.error("Password reset email failed: %s", e)
+        # Always return the same response (no enumeration)
+        return {"ok": True, "message": "If an account exists for this email, a reset link has been sent."}
+
+    @router.post("/reset-password")
+    async def reset_password(payload: ResetPasswordRequest, response: Response):
+        rec = await db.password_resets.find_one({"token": payload.token, "used": False})
+        if not rec:
+            raise HTTPException(status_code=400, detail="Invalid or already-used reset link")
+        # Expiry check — handle naive datetimes from older drivers defensively
+        exp = rec.get("expires_at")
+        if isinstance(exp, datetime):
+            exp_utc = exp if exp.tzinfo else exp.replace(tzinfo=timezone.utc)
+            if exp_utc < datetime.now(timezone.utc):
+                raise HTTPException(status_code=400, detail="Reset link expired. Please request a new one.")
+        else:
+            raise HTTPException(status_code=400, detail="Invalid reset link")
+
+        user = await db.users.find_one({"_id": ObjectId(rec["user_id"])})
+        if not user:
+            raise HTTPException(status_code=400, detail="Account no longer exists")
+
+        await db.users.update_one(
+            {"_id": user["_id"]},
+            {"$set": {"password_hash": hash_password(payload.new_password)}},
+        )
+        await db.password_resets.update_one(
+            {"_id": rec["_id"]},
+            {"$set": {"used": True, "used_at": datetime.now(timezone.utc)}},
+        )
+        # Auto-sign in after reset for a friction-free flow
+        uid = str(user["_id"])
+        email = user["email"]
+        access = create_access_token(uid, email)
+        refresh = create_refresh_token(uid)
+        _set_auth_cookies(response, access, refresh)
+        return {"ok": True, "email": email, "id": uid, "access_token": access}
 
     return router
 

@@ -19,6 +19,8 @@ export const Auth = {
   logout: () => api.post('/auth/logout').then(r => r.data),
   claimPin: (pin) => api.post('/auth/claim-pin', { pin }).then(r => r.data),
   wipe: () => api.post('/auth/wipe').then(r => r.data),
+  forgotPassword: (email) => api.post('/auth/forgot-password', { email }).then(r => r.data),
+  resetPassword: (token, new_password) => api.post('/auth/reset-password', { token, new_password }).then(r => r.data),
   // DPDP §13 / GDPR Art.15+20 self-service export → triggers a file download.
   exportData: async (format = 'json') => {
     const r = await api.get('/user/export', { params: { format }, responseType: 'blob' })

@@ -27,7 +27,7 @@ from fastapi import FastAPI, File, HTTPException, Query, UploadFile, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from PIL import Image
-from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
+from pydantic import BaseModel, BeforeValidator, ConfigDict, EmailStr, Field
 import razorpay
 
 load_dotenv()
@@ -175,6 +175,8 @@ class FamilyCircleAdd(BaseModel):
     user_pin: str
     name: str
     relation: Optional[str] = None
+    email: Optional[EmailStr] = None
+    inviter_name: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
@@ -588,11 +590,36 @@ async def add_circle_member(payload: FamilyCircleAdd):
         "user_pin": payload.user_pin,
         "name": payload.name,
         "relation": payload.relation,
+        "email": payload.email,
         "invite_token": token,
+        "invite_email_sent": False,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     res = await db.circle_members.insert_one(doc)
     saved = await db.circle_members.find_one({"_id": res.inserted_id})
+
+    # Best-effort invite email — never block / fail the add flow
+    if payload.email:
+        try:
+            from mailer import send_circle_invite
+
+            frontend = os.environ.get("FRONTEND_URL", "https://perkorbit.app").rstrip("/")
+            invite_url = f"{frontend}/invite/{token}"
+            ok = await send_circle_invite(
+                to_email=str(payload.email),
+                inviter_name=(payload.inviter_name or "A Perk Orbit member"),
+                invitee_name=payload.name,
+                invite_url=invite_url,
+                relation=payload.relation,
+            )
+            if ok:
+                await db.circle_members.update_one(
+                    {"_id": res.inserted_id},
+                    {"$set": {"invite_email_sent": True, "invite_email_sent_at": datetime.now(timezone.utc).isoformat()}},
+                )
+                saved = await db.circle_members.find_one({"_id": res.inserted_id})
+        except Exception:
+            logging.exception("Circle invite email failed (continuing)")
     return _serialize(saved)
 
 

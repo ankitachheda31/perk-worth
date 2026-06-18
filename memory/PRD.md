@@ -144,3 +144,12 @@
 - **OTA workflow**: `/app/scripts/OTA_UPDATES.md` — Netlify remote-URL strategy documented (zero-cost OTA after one APK upload).
 - Razorpay UPI Collect config confirmed in place (`flows:['collect']` + `method:{upi:true}` + `show_default_blocks:false`).
 - Health: 14/14 HEALTHY.
+
+
+## 2026-02-19 — Vercel Monorepo Deployment Config
+- **Root `vercel.json`** added: framework `vite`, `buildCommand: cd frontend && yarn install --frozen-lockfile && yarn build`, `outputDirectory: frontend/dist`, SPA rewrite (`/(.*) → /index.html`), 1-year immutable cache for `/assets/*`, no-cache for `/sw.js`.
+- **Root `package.json`** added: declares Node ≥18, mirrors build scripts so Vercel auto-detects the project on import (no manual framework picker prompt).
+- **Root `.vercelignore`** excludes `backend/`, `scripts/`, `landing/`, `memory/`, docs from upload (faster builds, smaller deploys).
+- **`/app/VERCEL_DEPLOYMENT.md`** authored — full guide with dashboard settings, env vars (`REACT_APP_BACKEND_URL`, `VITE_RAZORPAY_KEY_ID`), DNS records for `perkorbit.app`, CORS reminder, and SPA-routing notes.
+- Verified locally: `cd frontend && yarn build` produces clean dist (`437 kB JS gz 131 kB`, `36 kB CSS gz 7 kB`). Health: 14/14 HEALTHY.
+- Backend stays on Emergent preview (Frontend-only Vercel deploy per user choice).

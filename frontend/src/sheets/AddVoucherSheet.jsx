@@ -27,15 +27,22 @@ export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast }) 
   const [parentBrand, setParentBrand] = useState(null)
   const [dateError, setDateError] = useState('')
 
-  // Live parent-brand suggestion (debounced)
+  // Live parent-brand suggestion (debounced). Uses CRA's REACT_APP_BACKEND_URL —
+  // this project is Create-React-App, not Vite, so import.meta.env is undefined.
   React.useEffect(() => {
     if (!form.brand || form.brand.length < 2) { setParentBrand(null); return }
     const id = setTimeout(() => {
-      fetch(`${import.meta.env.VITE_BACKEND_URL || ''}/api/brands/lookup?q=${encodeURIComponent(form.brand)}`)
+      const base = (typeof process !== 'undefined' && process.env && process.env.REACT_APP_BACKEND_URL) || ''
+      fetch(`${base}/api/brands/lookup?q=${encodeURIComponent(form.brand)}`)
         .then(r => r.ok ? r.json() : null)
         .then(d => {
           const top = d?.results?.[0]
-          if (top && (top.brand.toLowerCase() === form.brand.toLowerCase() || form.brand.toLowerCase().includes(top.brand.toLowerCase().slice(0, 4)))) {
+          // Show chip only if the top result is the actual brand match
+          // (canonical name OR any of its aliases match what the user typed)
+          if (!top) { setParentBrand(null); return }
+          const typed = form.brand.toLowerCase().trim()
+          const canon = top.brand.toLowerCase()
+          if (canon === typed || canon.includes(typed) || typed.includes(canon)) {
             setParentBrand(top)
           } else setParentBrand(null)
         }).catch(() => setParentBrand(null))
@@ -263,7 +270,7 @@ export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast }) 
               <FormField label="Annual / membership fee paid (₹)" testid="field-fee" type="number" value={form.fee_paid} onChange={(v) => setForm({ ...form, fee_paid: v })} placeholder={form.membership_kind === 'asset' ? '1499' : '149/month'} />
               <div className="grid grid-cols-2 gap-3" data-testid="membership-dates">
                 <FormField label="Start date *" testid="field-start-date" type="date" value={form.start_date} onChange={(v) => setForm({ ...form, start_date: v })} />
-                <FormField label="End date *" testid="field-expiry" type="date" value={form.expiry} onChange={(v) => setForm({ ...form, expiry: v })} />
+                <FormField label="End date *" testid="field-end-date" type="date" value={form.expiry} onChange={(v) => setForm({ ...form, expiry: v })} />
               </div>
               {dateError ? (
                 <p data-testid="date-validation-error" className="text-[11px] text-terracotta-700 font-semibold -mt-1">⚠️ {dateError}</p>

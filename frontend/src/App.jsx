@@ -162,7 +162,13 @@ export default function App() {
     return <PinLock mode="verify" expected={pin} onSuccess={() => setLocked(false)} />
   }
   if (!tourDone) {
-    return <Walkthrough onComplete={() => { localStorage.setItem('perk_orbit_tour_done', '1'); setTourDone(true) }} />
+    return <Walkthrough onComplete={() => {
+      // Set BOTH flags — if the user skips the tour we also skip discovery
+      // so they're never re-prompted across the two onboarding screens.
+      localStorage.setItem('perk_orbit_tour_done', '1')
+      localStorage.setItem('perk_orbit_discovery_done', '1')
+      setTourDone(true); setDiscoveryDone(true)
+    }} />
   }
   if (!discoveryDone) {
     return (
@@ -171,7 +177,11 @@ export default function App() {
           pin={authUser?.id || pin}
           toast={toast}
           onOpenProtect={() => setProtectOpen(true)}
-          onComplete={() => { localStorage.setItem('perk_orbit_discovery_done', '1'); setDiscoveryDone(true) }}
+          onComplete={() => {
+            localStorage.setItem('perk_orbit_discovery_done', '1')
+            localStorage.setItem('perk_orbit_tour_done', '1')
+            setDiscoveryDone(true); setTourDone(true)
+          }}
         />
         <HowWeProtectYouModal open={protectOpen} onClose={() => setProtectOpen(false)} />
         <Toast message={toastMsg} />

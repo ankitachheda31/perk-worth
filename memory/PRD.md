@@ -131,3 +131,16 @@
 - Footer links use `data-modal="privacy|terms|refund"` — no Netlify routing or `_redirects` file needed.
 - Verified visually with Playwright: hero renders correctly, Privacy + Refund modals open and close. Health check: 12/12 still passes.
 - **User instruction**: download this file, rename to `index.html` (already named that), drag-and-drop into Netlify → public URL ready for Razorpay KYC.
+
+## 2026-02-18 — Brand registry + Membership ROI + Onboarding loop fix
+- **Brand registry** (`/app/backend/data/brand_registry.json` + `brand_registry.py`): curated dataset of ~200 Indian brands across 16 conglomerates (Tata, Reliance, Aditya Birla, Mahindra, Bajaj, Adani, Godrej, ITC, L&T, Hinduja, Vedanta, Jindal, Wipro, Murugappa, Future Retail, plus 50+ independent D2C). Fuzzy lookup with exact-alias-first ranking (`bb` → BigBasket, not FBB).
+- **New endpoints**: `/api/brands/lookup?q=...` (top-10 autocomplete), `/api/brands/all` (flat list).
+- **Auto-tag on voucher save**: `parent_company` field populated automatically via the new registry.
+- **Membership ROI**: `/api/memberships/roi` now computes `days_total`, `days_remaining`, `days_elapsed_pct`, `cost_per_day`, `expired`, `expiring_soon` from `start_date` + `expiry`.
+- **AddVoucherSheet**: Type selector moved to TOP; live parent-brand chip; Start/End date pair for memberships; End-before-Start validation disables Save.
+- **MembershipCard**: progress bar showing days-remaining (emerald → amber → terracotta as it depletes) + cost-per-day badge.
+- **Fixed onboarding loop**: Walkthrough and SmartDiscovery now both set both flags on `onComplete`, eliminating the dismiss-loop reported by the testing agent.
+- **Fixed Vite-env-var bug** in CRA project: `import.meta.env.VITE_BACKEND_URL` → `process.env.REACT_APP_BACKEND_URL` in AddVoucherSheet.
+- **OTA workflow**: `/app/scripts/OTA_UPDATES.md` — Netlify remote-URL strategy documented (zero-cost OTA after one APK upload).
+- Razorpay UPI Collect config confirmed in place (`flows:['collect']` + `method:{upi:true}` + `show_default_blocks:false`).
+- Health: 14/14 HEALTHY.

@@ -124,3 +124,10 @@
 | **P2** | SendGrid/Resend email invites for Circle Members |
 | **P2** | Real SMTP for forgot-password flow |
 
+
+## 2026-02-18 — Single-file Netlify landing page
+- Generated `/app/landing/standalone/index.html` (48KB, 625 lines) — fully self-contained, zero dependencies on other files.
+- Privacy Policy, Terms of Service, and Refund & Cancellation Policy embedded as in-page modals (vanilla-JS toggled, dismiss via Esc / backdrop / Close button, deep-link via `#privacy` / `#terms` / `#refund`).
+- Footer links use `data-modal="privacy|terms|refund"` — no Netlify routing or `_redirects` file needed.
+- Verified visually with Playwright: hero renders correctly, Privacy + Refund modals open and close. Health check: 12/12 still passes.
+- **User instruction**: download this file, rename to `index.html` (already named that), drag-and-drop into Netlify → public URL ready for Razorpay KYC.

@@ -1,0 +1,343 @@
+{
+  "$schema": "perk-orbit-brand-registry@1",
+  "version": "2026.02.18",
+  "source": "curated by Perk Orbit team — Indian conglomerates & subsidiary brands",
+  "license": "internal — Perk Orbit Technologies Pvt. Ltd.",
+  "conglomerates": {
+    "Tata Group": {
+      "founded": 1868,
+      "headquarters": "Mumbai",
+      "loyalty_program": "NeuCoins (Tata Neu)",
+      "subsidiaries": [
+        { "brand": "Tata Neu", "category": "super-app", "aliases": ["tata neu", "tataneu", "neu"] },
+        { "brand": "Croma", "category": "electronics-retail", "aliases": ["croma retail", "croma store"] },
+        { "brand": "BigBasket", "category": "grocery", "aliases": ["big basket", "bb", "bbdaily", "bb daily", "bb now", "bigbasket now"] },
+        { "brand": "Tata 1mg", "category": "pharmacy", "aliases": ["1mg", "tata 1 mg", "onemg"] },
+        { "brand": "Tata CLiQ", "category": "ecommerce", "aliases": ["tata cliq", "tatacliq", "cliq", "cliq luxury"] },
+        { "brand": "Westside", "category": "fashion", "aliases": ["west side", "trent westside"] },
+        { "brand": "Zudio", "category": "fashion", "aliases": ["zudio"] },
+        { "brand": "Star Bazaar", "category": "grocery", "aliases": ["starbazaar", "star bazar"] },
+        { "brand": "Titan", "category": "watches-jewellery", "aliases": ["titan watches", "titan world"] },
+        { "brand": "Tanishq", "category": "jewellery", "aliases": ["tanishq jewels"] },
+        { "brand": "CaratLane", "category": "jewellery", "aliases": ["carat lane", "caratlane.com"] },
+        { "brand": "Mia by Tanishq", "category": "jewellery", "aliases": ["mia", "mia tanishq"] },
+        { "brand": "Fastrack", "category": "watches", "aliases": ["fastrack watches"] },
+        { "brand": "Sonata", "category": "watches", "aliases": ["sonata watches"] },
+        { "brand": "Titan Eye+", "category": "eyewear", "aliases": ["titan eyeplus", "eyeplus"] },
+        { "brand": "Air India", "category": "airline", "aliases": ["airindia", "ai"] },
+        { "brand": "Air India Express", "category": "airline", "aliases": ["ai express", "airindia express"] },
+        { "brand": "Vistara", "category": "airline", "aliases": ["air vistara"] },
+        { "brand": "Indian Hotels", "category": "hospitality", "aliases": ["taj hotels", "taj"] },
+        { "brand": "Taj", "category": "hospitality", "aliases": ["taj hotel", "taj resort"] },
+        { "brand": "Ginger Hotels", "category": "hospitality", "aliases": ["ginger", "ginger by taj"] },
+        { "brand": "Vivanta", "category": "hospitality", "aliases": ["vivanta hotels"] },
+        { "brand": "SeleQtions", "category": "hospitality", "aliases": ["seleqtions hotels"] },
+        { "brand": "Jaguar Land Rover", "category": "automobile", "aliases": ["jlr", "jaguar", "land rover", "range rover"] },
+        { "brand": "Tata Motors", "category": "automobile", "aliases": ["tata cars", "tata trucks"] },
+        { "brand": "Tata Power", "category": "energy", "aliases": ["tata power solar"] },
+        { "brand": "Tata Capital", "category": "finance", "aliases": ["tatacapital"] },
+        { "brand": "Tata AIG", "category": "insurance", "aliases": ["tataaig", "tata aig insurance"] },
+        { "brand": "Tata AIA", "category": "insurance", "aliases": ["tata aia life"] },
+        { "brand": "IHCL", "category": "hospitality", "aliases": ["indian hotels company"] },
+        { "brand": "Voltas", "category": "electronics", "aliases": ["voltas ac"] },
+        { "brand": "Tata Sky", "category": "dth", "aliases": ["tata play", "tataplay"] },
+        { "brand": "Tata Play", "category": "dth-streaming", "aliases": ["tata play binge", "tatasky"] },
+        { "brand": "Tetley", "category": "beverages", "aliases": ["tetley tea"] },
+        { "brand": "Eight O'Clock Coffee", "category": "beverages", "aliases": ["eight o clock"] },
+        { "brand": "Himalayan Water", "category": "beverages", "aliases": ["himalayan"] },
+        { "brand": "Tata Salt", "category": "fmcg", "aliases": ["tata namak"] },
+        { "brand": "Tata Sampann", "category": "fmcg", "aliases": ["sampann"] }
+      ]
+    },
+    "Reliance Industries": {
+      "founded": 1966,
+      "headquarters": "Mumbai",
+      "loyalty_program": "JioPoints / Reliance One",
+      "subsidiaries": [
+        { "brand": "Jio", "category": "telecom", "aliases": ["reliance jio", "jio mobile"] },
+        { "brand": "JioFiber", "category": "broadband", "aliases": ["jio fiber"] },
+        { "brand": "JioMart", "category": "ecommerce", "aliases": ["jio mart", "jiomart.com"] },
+        { "brand": "JioCinema", "category": "ott", "aliases": ["jio cinema"] },
+        { "brand": "JioSaavn", "category": "music", "aliases": ["jio saavn", "saavn"] },
+        { "brand": "Reliance Digital", "category": "electronics-retail", "aliases": ["reliancedigital", "rd"] },
+        { "brand": "Reliance Trends", "category": "fashion", "aliases": ["trends store", "rtrends"] },
+        { "brand": "Reliance Smart", "category": "grocery", "aliases": ["smart bazaar", "smart point"] },
+        { "brand": "Reliance Fresh", "category": "grocery", "aliases": ["fresh stores"] },
+        { "brand": "Ajio", "category": "fashion-ecommerce", "aliases": ["ajio luxe", "ajio.com"] },
+        { "brand": "Tira", "category": "beauty", "aliases": ["tira beauty"] },
+        { "brand": "Netmeds", "category": "pharmacy", "aliases": ["net meds", "netmeds.com"] },
+        { "brand": "Hamleys", "category": "toys", "aliases": ["hamley's"] },
+        { "brand": "Reliance Jewels", "category": "jewellery", "aliases": ["reliance jewellery"] },
+        { "brand": "JioStudios", "category": "media", "aliases": ["jio studios"] },
+        { "brand": "Network18", "category": "media", "aliases": ["network 18", "cnbc", "moneycontrol"] },
+        { "brand": "Viacom18", "category": "media", "aliases": ["viacom 18", "colors", "mtv india"] },
+        { "brand": "JioHotstar", "category": "ott", "aliases": ["jio hotstar", "hotstar"] }
+      ]
+    },
+    "Aditya Birla Group": {
+      "founded": 1857,
+      "headquarters": "Mumbai",
+      "loyalty_program": "ABG Privilege Circle",
+      "subsidiaries": [
+        { "brand": "Pantaloons", "category": "fashion", "aliases": ["pantaloon"] },
+        { "brand": "Allen Solly", "category": "fashion", "aliases": ["allensolly"] },
+        { "brand": "Van Heusen", "category": "fashion", "aliases": ["vanheusen"] },
+        { "brand": "Louis Philippe", "category": "fashion", "aliases": ["louis-philippe", "lp"] },
+        { "brand": "Peter England", "category": "fashion", "aliases": ["peterengland"] },
+        { "brand": "Park Avenue", "category": "fashion", "aliases": ["parkavenue"] },
+        { "brand": "Planet Fashion", "category": "fashion", "aliases": ["planet-fashion"] },
+        { "brand": "The Collective", "category": "fashion-luxury", "aliases": ["collective"] },
+        { "brand": "Sabyasachi", "category": "fashion-luxury", "aliases": ["sabyasachi mukherjee"] },
+        { "brand": "Tasva", "category": "fashion-ethnic", "aliases": [] },
+        { "brand": "American Eagle India", "category": "fashion", "aliases": ["american eagle"] },
+        { "brand": "Forever 21 India", "category": "fashion", "aliases": ["forever21"] },
+        { "brand": "Style Up", "category": "fashion", "aliases": ["styleup"] },
+        { "brand": "More Retail", "category": "grocery", "aliases": ["more supermarket", "more megastore"] },
+        { "brand": "UltraTech Cement", "category": "cement", "aliases": ["ultratech"] },
+        { "brand": "Birla Sun Life", "category": "insurance", "aliases": ["birla sun life insurance", "bsli"] },
+        { "brand": "ABSL Mutual Fund", "category": "finance", "aliases": ["aditya birla mutual fund", "absl mf"] },
+        { "brand": "Vodafone Idea", "category": "telecom", "aliases": ["vi", "vodafoneidea"] },
+        { "brand": "Hindalco", "category": "metals", "aliases": [] },
+        { "brand": "Grasim", "category": "textiles", "aliases": ["grasim industries"] }
+      ]
+    },
+    "Mahindra Group": {
+      "founded": 1945,
+      "headquarters": "Mumbai",
+      "loyalty_program": "With You Hamesha",
+      "subsidiaries": [
+        { "brand": "Mahindra & Mahindra", "category": "automobile", "aliases": ["m&m", "mahindra auto", "mahindra suv"] },
+        { "brand": "Mahindra Electric", "category": "automobile", "aliases": ["mahindra ev"] },
+        { "brand": "Mahindra Lifespaces", "category": "real-estate", "aliases": ["mahindra real estate"] },
+        { "brand": "Mahindra Holidays", "category": "hospitality", "aliases": ["club mahindra"] },
+        { "brand": "Club Mahindra", "category": "hospitality", "aliases": ["clubmahindra"] },
+        { "brand": "Mahindra Finance", "category": "finance", "aliases": ["m&m finance"] },
+        { "brand": "Mahindra First Choice", "category": "automobile", "aliases": ["mahindra used cars"] },
+        { "brand": "Mahindra Logistics", "category": "logistics", "aliases": [] },
+        { "brand": "Tech Mahindra", "category": "it-services", "aliases": ["techm", "tech-mahindra"] },
+        { "brand": "Mahindra Solarize", "category": "energy", "aliases": ["mahindra solar"] }
+      ]
+    },
+    "Bajaj Group": {
+      "founded": 1926,
+      "headquarters": "Pune",
+      "loyalty_program": "Bajaj EMI Wallet",
+      "subsidiaries": [
+        { "brand": "Bajaj Auto", "category": "automobile", "aliases": ["bajaj bikes", "bajaj two wheeler"] },
+        { "brand": "Bajaj Finserv", "category": "finance", "aliases": ["bajajfinserv"] },
+        { "brand": "Bajaj Finance", "category": "finance", "aliases": ["bajaj emi"] },
+        { "brand": "Bajaj Allianz General Insurance", "category": "insurance", "aliases": ["bajaj allianz", "bagic"] },
+        { "brand": "Bajaj Allianz Life", "category": "insurance", "aliases": ["bajaj allianz life insurance"] },
+        { "brand": "Bajaj Markets", "category": "finance-marketplace", "aliases": ["bajajmarkets"] },
+        { "brand": "Bajaj Capital", "category": "finance", "aliases": ["bajajcapital"] },
+        { "brand": "Bajaj Electricals", "category": "consumer-durables", "aliases": ["bajaj electric"] },
+        { "brand": "Bajaj Pay", "category": "wallet", "aliases": ["bajajpay", "bajaj pay upi"] }
+      ]
+    },
+    "Adani Group": {
+      "founded": 1988,
+      "headquarters": "Ahmedabad",
+      "loyalty_program": "Adani One",
+      "subsidiaries": [
+        { "brand": "Adani One", "category": "super-app", "aliases": ["adani-one", "adani1"] },
+        { "brand": "Adani Airports", "category": "airports", "aliases": ["adani airport", "mumbai airport"] },
+        { "brand": "Adani Total Gas", "category": "energy", "aliases": ["atgl", "adani gas"] },
+        { "brand": "Adani Power", "category": "energy", "aliases": ["adanipower"] },
+        { "brand": "Adani Green Energy", "category": "energy", "aliases": ["adani green", "agel"] },
+        { "brand": "Adani Wilmar", "category": "fmcg", "aliases": ["fortune oil", "fortune foods"] },
+        { "brand": "Fortune Foods", "category": "fmcg", "aliases": ["fortune", "fortune oil"] },
+        { "brand": "Ambuja Cement", "category": "cement", "aliases": ["ambuja"] },
+        { "brand": "ACC Cement", "category": "cement", "aliases": ["acc limited"] },
+        { "brand": "NDTV", "category": "media", "aliases": ["ndtv india", "ndtv profit"] }
+      ]
+    },
+    "Godrej Group": {
+      "founded": 1897,
+      "headquarters": "Mumbai",
+      "loyalty_program": "Godrej Rewards",
+      "subsidiaries": [
+        { "brand": "Godrej Consumer Products", "category": "fmcg", "aliases": ["gcpl"] },
+        { "brand": "Godrej Properties", "category": "real-estate", "aliases": ["godrej real estate"] },
+        { "brand": "Godrej Agrovet", "category": "agri", "aliases": [] },
+        { "brand": "Godrej Interio", "category": "furniture", "aliases": ["interio", "godrej furniture"] },
+        { "brand": "Godrej Appliances", "category": "appliances", "aliases": [] },
+        { "brand": "Godrej Security Solutions", "category": "security", "aliases": ["godrej locks", "godrej safe"] },
+        { "brand": "Cinthol", "category": "fmcg", "aliases": [] },
+        { "brand": "Good Knight", "category": "fmcg", "aliases": ["goodknight"] },
+        { "brand": "HIT", "category": "fmcg", "aliases": ["hit insect spray"] },
+        { "brand": "Aer", "category": "fmcg", "aliases": ["aer freshener"] },
+        { "brand": "Godrej No.1", "category": "fmcg", "aliases": ["godrej no 1", "godrej no.1 soap"] },
+        { "brand": "Godrej Expert", "category": "fmcg", "aliases": ["godrej hair colour"] },
+        { "brand": "Park Avenue", "category": "fmcg", "aliases": ["park avenue deo"] },
+        { "brand": "Godrej Magic", "category": "fmcg", "aliases": ["magic handwash"] }
+      ]
+    },
+    "ITC Limited": {
+      "founded": 1910,
+      "headquarters": "Kolkata",
+      "loyalty_program": "Club ITC",
+      "subsidiaries": [
+        { "brand": "Aashirvaad", "category": "fmcg", "aliases": ["aashirvad", "ashirvaad", "aashirwad"] },
+        { "brand": "Sunfeast", "category": "fmcg", "aliases": [] },
+        { "brand": "Bingo!", "category": "fmcg", "aliases": ["bingo", "bingo chips"] },
+        { "brand": "Yippee!", "category": "fmcg", "aliases": ["yippee", "yippee noodles"] },
+        { "brand": "Fiama", "category": "fmcg", "aliases": ["fiama di wills"] },
+        { "brand": "Vivel", "category": "fmcg", "aliases": [] },
+        { "brand": "Engage", "category": "fmcg", "aliases": ["engage deo"] },
+        { "brand": "Savlon", "category": "fmcg", "aliases": [] },
+        { "brand": "Classmate", "category": "stationery", "aliases": [] },
+        { "brand": "Paperkraft", "category": "stationery", "aliases": [] },
+        { "brand": "Wills Lifestyle", "category": "fashion", "aliases": ["willslifestyle"] },
+        { "brand": "John Players", "category": "fashion", "aliases": ["johnplayers"] },
+        { "brand": "ITC Hotels", "category": "hospitality", "aliases": ["itc grand", "itc maurya", "itc kakatiya"] },
+        { "brand": "Welcomgroup", "category": "hospitality", "aliases": ["welcomhotel"] },
+        { "brand": "Fortune Hotels", "category": "hospitality", "aliases": ["fortuneparkhotels"] },
+        { "brand": "Mangaldeep", "category": "fmcg", "aliases": [] }
+      ]
+    },
+    "L&T Group": {
+      "founded": 1938,
+      "headquarters": "Mumbai",
+      "loyalty_program": "L&T Connect",
+      "subsidiaries": [
+        { "brand": "Larsen & Toubro", "category": "engineering", "aliases": ["l&t", "lnt"] },
+        { "brand": "L&T Construction", "category": "construction", "aliases": ["lnt construction"] },
+        { "brand": "L&T Finance", "category": "finance", "aliases": ["lntfh", "lnt finance"] },
+        { "brand": "L&T Mutual Fund", "category": "finance", "aliases": ["lnt mf"] },
+        { "brand": "L&T Realty", "category": "real-estate", "aliases": [] },
+        { "brand": "L&T Technology Services", "category": "it-services", "aliases": ["lnt tech", "lts"] },
+        { "brand": "L&T Infotech", "category": "it-services", "aliases": ["lti", "ltimindtree"] },
+        { "brand": "LTIMindtree", "category": "it-services", "aliases": ["lti mindtree", "mindtree"] }
+      ]
+    },
+    "Hinduja Group": {
+      "founded": 1914,
+      "headquarters": "Mumbai",
+      "loyalty_program": "Hinduja Connect",
+      "subsidiaries": [
+        { "brand": "Ashok Leyland", "category": "automobile", "aliases": ["ashokleyland"] },
+        { "brand": "IndusInd Bank", "category": "banking", "aliases": ["indusind", "indus ind"] },
+        { "brand": "Hinduja Leyland Finance", "category": "finance", "aliases": ["hlf"] },
+        { "brand": "Switch Mobility", "category": "automobile", "aliases": ["switch buses"] }
+      ]
+    },
+    "Vedanta Resources": {
+      "founded": 1976,
+      "headquarters": "Mumbai",
+      "loyalty_program": null,
+      "subsidiaries": [
+        { "brand": "Vedanta", "category": "metals-mining", "aliases": ["vedanta ltd"] },
+        { "brand": "Hindustan Zinc", "category": "metals-mining", "aliases": ["hzl"] },
+        { "brand": "Balco", "category": "metals-mining", "aliases": ["bharat aluminium"] },
+        { "brand": "Cairn India", "category": "oil-gas", "aliases": ["cairn"] }
+      ]
+    },
+    "Jindal Group": {
+      "founded": 1952,
+      "headquarters": "Hisar",
+      "loyalty_program": null,
+      "subsidiaries": [
+        { "brand": "JSW Steel", "category": "metals", "aliases": ["jsw"] },
+        { "brand": "JSW Cement", "category": "cement", "aliases": [] },
+        { "brand": "JSW Paints", "category": "paints", "aliases": [] },
+        { "brand": "JSW Energy", "category": "energy", "aliases": [] },
+        { "brand": "JSW Sports", "category": "sports", "aliases": ["delhi capitals", "haryana steelers"] }
+      ]
+    },
+    "Wipro Enterprises": {
+      "founded": 1945,
+      "headquarters": "Bangalore",
+      "loyalty_program": null,
+      "subsidiaries": [
+        { "brand": "Wipro", "category": "it-services", "aliases": ["wipro ltd"] },
+        { "brand": "Santoor", "category": "fmcg", "aliases": ["santoor soap"] },
+        { "brand": "Yardley", "category": "fmcg", "aliases": ["yardley india"] },
+        { "brand": "Chandrika", "category": "fmcg", "aliases": ["chandrika soap"] },
+        { "brand": "Enchanteur", "category": "fmcg", "aliases": [] }
+      ]
+    },
+    "Murugappa Group": {
+      "founded": 1900,
+      "headquarters": "Chennai",
+      "loyalty_program": null,
+      "subsidiaries": [
+        { "brand": "TI Cycles", "category": "cycles", "aliases": ["hercules cycles", "bsa cycles"] },
+        { "brand": "Cholamandalam", "category": "finance", "aliases": ["chola finance", "chola mandalam"] },
+        { "brand": "Carborundum Universal", "category": "abrasives", "aliases": ["cumi"] },
+        { "brand": "EID Parry", "category": "sugar", "aliases": ["parry sugar"] }
+      ]
+    },
+    "Future Retail (Bankrupt — historical)": {
+      "founded": 2007,
+      "headquarters": "Mumbai",
+      "loyalty_program": "Future Pay (defunct)",
+      "subsidiaries": [
+        { "brand": "Big Bazaar", "category": "grocery", "aliases": ["bigbazaar", "big-bazaar"] },
+        { "brand": "FBB", "category": "fashion", "aliases": ["fashion at big bazaar"] },
+        { "brand": "Central", "category": "fashion", "aliases": ["central mall"] },
+        { "brand": "Brand Factory", "category": "fashion", "aliases": [] },
+        { "brand": "EasyDay", "category": "grocery", "aliases": ["easy day"] }
+      ]
+    },
+    "Independent / D2C": {
+      "founded": null,
+      "headquarters": "Various",
+      "loyalty_program": null,
+      "subsidiaries": [
+        { "brand": "Swiggy", "category": "food-delivery", "aliases": ["swiggy instamart", "swiggy genie", "swiggy one"] },
+        { "brand": "Zomato", "category": "food-delivery", "aliases": ["zomato gold", "zomato pro"] },
+        { "brand": "Blinkit", "category": "quick-commerce", "aliases": ["blink it", "grofers"] },
+        { "brand": "Zepto", "category": "quick-commerce", "aliases": ["zepto.in"] },
+        { "brand": "Myntra", "category": "fashion-ecommerce", "aliases": ["myntra.com", "myntra insider"] },
+        { "brand": "Flipkart", "category": "ecommerce", "aliases": ["flipkart plus", "flipkartplus"] },
+        { "brand": "Amazon India", "category": "ecommerce", "aliases": ["amazon", "amazon prime", "amazon pay"] },
+        { "brand": "Meesho", "category": "ecommerce", "aliases": ["meesho.com"] },
+        { "brand": "Nykaa", "category": "beauty-ecommerce", "aliases": ["nykaa.com", "nykaa fashion", "nykaa man"] },
+        { "brand": "Lenskart", "category": "eyewear", "aliases": ["lenskart.com", "lenskart gold"] },
+        { "brand": "boAt", "category": "electronics", "aliases": ["boat lifestyle", "boat-lifestyle"] },
+        { "brand": "Mamaearth", "category": "beauty", "aliases": ["mama earth"] },
+        { "brand": "Sugar Cosmetics", "category": "beauty", "aliases": ["sugar", "sugar cosmetic"] },
+        { "brand": "WOW Skin Science", "category": "beauty", "aliases": ["wow"] },
+        { "brand": "PaperBoat", "category": "fmcg", "aliases": ["paper boat"] },
+        { "brand": "Licious", "category": "meat-delivery", "aliases": ["licious.in"] },
+        { "brand": "FreshToHome", "category": "meat-delivery", "aliases": ["fresh to home"] },
+        { "brand": "Country Delight", "category": "dairy", "aliases": ["countrydelight"] },
+        { "brand": "BookMyShow", "category": "events", "aliases": ["bms", "bookmyshow"] },
+        { "brand": "MakeMyTrip", "category": "travel", "aliases": ["mmt", "make my trip"] },
+        { "brand": "Goibibo", "category": "travel", "aliases": [] },
+        { "brand": "Ixigo", "category": "travel", "aliases": ["confirmtkt"] },
+        { "brand": "IRCTC", "category": "travel", "aliases": ["indian railways"] },
+        { "brand": "Cleartrip", "category": "travel", "aliases": [] },
+        { "brand": "EaseMyTrip", "category": "travel", "aliases": ["easemytrip", "emt"] },
+        { "brand": "Yatra", "category": "travel", "aliases": ["yatra.com"] },
+        { "brand": "Ola", "category": "ride-hailing", "aliases": ["ola cabs", "ola electric"] },
+        { "brand": "Uber India", "category": "ride-hailing", "aliases": ["uber", "uber one"] },
+        { "brand": "Rapido", "category": "ride-hailing", "aliases": ["rapido bike"] },
+        { "brand": "Paytm", "category": "wallet-payments", "aliases": ["paytm money", "paytm postpaid"] },
+        { "brand": "PhonePe", "category": "wallet-payments", "aliases": ["phone pe", "phonepe.in"] },
+        { "brand": "Google Pay India", "category": "wallet-payments", "aliases": ["gpay", "google pay"] },
+        { "brand": "Cred", "category": "credit-card-rewards", "aliases": ["cred.club", "credmint"] },
+        { "brand": "Spotify", "category": "music", "aliases": ["spotify premium", "spotify india"] },
+        { "brand": "Netflix", "category": "ott", "aliases": ["netflix india", "netflix premium"] },
+        { "brand": "Disney+ Hotstar", "category": "ott", "aliases": ["hotstar", "disney+ hotstar", "disney hotstar"] },
+        { "brand": "Sony LIV", "category": "ott", "aliases": ["sonyliv"] },
+        { "brand": "Zee5", "category": "ott", "aliases": ["zee 5"] },
+        { "brand": "Voot", "category": "ott", "aliases": [] },
+        { "brand": "Apple Music", "category": "music", "aliases": [] },
+        { "brand": "YouTube Premium", "category": "ott", "aliases": ["youtube red", "yt premium"] },
+        { "brand": "LinkedIn Premium", "category": "saas", "aliases": ["linkedin"] },
+        { "brand": "ChatGPT Plus", "category": "saas", "aliases": ["openai", "chatgpt"] },
+        { "brand": "Microsoft 365", "category": "saas", "aliases": ["office 365", "ms 365"] },
+        { "brand": "Apple One", "category": "saas", "aliases": ["icloud"] },
+        { "brand": "PharmEasy", "category": "pharmacy", "aliases": ["pharm easy", "pharmeasy.in"] },
+        { "brand": "Apollo Pharmacy", "category": "pharmacy", "aliases": ["apollo247", "apollo 24/7"] },
+        { "brand": "Practo", "category": "healthtech", "aliases": [] },
+        { "brand": "HealthifyMe", "category": "healthtech", "aliases": ["healthify"] },
+        { "brand": "Cult.fit", "category": "fitness", "aliases": ["cultfit", "cult fit", "cure.fit"] },
+        { "brand": "FirstCry", "category": "ecommerce-baby", "aliases": ["first cry", "firstcry.com"] },
+        { "brand": "Pepperfry", "category": "furniture-ecommerce", "aliases": ["pepper fry"] },
+        { "brand": "Urban Company", "category": "services", "aliases": ["urbanclap", "urban-clap"] }
+      ]
+    }
+  }
+}

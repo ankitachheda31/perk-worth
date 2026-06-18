@@ -1,0 +1,69 @@
+{
+  "summary": "Iteration 8 — tested brand-registry endpoints, voucher auto-tagging, and membership ROI extensions. Backend: 16/17 PASS in new pytest file. Frontend AddVoucherSheet UI could not be reached via E2E due to a circular onboarding loop (Smart Discovery ↔ Walkthrough). Static code review of AddVoucherSheet confirms all required testids and validation logic are present and structurally correct, but a Vite-env-var bug exists in the parent-brand lookup call.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/brands/lookup?q=bb", "issue": "Ranking bug — 'bb' is a registered alias of BigBasket but the endpoint returns FBB (Future Retail) first because search() ranks substring-contains hits above alias-only hits. Spec requires BigBasket to be top result."},
+      {"endpoint": "GET /api/brands/lookup", "issue": "Legacy test_perk_orbit.py expects parent_company='Tata' for Croma but new registry returns 'Tata Group'; Flipkart/Swiggy now return parent 'Independent / D2C' (was 'Flipkart'/'Swiggy'). New names are more correct — update legacy tests."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "SmartDiscovery + Walkthrough onboarding", "issue": "Circular loop blocks user from reaching the dashboard. Sequence observed: PIN setup → Smart Discovery → (click discovery-later or discovery-skip) → Walkthrough → (click walkthrough-skip) → returns to Smart Discovery again. Could not complete AddVoucherSheet E2E.", "selector": "[data-testid='smart-discovery']", "priority": "HIGH"},
+      {"component": "AddVoucherSheet.jsx line 34", "issue": "Uses import.meta.env.VITE_BACKEND_URL (Vite-style) inside a CRA project where env vars are process.env.REACT_APP_*. Falls back to '' giving a relative URL that works only because ingress co-locates frontend+backend. Should use REACT_APP_BACKEND_URL via process.env to be consistent with rest of codebase.", "selector": "fetch in useEffect", "priority": "MEDIUM"},
+      {"component": "AddVoucherSheet membership form", "issue": "Two elements share data-testid='field-expiry' (one in voucher-only block, one in membership-dates block). Although only one mounts at a time, this can confuse Playwright when switching modes mid-test.", "selector": "[data-testid='field-expiry']", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_brands_and_membership_roi.py",
+    "/app/test_reports/pytest/pytest_brands_roi.xml"
+  ],
+  "tests_passed": [
+    "GET /api/brands/lookup?q=BigBasket → BigBasket / Tata Group / grocery",
+    "GET /api/brands/lookup?q=big%20basket → BigBasket / Tata Group (alias with space)",
+    "GET /api/brands/lookup?q=Ajio → Ajio / Reliance Industries",
+    "GET /api/brands/lookup?q=Pantaloons → Pantaloons / Aditya Birla Group",
+    "GET /api/brands/lookup?q=Sunfeast → Sunfeast / ITC Limited",
+    "GET /api/brands/lookup?q=Club%20Mahindra → Club Mahindra / Mahindra Group",
+    "GET /api/brands/lookup?q=Bajaj%20Finserv → Bajaj Finserv / Bajaj Group",
+    "GET /api/brands/lookup?q= (empty) → safe (200 with empty results)",
+    "GET /api/brands/all → flat array of ≥190 brands (each with brand+parent_company)",
+    "POST /api/vouchers brand=BigBasket auto-populates parent_company=Tata Group",
+    "POST membership category=memberships + start_date=2026-01-01 + expiry=2026-12-31 + fee=1499 then GET /api/memberships/roi returns days_total=364, days_remaining 0-364, days_elapsed_pct 0-100, cost_per_day≈4.12, expired=false, plus legacy fields roi_progress/break_even/renewal_recommended",
+    "Expired membership (2025-01-01 → 2025-12-31) → expired=true, days_remaining=0",
+    "Expiring-soon membership (today-355 → today+5) → expiring_soon=true, 1≤days_remaining≤7, expired=false",
+    "Regression: voucher create without dates still works",
+    "Regression: GET /api/points/summary still returns dict (200)",
+    "Regression: GET /api/memberships/roi handles old records (no start_date) without crash",
+    "health_check.py: 14/14 HEALTHY"
+  ],
+  "tests_failed": [
+    "GET /api/brands/lookup?q=bb expected BigBasket first → got FBB first (ranking bug in brand_registry.search)"
+  ],
+  "action_items": [
+    "Fix brand_registry.search ranking — promote exact alias matches above substring/contains matches so 'bb' resolves to BigBasket before FBB.",
+    "Fix SmartDiscovery + Walkthrough onboarding loop — once user clicks discovery-skip/discovery-later, persist the dismissal (localStorage/profile flag) so it does not re-appear after the walkthrough. Currently the user is trapped on first sign-in.",
+    "Replace import.meta.env.VITE_BACKEND_URL with process.env.REACT_APP_BACKEND_URL in /app/frontend/src/sheets/AddVoucherSheet.jsx line 34 (CRA project, not Vite).",
+    "Disambiguate data-testid='field-expiry' — rename the membership End-date input to data-testid='field-end-date' to avoid Playwright selector ambiguity across modes.",
+    "Update legacy /app/backend/tests/test_perk_orbit.py (test_brand_search_croma, test_brand_search_myntra, test_search_brand_includes_user_matches) to expect the new parent_company values ('Tata Group', 'Independent / D2C')."
+  ],
+  "critical_code_review_comments": [
+    "brand_registry.search() — alias_only is placed AFTER contains bucket which causes the 'bb' → FBB ranking bug. Either elevate alias-exact matches into a separate first bucket, or rerank by alias-exactness inside contains.",
+    "AddVoucherSheet line 38 — substring heuristic `form.brand.toLowerCase().includes(top.brand.toLowerCase().slice(0, 4))` is fragile for short brand names (e.g. typing 'Jio' won't trigger the chip because slice(0,4) of 'JioFiber' is 'jiof' which is not in 'jio'). Consider relying on the registry's own match confidence instead of a 4-char prefix heuristic.",
+    "AddVoucherSheet handleSave — toast feedback is logged via toast() but no Save errors are surfaced from API failure (no try/catch error toast).",
+    "MembershipCard — no automated verification possible this iteration due to onboarding loop; please re-verify days-remaining/days-progress-bar/cost_per_day rendering once onboarding is fixed.",
+    "Endpoint /api/brands/lookup has no query length check ≥2 leading to noisy short-prefix searches; consider rejecting q with <2 chars (after normalisation)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_brands_and_membership_roi.py (NEW — 17 cases, 16 passing, 1 failing flags the bb-FBB ranking bug)"
+  ],
+  "success_rate": {"backend": "94% (16/17 new + 15/18 legacy passing — 3 legacy failures are stale expectations on renamed parents)", "frontend": "code-review only (33%) — onboarding loop blocked E2E AddVoucherSheet verification"},
+  "test_credentials": "test@perkorbit.app / Perk@1234 + PIN 1234 (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "Per-test memberships created with TEST-Membership-{uuid6} brand prefix and cleaned up via DELETE /api/vouchers/{id}. One BigBasket voucher and one Independent-Test voucher also created+deleted.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "1) Onboarding loop is the BIGGEST blocker — Smart Discovery + Walkthrough cycle keeps re-appearing for a fresh login. To E2E the AddVoucherSheet on a fresh session you must first fix the dismissal logic OR pre-set localStorage keys to skip both screens. 2) Backend /api/brands/lookup ranking bug is small but spec-relevant. 3) MembershipCard rendering (days-remaining-{id}, days-progress-bar-{id}, expired/expiring colour) was NOT visually verified — re-test after onboarding is fixed. 4) Existing test_perk_orbit.py has 3 stale failures unrelated to this iteration's changes; update expectations to 'Tata Group' / 'Independent / D2C'.",
+  "rca of the issue": "Frontend onboarding loop: dismissing Smart Discovery routes to Walkthrough; dismissing Walkthrough routes back to Smart Discovery — neither writes the 'onboarded' flag that gates AppShell. Brand-search rank bug: brand_registry.search ranks substring-contains hits (FBB contains 'bb') ahead of alias-only hits (BigBasket has 'bb' as an alias) — re-ordering buckets in brand_registry.py:127 fixes it."
+}

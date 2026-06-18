@@ -100,6 +100,7 @@ class Voucher(BaseDocument):
     value_currency: str = "INR"
     points: Optional[int] = None
     expiry: Optional[str] = None  # ISO date YYYY-MM-DD
+    start_date: Optional[str] = None  # ISO date — membership start, used for ROI math
     category: str = "vouchers"  # vouchers | memberships
     membership_kind: Optional[str] = None  # asset | content
     fee_paid: Optional[float] = None  # for asset memberships
@@ -121,6 +122,7 @@ class VoucherCreate(BaseModel):
     value: Optional[float] = None
     points: Optional[int] = None
     expiry: Optional[str] = None
+    start_date: Optional[str] = None
     category: str = "vouchers"
     membership_kind: Optional[str] = None
     fee_paid: Optional[float] = None
@@ -137,6 +139,7 @@ class VoucherUpdate(BaseModel):
     value: Optional[float] = None
     points: Optional[int] = None
     expiry: Optional[str] = None
+    start_date: Optional[str] = None
     category: Optional[str] = None
     membership_kind: Optional[str] = None
     fee_paid: Optional[float] = None
@@ -242,6 +245,15 @@ BRAND_PARENT_MAP = {
 def lookup_parent(brand: str) -> Optional[str]:
     if not brand:
         return None
+    # 1) Comprehensive curated registry (data/brand_registry.json — ~200 Indian brands)
+    try:
+        from brand_registry import lookup as _registry_lookup
+        parent, _canonical = _registry_lookup(brand)
+        if parent:
+            return parent
+    except Exception:
+        pass
+    # 2) Legacy inline map (kept for any niche brand not yet in the JSON registry)
     key = brand.strip().lower()
     if key in BRAND_PARENT_MAP:
         return BRAND_PARENT_MAP[key]
@@ -374,6 +386,24 @@ async def create_voucher(payload: VoucherCreate):
     return _serialize(doc)
 
 
+@api.get("/brands/lookup")
+async def brand_lookup(q: str = Query(..., min_length=1, max_length=80)):
+    """Live-suggest endpoint for the Add Voucher / Membership form.
+
+    Returns top-10 brand matches with their parent conglomerate so the UI can
+    show a `Tata Group → BigBasket` chip as the user types.
+    """
+    from brand_registry import search as _registry_search
+    return {"results": _registry_search(q, limit=10)}
+
+
+@api.get("/brands/all")
+async def brand_all():
+    """Flat list of all known brands. Cache-friendly — frontend can fetch once."""
+    from brand_registry import all_brands as _all
+    return {"brands": _all()}
+
+
 @api.get("/vouchers")
 async def list_vouchers(user_pin: str = Query(...), category: Optional[str] = None):
     q: dict = {"user_pin": user_pin}
@@ -468,15 +498,52 @@ async def points_summary(user_pin: str = Query(...)):
 async def memberships_roi(user_pin: str = Query(...)):
     cursor = db.vouchers.find({"user_pin": user_pin, "category": "memberships"})
     items = []
+    today = datetime.now(timezone.utc).date()
     async for d in cursor:
         d = _serialize(d)
         kind = d.get("membership_kind")
+        fee = d.get("fee_paid") or 0
+
+        # Asset ROI (savings vs fee) — unchanged behaviour
         if kind == "asset":
-            fee = d.get("fee_paid") or 0
             saved = d.get("savings_realized") or 0
             d["roi_progress"] = round(min(100, (saved / fee * 100) if fee else 0), 1)
             d["break_even"] = saved >= fee and fee > 0
             d["renewal_recommended"] = saved >= fee * 0.8 if fee else False
+
+        # Time-based ROI — Days Remaining, Cost per Day, % elapsed.
+        # Works for BOTH asset and content memberships as long as start_date
+        # and expiry are present (start_date defaults to created_at date).
+        start_str = d.get("start_date") or (d.get("created_at") or "")[:10]
+        exp_str = d.get("expiry")
+        try:
+            start = datetime.fromisoformat(start_str).date() if start_str else None
+        except Exception:
+            start = None
+        try:
+            end = datetime.fromisoformat(exp_str).date() if exp_str else None
+        except Exception:
+            end = None
+
+        if start and end and end >= start:
+            days_total = (end - start).days or 1
+            days_remaining = max(0, (end - today).days)
+            days_elapsed = max(0, min(days_total, (today - start).days))
+            d["days_total"] = days_total
+            d["days_remaining"] = days_remaining
+            d["days_elapsed"] = days_elapsed
+            d["days_elapsed_pct"] = round(days_elapsed / days_total * 100, 1)
+            d["cost_per_day"] = round((fee / days_total), 2) if fee else None
+            d["expired"] = days_remaining == 0 and today > end
+            d["expiring_soon"] = 0 < days_remaining <= 7
+        else:
+            d["days_total"] = None
+            d["days_remaining"] = None
+            d["days_elapsed_pct"] = None
+            d["cost_per_day"] = None
+            d["expired"] = False
+            d["expiring_soon"] = False
+
         items.append(d)
     return items
 

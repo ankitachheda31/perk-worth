@@ -86,6 +86,15 @@ export function MembershipCard({ m, onUpdateSavings }) {
   const progress = fee > 0 ? Math.min(100, (saved / fee) * 100) : 0
   const breakEven = saved >= fee && fee > 0
 
+  // Time-based metrics (computed server-side in /memberships/roi, but we
+  // recompute locally as a graceful fallback for old records without dates)
+  const daysRemaining = (typeof m.days_remaining === 'number') ? m.days_remaining : null
+  const daysTotal = (typeof m.days_total === 'number') ? m.days_total : null
+  const daysPct = (typeof m.days_elapsed_pct === 'number') ? m.days_elapsed_pct : null
+  const costPerDay = (typeof m.cost_per_day === 'number') ? m.cost_per_day : null
+  const expiringSoon = !!m.expiring_soon
+  const expired = !!m.expired
+
   return (
     <div className="rounded-3xl border border-ink-200 p-5 bg-gradient-to-br from-ink-900 to-ink-800 text-white shadow-card overflow-hidden relative page-enter" data-testid={`membership-${m.id}`}>
       <div className="absolute -top-12 -right-12 w-44 h-44 rounded-full bg-gold-500/15 blur-2xl pointer-events-none" />
@@ -97,15 +106,36 @@ export function MembershipCard({ m, onUpdateSavings }) {
             <p className="text-[11px] text-white/60 mt-0.5">By {m.parent_company}</p>
           ) : null}
         </div>
-        <Tag tone={isAsset ? 'gold' : 'neutral'}>{isAsset ? 'ROI' : 'Renews'}</Tag>
+        <Tag tone={expired ? 'red' : expiringSoon ? 'gold' : (isAsset ? 'gold' : 'neutral')}>
+          {expired ? 'Expired' : expiringSoon ? `${daysRemaining}d left` : (isAsset ? 'ROI' : 'Renews')}
+        </Tag>
       </div>
 
       <p className="text-sm text-white/80 mt-2">{m.title}</p>
 
+      {/* Days-remaining progress bar — visible for any membership with dates */}
+      {daysTotal !== null && daysRemaining !== null ? (
+        <div className="mt-4 space-y-1.5" data-testid={`days-remaining-${m.id}`}>
+          <div className="flex justify-between text-[11px] text-white/70">
+            <span>
+              {expired ? 'Expired' : `${daysRemaining} of ${daysTotal} days left`}
+            </span>
+            {costPerDay !== null ? <span data-testid={`cost-per-day-${m.id}`}>₹{costPerDay.toFixed(2)}/day</span> : null}
+          </div>
+          <div className="h-1.5 w-full bg-white/15 rounded-full overflow-hidden">
+            <div
+              data-testid={`days-progress-bar-${m.id}`}
+              className={`h-full rounded-full transition-all ${expired ? 'bg-terracotta-500' : expiringSoon ? 'bg-amber-400' : 'bg-emerald-500'}`}
+              style={{ width: `${Math.min(100, daysPct || 0)}%` }}
+            />
+          </div>
+        </div>
+      ) : null}
+
       {isAsset ? (
         <div className="mt-5 space-y-2 relative">
           <div className="flex justify-between text-xs">
-            <span className="text-white/70">Break-even</span>
+            <span className="text-white/70">Break-even (savings vs fee)</span>
             <span className="font-semibold">{fmtINR(saved)} / {fmtINR(fee)}</span>
           </div>
           <div className="h-2 w-full bg-white/15 rounded-full overflow-hidden">
@@ -124,7 +154,7 @@ export function MembershipCard({ m, onUpdateSavings }) {
             <span className="text-white/70">Next renewal</span>
             <span className="font-semibold">{fmtDate(m.expiry) || '—'}</span>
           </div>
-          <p className="text-[11px] text-white/70 mt-2">Content subscription — ROI tracking not applicable</p>
+          <p className="text-[11px] text-white/70 mt-2">Content subscription — ROI tracked via time/cost-per-day above</p>
         </div>
       )}
     </div>

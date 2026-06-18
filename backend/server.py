@@ -345,6 +345,7 @@ app = FastAPI(title="Perk Orbit API", version="1.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=os.environ.get("CORS_ORIGINS", "*").split(","),
+    allow_origin_regex=os.environ.get("CORS_ORIGIN_REGEX") or None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

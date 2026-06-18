@@ -153,3 +153,10 @@
 - **`/app/VERCEL_DEPLOYMENT.md`** authored — full guide with dashboard settings, env vars (`REACT_APP_BACKEND_URL`, `VITE_RAZORPAY_KEY_ID`), DNS records for `perkorbit.app`, CORS reminder, and SPA-routing notes.
 - Verified locally: `cd frontend && yarn build` produces clean dist (`437 kB JS gz 131 kB`, `36 kB CSS gz 7 kB`). Health: 14/14 HEALTHY.
 - Backend stays on Emergent preview (Frontend-only Vercel deploy per user choice).
+
+
+## 2026-02-19 — Backend CORS Updated for Vercel
+- `CORS_ORIGINS` in `/app/backend/.env` now includes `https://perkorbit.app`, `https://www.perkorbit.app`.
+- Added new env var `CORS_ORIGIN_REGEX=https://.*\.vercel\.app` so every Vercel preview deployment (`perk-orbit-xyz.vercel.app`) works automatically.
+- `server.py` ~line 348: passes `allow_origin_regex=os.environ.get("CORS_ORIGIN_REGEX") or None` to FastAPI's `CORSMiddleware`.
+- Verified via curl preflight against both `perkorbit.app` and `*.vercel.app` origins — both pass. Health: 14/14 HEALTHY.

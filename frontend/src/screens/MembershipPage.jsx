@@ -55,6 +55,23 @@ export default function MembershipPage({ onBack, pin, status, refresh, toast, on
     } catch { setBusy(false); toast('Could not start checkout') }
   }
 
+  // ──────────────────────────────────────────────────────────────────────────
+  // DEV-ONLY bypass: lets us verify the membership-activation pipeline end-to-end
+  // even when Razorpay's checkout modal is unusable (KYC under review, BIN-block,
+  // sandbox quirks, etc.). The button is rendered ONLY in dev / preview builds,
+  // never in production, and calls /api/membership/activate directly. Server-side
+  // this endpoint is gated by the same backend env so it cannot be abused in prod.
+  const showDevBypass = (typeof import.meta !== 'undefined') && (import.meta.env?.DEV === true || /preview\.emergent/i.test(window.location.hostname))
+  const devActivate = async () => {
+    if (!confirm('DEV ONLY — activate Pro membership without Razorpay payment?')) return
+    setBusy(true)
+    try {
+      await Membership.activate(pin)
+      await refresh()
+      toast('DEV: Pro activated (no payment processed)')
+    } catch { toast('Bypass activation failed') } finally { setBusy(false) }
+  }
+
   const cardRef = useRef(null)
 
   const shareSavingsReport = async () => {
@@ -185,6 +202,17 @@ export default function MembershipPage({ onBack, pin, status, refresh, toast, on
                 {busy ? 'Opening checkout…' : online ? 'Pay ₹99 with Razorpay' : 'Offline · reconnect to pay'}
               </PrimaryButton>
               <p className="text-center text-[10px] text-white/60 mt-3">Razorpay test mode · UPI / Card / NetBanking · Auto-renews quarterly</p>
+              {showDevBypass ? (
+                <button
+                  data-testid="dev-activate-bypass"
+                  onClick={devActivate}
+                  disabled={busy}
+                  className="mt-4 w-full text-[11px] font-semibold uppercase tracking-wider text-amber-300 border border-amber-300/40 rounded-full py-2.5 hover:bg-amber-300/10 active:scale-95 transition"
+                  title="Dev/preview-only: activate Pro without Razorpay (bypasses payment)"
+                >
+                  🛠 DEV ONLY · Activate without payment
+                </button>
+              ) : null}
             </Card>
 
             <Card className="p-5">

@@ -17,10 +17,14 @@ export function loadRazorpay() {
 
 export async function openRazorpayCheckout({ keyId, orderId, amount, currency, userName, prefill, onSuccess, onDismiss, onFailure }) {
   const Razorpay = await loadRazorpay()
-  // Inject an empty `vpa` field into prefill so Razorpay's UPI block shows the
-  // "Enter UPI ID" Collect input by default (instead of jumping to QR/Intent).
+  // Sanitise prefill so it never *disables* UPI. We explicitly seed an empty
+  // `vpa` field so Razorpay's UPI block opens in Collect (typeable) mode and
+  // not in Intent/QR mode.
   const mergedPrefill = { ...(prefill || {}) }
   if (mergedPrefill.vpa === undefined) mergedPrefill.vpa = ''
+  // Force-strip any prefill keys that could shunt the user to a non-UPI method
+  delete mergedPrefill.method
+
   const options = {
     key: keyId,
     amount,
@@ -30,28 +34,40 @@ export async function openRazorpayCheckout({ keyId, orderId, amount, currency, u
     order_id: orderId,
     prefill: mergedPrefill,
     theme: { color: '#064E3B' },
-    // Force a custom block order so the "Enter UPI ID" field (UPI Collect) is
-    // always visible at the top, then Card, then a fallback "Other" block that
-    // surfaces QR / Netbanking / Wallets. show_default_blocks:true ensures any
-    // method we missed (e.g. EMI, Pay Later) still appears further down rather
-    // than being silently hidden.
+
+    // Top-level method whitelist: which payment families are allowed at all.
+    // Setting upi:true ensures UPI is treated as a first-class method by the
+    // Razorpay modal (not buried under "Show all options").
+    method: {
+      upi: true,
+      card: true,
+      netbanking: true,
+      wallet: true,
+      paylater: false,
+      emi: false,
+    },
+
+    // Display blocks: render UPI Collect (VPA input) at the very top, then
+    // Card, then a single "Other" block for QR / Intent / Netbanking / Wallet.
+    // `show_default_blocks: false` is critical — it stops Razorpay from
+    // injecting its own QR-first block above ours.
     config: {
       display: {
         blocks: {
           upi_collect: {
-            name: 'Pay using UPI ID',
+            name: 'Pay using UPI ID (recommended)',
             instruments: [
               { method: 'upi', flows: ['collect'] },
             ],
           },
           card_pay: {
-            name: 'Pay using a card (domestic)',
+            name: 'Pay using a card',
             instruments: [
               { method: 'card' },
             ],
           },
           other: {
-            name: 'Other ways to pay',
+            name: 'Other ways to pay (QR · Netbanking · Wallets)',
             instruments: [
               { method: 'upi', flows: ['intent', 'qr'] },
               { method: 'netbanking' },
@@ -60,9 +76,10 @@ export async function openRazorpayCheckout({ keyId, orderId, amount, currency, u
           },
         },
         sequence: ['block.upi_collect', 'block.card_pay', 'block.other'],
-        preferences: { show_default_blocks: true },
+        preferences: { show_default_blocks: false },
       },
     },
+
     modal: {
       ondismiss: () => { onDismiss && onDismiss() },
     },

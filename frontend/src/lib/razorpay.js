@@ -17,6 +17,10 @@ export function loadRazorpay() {
 
 export async function openRazorpayCheckout({ keyId, orderId, amount, currency, userName, prefill, onSuccess, onDismiss, onFailure }) {
   const Razorpay = await loadRazorpay()
+  // Inject an empty `vpa` field into prefill so Razorpay's UPI block shows the
+  // "Enter UPI ID" Collect input by default (instead of jumping to QR/Intent).
+  const mergedPrefill = { ...(prefill || {}) }
+  if (mergedPrefill.vpa === undefined) mergedPrefill.vpa = ''
   const options = {
     key: keyId,
     amount,
@@ -24,13 +28,13 @@ export async function openRazorpayCheckout({ keyId, orderId, amount, currency, u
     name: 'Perk Orbit',
     description: 'Pro Membership — 6 months',
     order_id: orderId,
-    prefill: prefill || {},
+    prefill: mergedPrefill,
     theme: { color: '#064E3B' },
     // Force a custom block order so the "Enter UPI ID" field (UPI Collect) is
-    // always visible at the top, then Card, then the rest. Razorpay's default
-    // behaviour on mobile only shows the UPI QR/Intent block which hides the
-    // typeable VPA input — this config makes the VPA input appear on every
-    // platform (incl. desktop test mode where the QR is non-functional).
+    // always visible at the top, then Card, then a fallback "Other" block that
+    // surfaces QR / Netbanking / Wallets. show_default_blocks:true ensures any
+    // method we missed (e.g. EMI, Pay Later) still appears further down rather
+    // than being silently hidden.
     config: {
       display: {
         blocks: {
@@ -41,7 +45,7 @@ export async function openRazorpayCheckout({ keyId, orderId, amount, currency, u
             ],
           },
           card_pay: {
-            name: 'Pay using a card',
+            name: 'Pay using a card (domestic)',
             instruments: [
               { method: 'card' },
             ],
@@ -56,7 +60,7 @@ export async function openRazorpayCheckout({ keyId, orderId, amount, currency, u
           },
         },
         sequence: ['block.upi_collect', 'block.card_pay', 'block.other'],
-        preferences: { show_default_blocks: false },
+        preferences: { show_default_blocks: true },
       },
     },
     modal: {

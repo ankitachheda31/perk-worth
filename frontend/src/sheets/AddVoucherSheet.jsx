@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Sparkles, ShieldCheck, Camera } from 'lucide-react'
+import { Sparkles, ShieldCheck, Camera, Mic, Square } from 'lucide-react'
 import { Sheet, PrimaryButton } from '../components/ui'
 import { Vouchers, Extract } from '../lib/api'
 
@@ -197,6 +197,99 @@ export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast }) 
     } catch { toast('Failed to save') } finally { setBusy(false) }
   }
 
+  // ─── Voice-to-Voucher state ───────────────────────────────────────────────
+  const [voiceState, setVoiceState] = useState('idle')   // idle | recording | uploading | reviewing | error
+  const [voiceTranscript, setVoiceTranscript] = useState('')
+  const [voiceError, setVoiceError] = useState('')
+  const [recordSecs, setRecordSecs] = useState(0)
+  const mediaRecorderRef = useRef(null)
+  const audioChunksRef = useRef([])
+  const recordTimerRef = useRef(null)
+  const autoStopTimerRef = useRef(null)
+
+  const stopVoiceRecording = (cancel = false) => {
+    try { mediaRecorderRef.current?.state === 'recording' && mediaRecorderRef.current.stop() } catch { /* ignore */ }
+    if (recordTimerRef.current) { clearInterval(recordTimerRef.current); recordTimerRef.current = null }
+    if (autoStopTimerRef.current) { clearTimeout(autoStopTimerRef.current); autoStopTimerRef.current = null }
+    if (cancel) {
+      audioChunksRef.current = []
+      setVoiceState('idle'); setRecordSecs(0); setVoiceTranscript('')
+    }
+  }
+
+  const startVoiceRecording = async () => {
+    setVoiceError(''); setVoiceTranscript(''); audioChunksRef.current = []
+    if (!navigator.mediaDevices || !window.MediaRecorder) {
+      setVoiceError('Microphone not supported on this browser. Try Chrome on Android or desktop.')
+      setVoiceState('error')
+      return
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      // Choose a mimeType the backend can hand off to Whisper (webm/opus is universal)
+      const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm'
+        : MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4'
+        : ''
+      const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined)
+      mediaRecorderRef.current = rec
+      rec.ondataavailable = (e) => { if (e.data && e.data.size > 0) audioChunksRef.current.push(e.data) }
+      rec.onstop = async () => {
+        // Always release the mic
+        stream.getTracks().forEach(t => t.stop())
+        if (audioChunksRef.current.length === 0) { setVoiceState('idle'); return }
+        const blob = new Blob(audioChunksRef.current, { type: mime || 'audio/webm' })
+        await uploadVoiceBlob(blob)
+      }
+      rec.start()
+      setVoiceState('recording'); setRecordSecs(0)
+      recordTimerRef.current = setInterval(() => setRecordSecs(s => s + 1), 1000)
+      // 15-second auto-stop
+      autoStopTimerRef.current = setTimeout(() => stopVoiceRecording(false), 15000)
+    } catch (err) {
+      const denied = (err && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError'))
+      setVoiceError(denied ? 'Microphone permission denied. Allow access from your browser settings and try again.' : 'Microphone not supported.')
+      setVoiceState('error')
+    }
+  }
+
+  const uploadVoiceBlob = async (blob) => {
+    setVoiceState('uploading')
+    try {
+      const fd = new FormData()
+      const ext = (blob.type.includes('mp4') ? 'm4a' : blob.type.includes('wav') ? 'wav' : 'webm')
+      fd.append('file', blob, `voice.${ext}`)
+      const base = (typeof process !== 'undefined' && process.env && process.env.REACT_APP_BACKEND_URL) || ''
+      const resp = await fetch(`${base}/api/extract/voice`, { method: 'POST', body: fd })
+      if (!resp.ok) {
+        const t = await resp.text().catch(() => '')
+        throw new Error(t || `Voice extraction failed (${resp.status})`)
+      }
+      const data = await resp.json()
+      setVoiceTranscript(data.transcript || '')
+      const p = data.parsed || {}
+      // Prefill form fields, leaving non-mentioned ones untouched
+      setForm(f => ({
+        ...f,
+        brand: p.brand || f.brand,
+        title: p.title || f.title,
+        code: p.code || f.code,
+        value: p.value || f.value,
+        expiry: p.expiry || f.expiry,
+        category: p.category || f.category,
+        membership_kind: p.membership_kind || f.membership_kind,
+        fee_paid: p.fee_paid || f.fee_paid,
+        how_to_redeem: p.how_to_redeem || f.how_to_redeem,
+      }))
+      setVoiceState('reviewing')
+    } catch (e) {
+      setVoiceError(typeof e?.message === 'string' ? e.message : 'Voice extraction failed')
+      setVoiceState('error')
+    }
+  }
+
+  const confirmVoiceParse = () => { setMode('manual'); setVoiceState('idle'); toast('Review and tap Save when ready') }
+
   const handleSmsExtract = async () => {
     if (!smsText.trim()) return
     setBusy(true)
@@ -267,10 +360,81 @@ export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast }) 
       <div className="flex gap-2 p-1 bg-ink-100 rounded-full mb-5">
         <button data-testid="mode-manual" onClick={() => setMode('manual')} className={`pill-tab ${mode === 'manual' ? 'active' : ''}`}>Manual</button>
         <button data-testid="mode-scan" onClick={() => setMode('scan')} className={`pill-tab ${mode === 'scan' ? 'active' : ''}`}>Scan</button>
-        <button data-testid="mode-sms" onClick={() => setMode('sms')} className={`pill-tab ${mode === 'sms' ? 'active' : ''}`}>Paste SMS</button>
+        <button data-testid="mode-sms" onClick={() => setMode('sms')} className={`pill-tab ${mode === 'sms' ? 'active' : ''}`}>SMS</button>
+        <button data-testid="mode-voice" onClick={() => { setMode('voice'); setVoiceState('idle'); setVoiceError('') }} className={`pill-tab ${mode === 'voice' ? 'active' : ''}`}>
+          <Mic className="w-3.5 h-3.5 inline -mt-0.5" /> Voice
+        </button>
       </div>
 
-      {mode === 'sms' ? (
+      {mode === 'voice' ? (
+        <div className="space-y-3" data-testid="voice-mode">
+          <p className="text-xs text-ink-500">
+            Tap the mic and describe your voucher in Hindi, English or Hinglish — for example: <em>&quot;Add Swiggy ₹150 off, code SWIGGY150, expires 25 November&quot;</em>.
+          </p>
+          <div className="flex items-start gap-2 bg-emerald-50 border border-emerald-200 rounded-2xl p-2.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-800 mt-0.5 shrink-0" />
+            <p className="text-[11px] text-emerald-900 leading-relaxed">Audio is sent once to Whisper for transcription and is <strong>not retained</strong> on our servers.</p>
+          </div>
+
+          {voiceState === 'idle' ? (
+            <button
+              data-testid="voice-start-btn"
+              onClick={startVoiceRecording}
+              className="w-full py-8 rounded-3xl bg-emerald-800 text-white text-base font-bold flex flex-col items-center gap-3 active:scale-95 transition hover:bg-emerald-900"
+            >
+              <Mic className="w-10 h-10" />
+              Tap to record (15 sec max)
+            </button>
+          ) : null}
+
+          {voiceState === 'recording' ? (
+            <button
+              data-testid="voice-stop-btn"
+              onClick={() => stopVoiceRecording(false)}
+              className="w-full py-8 rounded-3xl bg-terracotta-600 text-white text-base font-bold flex flex-col items-center gap-3 active:scale-95 transition relative animate-pulse"
+            >
+              <Square className="w-10 h-10" />
+              <span data-testid="voice-record-timer">Recording… {recordSecs}s / 15s · tap to stop</span>
+            </button>
+          ) : null}
+
+          {voiceState === 'uploading' ? (
+            <div data-testid="voice-uploading" className="w-full py-8 rounded-3xl bg-ink-100 text-ink-700 text-base font-bold flex flex-col items-center gap-3">
+              <div className="w-10 h-10 border-4 border-ink-300 border-t-emerald-800 rounded-full animate-spin" />
+              Transcribing &amp; extracting…
+            </div>
+          ) : null}
+
+          {voiceState === 'reviewing' ? (
+            <div data-testid="voice-review" className="space-y-3">
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-800">We heard</p>
+                <p data-testid="voice-transcript" className="text-sm text-ink-800 mt-1 leading-relaxed">&ldquo;{voiceTranscript}&rdquo;</p>
+              </div>
+              <div className="bg-cream border border-ink-200 rounded-2xl p-3 space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-ink-500">Parsed fields (review below)</p>
+                {form.brand ? <p className="text-xs"><span className="text-ink-500">Brand:</span> <span className="font-semibold">{form.brand}</span></p> : null}
+                {form.title ? <p className="text-xs"><span className="text-ink-500">Title:</span> <span className="font-semibold">{form.title}</span></p> : null}
+                {form.code ? <p className="text-xs"><span className="text-ink-500">Code:</span> <span className="font-mono font-semibold">{form.code}</span></p> : null}
+                {form.value ? <p className="text-xs"><span className="text-ink-500">Value:</span> <span className="font-semibold">₹{form.value}</span></p> : null}
+                {form.expiry ? <p className="text-xs"><span className="text-ink-500">Expiry:</span> <span className="font-semibold">{form.expiry}</span></p> : null}
+                {form.category === 'memberships' ? <p className="text-xs"><span className="text-ink-500">Category:</span> <span className="font-semibold">Membership · {form.membership_kind}</span></p> : null}
+              </div>
+              <div className="flex gap-2">
+                <button data-testid="voice-retry" onClick={() => { setVoiceState('idle'); setVoiceTranscript('') }} className="flex-1 py-3 rounded-full text-xs font-bold bg-ink-100 text-ink-700">Retry</button>
+                <PrimaryButton data-testid="voice-confirm" onClick={confirmVoiceParse}>Review &amp; save →</PrimaryButton>
+              </div>
+            </div>
+          ) : null}
+
+          {voiceState === 'error' ? (
+            <div data-testid="voice-error" className="bg-terracotta-50 border border-terracotta-200 rounded-2xl p-4 text-center">
+              <p className="text-sm font-semibold text-terracotta-700">⚠️ {voiceError}</p>
+              <button onClick={() => { setVoiceState('idle'); setVoiceError('') }} className="text-xs text-terracotta-700 underline mt-2">Try again</button>
+            </div>
+          ) : null}
+        </div>
+      ) : mode === 'sms' ? (
         <div className="space-y-3">
           <p className="text-xs text-ink-500">Paste a promotional SMS, or <span className="font-semibold text-emerald-800">paste many at once</span> separated by a blank line — we&apos;ll save them all in one go.</p>
           <div className="flex items-start gap-2 bg-emerald-50 border border-emerald-200 rounded-2xl p-2.5" data-testid="add-sms-secure-note">

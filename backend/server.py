@@ -679,6 +679,73 @@ async def extract_image_upload(file: UploadFile = File(...)):
     return data
 
 
+@api.post("/extract/voice")
+async def extract_voice(file: UploadFile = File(...)):
+    """Voice-to-voucher pipeline.
+
+    1. Receive a short (≤15 sec, ≤25 MB) audio recording from the browser's
+       MediaRecorder API — typically webm/opus container.
+    2. Transcribe via OpenAI Whisper with auto language detection (handles
+       Hindi, English, and code-switched Hinglish natively).
+    3. Feed the transcript into the same GPT-4o structured-extraction prompt
+       used by `/extract/sms`, so the parser already understands the schema
+       (brand, title, code, value, expiry, category, membership_kind, etc.).
+    4. Return both the raw transcript (so the UI can show "we heard: …")
+       AND the parsed voucher fields (so the form pre-fills).
+    """
+    from emergentintegrations.llm.openai import OpenAISpeechToText
+    import tempfile
+
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(status_code=400, detail="empty audio")
+    if len(raw) > 25 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="audio too large (max 25 MB)")
+
+    # Whisper SDK wants a file-like object; write to a NamedTemporaryFile so it
+    # has a real on-disk path + extension (helps content-type sniffing).
+    suffix = ".webm"
+    ct = (file.content_type or "").lower()
+    if "wav" in ct: suffix = ".wav"
+    elif "mp4" in ct or "m4a" in ct: suffix = ".m4a"
+    elif "mp3" in ct or "mpeg" in ct: suffix = ".mp3"
+
+    try:
+        stt = OpenAISpeechToText(api_key=EMERGENT_LLM_KEY)
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=True) as tmp:
+            tmp.write(raw)
+            tmp.flush()
+            tmp.seek(0)
+            with open(tmp.name, "rb") as audio_file:
+                stt_resp = await stt.transcribe(
+                    file=audio_file,
+                    model="whisper-1",
+                    response_format="json",
+                    # No `language` hint — let Whisper auto-detect so Hindi /
+                    # English / Hinglish all work. A prompt nudges the model to
+                    # expect voucher/wallet vocabulary, improving accuracy on
+                    # brand names and codes.
+                    prompt=(
+                        "Voucher and membership entry. Brands include Swiggy, "
+                        "Zomato, Amazon, Flipkart, BigBasket, Croma, Myntra, "
+                        "Tata Neu, Reliance, Jio, Ajio, Pantaloons. Codes are "
+                        "uppercase alphanumeric. Currency is rupees (₹/Rs)."
+                    ),
+                    temperature=0.0,
+                )
+        transcript = (stt_resp.text or "").strip()
+    except Exception as e:
+        logging.exception("Whisper transcription failed")
+        raise HTTPException(status_code=502, detail=f"voice transcription failed: {e}")
+
+    if not transcript:
+        raise HTTPException(status_code=422, detail="no speech detected — please retry")
+
+    # Reuse the SMS extractor — its schema already matches Add Voucher form
+    parsed = await llm_extract_structured(transcript)
+    return {"transcript": transcript, "parsed": parsed}
+
+
 # -------- Smart Search --------
 @api.get("/search/brand")
 async def search_brand(q: str = Query(...), user_pin: Optional[str] = None):

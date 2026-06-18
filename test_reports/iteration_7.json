@@ -1,0 +1,50 @@
+{
+  "summary": "Comprehensive regression + edge-case test of (a) forgot-password anti-enumeration flow, (b) reset-password token-based flow (valid/invalid/replay/expired), (c) Family Circle invite email integration, and (d) Resend transactional email integration. All 14/14 backend pytest cases PASSED. Frontend forgot-password UI, ResetPasswordScreen deep link, password validation states (short/mismatch/invalid token/success), and URL stripping all verified visually. Resend integration confirmed delivering real email to ankitagada31@gmail.com (logged ids visible in backend.err.log) and silently failing for non-verified addresses while keeping API at 200. health_check.py = 14/14 HEALTHY.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_forgot_reset_and_invite.py",
+    "/app/test_reports/pytest/pytest_forgot_reset.xml"
+  ],
+  "tests_passed": [
+    "POST /api/auth/forgot-password non-existent email -> 200 {ok:true} (anti-enum)",
+    "POST /api/auth/forgot-password existing email -> creates password_resets row with token + expires_at ~60min in future + used:false (verified via pymongo)",
+    "POST /api/auth/reset-password invalid token -> 400 'Invalid or already-used reset link'",
+    "POST /api/auth/reset-password valid token -> 200 {ok, access_token, email, id}; old password fails login (401); new password succeeds (200)",
+    "POST /api/auth/reset-password reused token -> 400 (one-time use enforced)",
+    "POST /api/auth/reset-password expired token (expires_at mutated to past) -> 400 'Reset link expired'",
+    "POST /api/circle/members with email=ankitagada31@gmail.com -> 200 invite_email_sent=true; backend log shows 'INFO:perk_orbit.mailer:Email sent to=ankitagada31@gmail.com id=...'",
+    "POST /api/circle/members with unverified email -> 200 invite_email_sent=false (Resend ERROR logged but flow not broken)",
+    "POST /api/circle/members WITHOUT email -> 200 email=null, invite_email_sent=false (backwards-compat)",
+    "GET /api/circle/members listing + DELETE still work",
+    "Seeded login test@perkorbit.app/Perk@1234 -> 200; /api/auth/me, /api/vouchers, /api/points/summary all 200",
+    "Frontend AuthScreen 'Forgot password?' link (auth-forgot) switches to 'Reset your password' headline + email-only field + 'Send reset link' button; submit shows forgot-sent confirmation; auth-back returns to sign in",
+    "Frontend ResetPasswordScreen deep link (?reset_token=...) renders BEFORE auth gate; short pw shows 'at least 6 characters'; mismatched pw shows 'do not match'; invalid token shows 'Invalid or already-used reset link' in [data-testid=reset-error]; valid pw auto-signs user in and strips reset_token from URL (verified — landed on post-auth PIN setup screen)",
+    "health_check.py reports 14/14 HEALTHY"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "auth_intel.py:288 — non-datetime expires_at branch raises 'Invalid reset link' which is a different error string than spec ('Reset link expired'); cosmetic only, never triggered in normal flow.",
+    "mailer.py — `result.get('id')` on Resend response assumes dict; resend SDK 2.x sometimes returns an object; consider `getattr(result, 'id', None) or (result.get('id') if isinstance(result, dict) else None)` for resilience.",
+    "server.py add_circle_member — `payload.email` not normalized (no .lower()/strip()); minor: invite_email_sent_at stored as ISO string while password_resets uses datetime — inconsistency.",
+    "auth_intel.py forgot_password — invalidates prior unused tokens by SET used:true but keeps `expires_at` — acceptable; could also clear token field to be defensive.",
+    "frontend ResetPasswordScreen — UI transitions through reset-success very briefly before next screen takes over; consider keeping reset-success visible for at least 1500ms for accessibility/observability."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_forgot_reset_and_invite.py (NEW — 14 tests, all passing)"
+  ],
+  "success_rate": {"backend": "100% (14/14)", "frontend": "100% (forgot UI + reset deep link + invalid token error all verified)"},
+  "test_credentials": "test@perkorbit.app / Perk@1234 (from /app/memory/test_credentials.md). New test users dynamically created with unique random emails.",
+  "seed_data_creation": "Dynamic per-test users created (forgot-pwd-test+*, reset-ok+*, reset-exp+*, reset-ui+*). Circle member test rows are deleted after each test via DELETE /api/circle/members/{id}.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Resend is in sandbox — only ankitagada31@gmail.com can receive real emails. Sends to any other address log ERROR but the API still returns 200 with invite_email_sent=false. This is verified expected behavior; do NOT treat the Resend ERROR logs for non-verified addresses as bugs. Test file at /app/backend/tests/test_forgot_reset_and_invite.py uses pymongo (sync) for DB introspection — do not switch to motor or the event-loop conflicts will return. Onboarding tour blocks Circle tab on first PIN setup — to test CirclePage UI you must skip the tour first; backend tests cover the full add-with-email API surface anyway. Verified data-testid='circle-email' is present in /app/frontend/src/screens/CirclePage.jsx line 51, and the toast logic matches spec at line 27.",
+  "rca of the issue": "N/A — no issues found. All 14 backend pytests pass; all four frontend assertions (forgot link, anti-enum confirmation, reset screen validations, invalid-token error) pass."
+}

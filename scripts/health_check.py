@@ -161,6 +161,20 @@ def check_auth_flow(api_url: str, results: list, json_out: dict):
     print((ok if wipe_ok else fail)(f"POST /api/auth/wipe → {code}"))
     results.append(("auth.wipe", wipe_ok))
 
+    # Forgot-password smoke (always returns 200, no enumeration)
+    code, body, _ = http("POST", f"{api_url}/api/auth/forgot-password",
+                         body={"email": email})
+    forgot_ok = code == 200 and '"ok":true' in body.replace(" ", "")
+    print((ok if forgot_ok else fail)(f"POST /api/auth/forgot-password → {code} (no-enum 200)"))
+    results.append(("auth.forgot_password", forgot_ok))
+
+    # Reset-password rejects an invalid token
+    code, body, _ = http("POST", f"{api_url}/api/auth/reset-password",
+                         body={"token": "invalid-token-xyz", "new_password": "abc12345"})
+    reset_reject_ok = code == 400
+    print((ok if reset_reject_ok else fail)(f"POST /api/auth/reset-password (invalid token) → {code} (expected 400)"))
+    results.append(("auth.reset_password_rejects_invalid", reset_reject_ok))
+
     # Verify wipe actually removed the account
     code, body, _ = http("GET", f"{api_url}/api/auth/me",
                          headers={"Authorization": f"Bearer {token}"})

@@ -128,6 +128,16 @@ export default function App() {
 
   // ----- Auth / PIN / Walkthrough gates -----
   if (!authChecked) return null
+  // Password reset deep link (?reset_token=...) — render BEFORE the auth gate so unauthed users can complete the reset
+  if (resetToken) {
+    return (
+      <ResetPasswordScreen
+        token={resetToken}
+        onAuthed={(u) => { setResetToken(null); setAuthUser({ id: u.id, email: u.email, name: u.name || '', phone: u.phone || '' }); setLocked(false) }}
+        onCancel={() => { setResetToken(null); try { const url = new URL(window.location.href); url.searchParams.delete('reset_token'); window.history.replaceState({}, '', url.toString()) } catch { /* ignore */ } }}
+      />
+    )
+  }
   if (!authUser) {
     return <AuthScreen existingPin={pin} onAuthed={(u) => { setAuthUser({ id: u.id, email: u.email, name: u.name, phone: u.phone }); setLocked(false) }} />
   }

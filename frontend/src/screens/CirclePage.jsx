@@ -9,13 +9,22 @@ export default function CirclePage({ onBack, pin, toast, onOpenMember, onProfile
   const [members, setMembers] = useState([])
   const [name, setName] = useState('')
   const [relation, setRelation] = useState('Family')
+  const [email, setEmail] = useState('')
   const load = () => Circle.list(pin).then(setMembers)
   useEffect(() => { load() /* eslint-disable-next-line */ }, [pin])
 
   const add = async () => {
     if (!name.trim()) return
-    await Circle.add({ user_pin: pin, name: name.trim(), relation })
-    setName(''); load(); toast('Member added')
+    const profile = getProfile() || {}
+    const inviter_name = profile.name || (() => { try { return (JSON.parse(localStorage.getItem('perk_orbit_user') || '{}').name) } catch { return '' } })()
+    const body = { user_pin: pin, name: name.trim(), relation }
+    if (email.trim()) {
+      body.email = email.trim().toLowerCase()
+      if (inviter_name) body.inviter_name = inviter_name
+    }
+    const res = await Circle.add(body)
+    setName(''); setEmail(''); load()
+    toast(res?.invite_email_sent ? `Invite emailed to ${body.email}` : 'Member added')
   }
   const remove = async (id) => { await Circle.remove(id); load(); toast('Removed') }
   const copyInvite = async (m) => {
@@ -39,6 +48,7 @@ export default function CirclePage({ onBack, pin, toast, onOpenMember, onProfile
         <Card className="p-5 space-y-3">
           <FormField label="Family member name" testid="circle-name" value={name} onChange={setName} placeholder="e.g. Priya (Wife)" />
           <FormField label="Relation" testid="circle-relation" value={relation} onChange={setRelation} placeholder="Family / Parent / Sibling" />
+          <FormField label="Email (optional — sends invite)" testid="circle-email" value={email} onChange={setEmail} placeholder="priya@example.com" type="email" />
           <PrimaryButton data-testid="circle-add" onClick={add}><UserPlus className="w-4 h-4" /> Add to circle</PrimaryButton>
         </Card>
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Sparkles, ShieldCheck, Camera } from 'lucide-react'
 import { Sheet, PrimaryButton } from '../components/ui'
 import { Vouchers, Extract } from '../lib/api'
@@ -18,6 +18,112 @@ function FormField({ label, value, onChange, placeholder, testid, type = 'text',
   )
 }
 
+/**
+ * Brand input with live-fuzzy autocomplete from the curated parent-child
+ * registry. As the user types, hits /api/brands/lookup and shows up to 8
+ * results in a dropdown with the parent conglomerate tag. Selecting a
+ * suggestion fills the brand and immediately resolves the parent.
+ */
+function BrandAutocomplete({ value, onChange, placeholder, onSelectSuggestion }) {
+  const [suggestions, setSuggestions] = useState([])
+  const [open, setOpen] = useState(false)
+  const [activeIdx, setActiveIdx] = useState(-1)
+  const [loading, setLoading] = useState(false)
+  const wrapRef = useRef(null)
+  const ignoreNextFetch = useRef(false)
+
+  // Debounced search
+  useEffect(() => {
+    if (ignoreNextFetch.current) { ignoreNextFetch.current = false; return }
+    if (!value || value.length < 2) { setSuggestions([]); setOpen(false); return }
+    setLoading(true)
+    const t = setTimeout(() => {
+      const base = (typeof process !== 'undefined' && process.env && process.env.REACT_APP_BACKEND_URL) || ''
+      fetch(`${base}/api/brands/lookup?q=${encodeURIComponent(value)}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(d => {
+          const list = (d?.results || []).slice(0, 8)
+          setSuggestions(list)
+          setOpen(list.length > 0)
+          setActiveIdx(-1)
+        })
+        .catch(() => { setSuggestions([]); setOpen(false) })
+        .finally(() => setLoading(false))
+    }, 220)
+    return () => clearTimeout(t)
+  }, [value])
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const pick = (s) => {
+    ignoreNextFetch.current = true
+    onChange(s.brand)
+    onSelectSuggestion?.(s)
+    setOpen(false)
+  }
+
+  const onKeyDown = (e) => {
+    if (!open || suggestions.length === 0) return
+    if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIdx(i => Math.min(suggestions.length - 1, i + 1)) }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIdx(i => Math.max(0, i - 1)) }
+    else if (e.key === 'Enter' && activeIdx >= 0) { e.preventDefault(); pick(suggestions[activeIdx]) }
+    else if (e.key === 'Escape') { setOpen(false) }
+  }
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <label className="text-[11px] font-bold text-ink-500 uppercase tracking-wider">Brand</label>
+      <input
+        data-testid="field-brand"
+        type="text"
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        onFocus={() => { if (suggestions.length > 0) setOpen(true) }}
+        onKeyDown={onKeyDown}
+        autoComplete="off"
+        className="mt-1.5 w-full bg-ink-50 border border-ink-200 rounded-2xl px-3 py-3 text-sm placeholder:text-ink-400"
+        placeholder={placeholder}
+      />
+      {loading && open && suggestions.length === 0 ? (
+        <div className="text-[11px] text-ink-400 mt-1.5">Searching…</div>
+      ) : null}
+      {open && suggestions.length > 0 ? (
+        <ul
+          data-testid="brand-suggestions"
+          className="absolute z-20 left-0 right-0 mt-1.5 bg-white border border-ink-200 rounded-2xl shadow-xl overflow-hidden max-h-80 overflow-y-auto"
+          role="listbox"
+        >
+          {suggestions.map((s, i) => (
+            <li
+              key={`${s.brand}-${i}`}
+              data-testid={`brand-suggestion-${i}`}
+              role="option"
+              aria-selected={i === activeIdx}
+              onMouseDown={(e) => { e.preventDefault(); pick(s) }}
+              onMouseEnter={() => setActiveIdx(i)}
+              className={`px-3 py-2.5 cursor-pointer flex items-center justify-between gap-2 border-b border-ink-100 last:border-b-0 transition ${i === activeIdx ? 'bg-emerald-50' : 'hover:bg-ink-50'}`}
+            >
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-semibold text-ink-900 truncate">{s.brand}</div>
+                <div className="text-[11px] text-ink-500 truncate">
+                  🏢 {s.parent_company}
+                  {s.category ? <span className="ml-1.5 text-ink-400">· {s.category}</span> : null}
+                </div>
+              </div>
+              <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5 shrink-0">Tap</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  )
+}
+
 export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast }) {
   const [mode, setMode] = useState('manual')
   const [busy, setBusy] = useState(false)
@@ -27,9 +133,9 @@ export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast }) 
   const [parentBrand, setParentBrand] = useState(null)
   const [dateError, setDateError] = useState('')
 
-  // Live parent-brand suggestion (debounced). Uses CRA's REACT_APP_BACKEND_URL —
-  // this project is Create-React-App, not Vite, so import.meta.env is undefined.
-  React.useEffect(() => {
+  // Live parent-brand resolution kept as a fallback (in case the user types
+  // the brand name verbatim without picking a suggestion).
+  useEffect(() => {
     if (!form.brand || form.brand.length < 2) { setParentBrand(null); return }
     const id = setTimeout(() => {
       const base = (typeof process !== 'undefined' && process.env && process.env.REACT_APP_BACKEND_URL) || ''
@@ -37,8 +143,6 @@ export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast }) 
         .then(r => r.ok ? r.json() : null)
         .then(d => {
           const top = d?.results?.[0]
-          // Show chip only if the top result is the actual brand match
-          // (canonical name OR any of its aliases match what the user typed)
           if (!top) { setParentBrand(null); return }
           const typed = form.brand.toLowerCase().trim()
           const canon = top.brand.toLowerCase()
@@ -229,7 +333,23 @@ export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast }) 
           </div>
 
           {/* COMMON FIELDS */}
-          <FormField label="Brand" testid="field-brand" value={form.brand} onChange={(v) => setForm({ ...form, brand: v })} placeholder={form.category === 'memberships' ? 'Amazon, Croma, BigBasket…' : 'Swiggy, Croma, Myntra…'} />
+          <BrandAutocomplete
+            value={form.brand}
+            onChange={(v) => setForm({ ...form, brand: v })}
+            placeholder={form.category === 'memberships' ? 'Amazon, Croma, BigBasket…' : 'Swiggy, Croma, Myntra…'}
+            onSelectSuggestion={(s) => {
+              // Immediate parent-tag resolution on tap — no debounce wait
+              setParentBrand(s)
+              // If the title is still empty, prefill with a helpful placeholder
+              if (!form.title) {
+                setForm((prev) => ({
+                  ...prev,
+                  brand: s.brand,
+                  title: prev.category === 'memberships' ? `${s.brand} membership` : '',
+                }))
+              }
+            }}
+          />
           {parentBrand ? (
             <div data-testid="parent-brand-chip" className="inline-flex items-center gap-1.5 text-[11px] font-semibold bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-full px-2.5 py-1 -mt-1">
               🏢 Part of <span className="font-bold">{parentBrand.parent_company}</span> · auto-tagged for ROI tracking

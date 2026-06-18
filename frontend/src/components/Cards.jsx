@@ -134,18 +134,43 @@ export function MembershipCard({ m, onUpdateSavings }) {
 
       {isAsset ? (
         <div className="mt-5 space-y-2 relative">
-          <div className="flex justify-between text-xs">
-            <span className="text-white/70">Break-even (savings vs fee)</span>
-            <span className="font-semibold">{fmtINR(saved)} / {fmtINR(fee)}</span>
-          </div>
-          <div className="h-2 w-full bg-white/15 rounded-full overflow-hidden">
-            <div className={`h-full rounded-full ${breakEven ? 'bg-emerald-500' : 'bg-gold-500'}`} style={{ width: `${progress}%` }} />
-          </div>
+          {/* Break-even bar — recovery progress (savings ₹ vs fee ₹) */}
+          {m.profit_mode ? (
+            <div data-testid={`active-profit-${m.id}`} className="bg-emerald-500/15 border border-emerald-400/30 rounded-2xl px-3 py-2.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-emerald-200 uppercase tracking-wider text-[10px]">🎉 Active Profit</span>
+                <span className="font-bold text-emerald-100" data-testid={`profit-earned-${m.id}`}>+{fmtINR(m.profit_earned)} earned</span>
+              </div>
+              <p className="text-[11px] text-white/70 mt-1">You've fully recovered your ₹{fmtINR(fee).replace('₹', '')} fee. Keep using this membership — every additional rupee saved is pure profit.</p>
+            </div>
+          ) : (
+            <>
+              <div className="flex justify-between text-xs">
+                <span className="text-white/70">Recovered</span>
+                <span className="font-semibold" data-testid={`recovery-amount-${m.id}`}>{fmtINR(m.cumulative_savings || saved)} / {fmtINR(fee)}</span>
+              </div>
+              <div className="h-2 w-full bg-white/15 rounded-full overflow-hidden">
+                <div
+                  data-testid={`break-even-bar-${m.id}`}
+                  className="h-full rounded-full bg-gold-500 transition-all"
+                  style={{ width: `${m.recovery_progress || progress}%` }}
+                />
+              </div>
+              <p className="text-[11px] text-white/70 mt-1">
+                You've recovered <span className="font-bold text-gold-200">{fmtINR(m.cumulative_savings || saved)}</span> of your <span className="font-bold">{fmtINR(fee)}</span> fee
+                {m.remaining_spend_to_break_even ? (
+                  <> · <span className="font-semibold">{fmtINR(m.remaining_spend_to_break_even)}</span> more spending to break-even</>
+                ) : null}
+              </p>
+            </>
+          )}
           <div className="flex items-center justify-between mt-2">
             <p className="text-[11px] text-white/70">
-              {breakEven ? 'Worth renewing — saved more than fee' : progress >= 60 ? 'On track — keep using' : 'Needs more usage to break-even'}
+              {m.profit_mode ? '✓ Worth renewing' : (m.recovery_progress || progress) >= 60 ? 'On track — keep using' : 'Needs more usage to break-even'}
             </p>
-            <button data-testid={`log-savings-${m.id}`} onClick={() => onUpdateSavings(m)} className="text-[11px] font-semibold text-gold-100 underline">Log savings</button>
+            <button data-testid={`log-savings-${m.id}`} onClick={() => onUpdateSavings(m)} className="text-[11px] font-semibold text-gold-100 underline">
+              {m.benefit_rate ? 'Log purchase ₹' : 'Log savings'}
+            </button>
           </div>
         </div>
       ) : (

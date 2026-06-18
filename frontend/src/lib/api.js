@@ -54,6 +54,7 @@ export const Points = {
 
 export const Memberships = {
   roi: (pin) => api.get('/memberships/roi', { params: { user_pin: pin } }).then(r => r.data),
+  logSpend: (id, body) => api.post(`/memberships/${id}/log-spend`, body).then(r => r.data),
 }
 
 export const Extract = {

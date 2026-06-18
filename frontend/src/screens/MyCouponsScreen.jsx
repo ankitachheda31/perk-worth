@@ -33,10 +33,23 @@ export default function MyCouponsScreen({ pin, onProfileClick, onOpenAdd, toast,
   const handleUnshare = async (v) => { await Circle.unshare(v.id, pin); toast('Stopped sharing'); load() }
 
   const logSavings = async (m) => {
-    const val = prompt('Log savings amount (₹):')
-    if (!val) return
-    await Vouchers.update(m.id, { savings_realized: (m.savings_realized || 0) + Number(val) })
-    toast(`Logged ${fmtINR(Number(val))}`); load()
+    // If benefit_rate is configured, prompt for spend amount; backend computes savings automatically.
+    // Otherwise fall back to legacy direct-savings entry.
+    if (m.benefit_rate && m.benefit_rate > 0) {
+      const val = prompt(`Log a purchase you made under this membership (₹).\nWe'll auto-compute savings at ${(m.benefit_rate * 100).toFixed(0)}% rate.`)
+      if (!val || Number(val) <= 0) return
+      try {
+        const updated = await Memberships.logSpend(m.id, { user_pin: pin, amount: Number(val) })
+        const newSavings = (updated.savings_realized || 0)
+        toast(`Logged ₹${Number(val).toLocaleString('en-IN')} spend · saved ₹${(newSavings - (m.cumulative_savings || m.savings_realized || 0)).toFixed(0)}`)
+        load(); setRefreshKey(k => k + 1)
+      } catch { toast('Failed to log purchase') }
+    } else {
+      const val = prompt('Log savings amount (₹):')
+      if (!val) return
+      await Vouchers.update(m.id, { savings_realized: (m.savings_realized || 0) + Number(val) })
+      toast(`Logged ${fmtINR(Number(val))}`); load()
+    }
   }
 
   return (

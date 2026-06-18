@@ -104,6 +104,8 @@ class Voucher(BaseDocument):
     category: str = "vouchers"  # vouchers | memberships
     membership_kind: Optional[str] = None  # asset | content
     fee_paid: Optional[float] = None  # for asset memberships
+    benefit_rate: Optional[float] = None  # 0..1 decimal — e.g. 0.10 = 10% discount
+    total_spend: Optional[float] = 0.0    # cumulative ₹ spent under this membership
     savings_realized: Optional[float] = 0.0
     how_to_redeem: Optional[str] = None
     notes: Optional[str] = None
@@ -126,6 +128,8 @@ class VoucherCreate(BaseModel):
     category: str = "vouchers"
     membership_kind: Optional[str] = None
     fee_paid: Optional[float] = None
+    benefit_rate: Optional[float] = None
+    total_spend: Optional[float] = 0.0
     savings_realized: Optional[float] = 0.0
     how_to_redeem: Optional[str] = None
     notes: Optional[str] = None
@@ -143,6 +147,8 @@ class VoucherUpdate(BaseModel):
     category: Optional[str] = None
     membership_kind: Optional[str] = None
     fee_paid: Optional[float] = None
+    benefit_rate: Optional[float] = None
+    total_spend: Optional[float] = None
     savings_realized: Optional[float] = None
     how_to_redeem: Optional[str] = None
     notes: Optional[str] = None
@@ -511,6 +517,37 @@ async def memberships_roi(user_pin: str = Query(...)):
             d["break_even"] = saved >= fee and fee > 0
             d["renewal_recommended"] = saved >= fee * 0.8 if fee else False
 
+        # Break-even calculator — works for any membership that has a
+        # benefit_rate (e.g. 10% discount → 0.10). Computes:
+        #   break_even_spend  : spend (₹) needed for savings to equal fee
+        #   remaining_spend    : spend still needed to break even
+        #   cumulative_savings : total_spend × benefit_rate
+        #   profit_mode        : True once cumulative_savings ≥ fee
+        #   profit_earned      : ₹ surplus beyond fee (only when profit_mode)
+        benefit_rate = d.get("benefit_rate") or 0
+        total_spend = d.get("total_spend") or 0
+        if benefit_rate and benefit_rate > 0 and fee > 0:
+            be_spend = round(fee / benefit_rate, 2)
+            cum_savings = round(total_spend * benefit_rate, 2)
+            remaining = max(0, round(be_spend - total_spend, 2))
+            profit_mode = cum_savings >= fee
+            d["break_even_spend"] = be_spend
+            d["cumulative_savings"] = cum_savings
+            d["remaining_spend_to_break_even"] = remaining
+            d["profit_mode"] = profit_mode
+            d["profit_earned"] = round(cum_savings - fee, 2) if profit_mode else 0
+            d["recovery_progress"] = round(min(100, (cum_savings / fee * 100)), 1)
+            # Keep savings_realized in sync so legacy ROI display also reflects spend-based math
+            if not d.get("savings_realized") or d.get("savings_realized") < cum_savings:
+                d["savings_realized"] = cum_savings
+        else:
+            d["break_even_spend"] = None
+            d["cumulative_savings"] = d.get("savings_realized") or 0
+            d["remaining_spend_to_break_even"] = None
+            d["profit_mode"] = (d.get("savings_realized") or 0) >= fee and fee > 0
+            d["profit_earned"] = 0
+            d["recovery_progress"] = round(min(100, ((d.get("savings_realized") or 0) / fee * 100)), 1) if fee else 0
+
         # Time-based ROI — Days Remaining, Cost per Day, % elapsed.
         # Works for BOTH asset and content memberships as long as start_date
         # and expiry are present (start_date defaults to created_at date).
@@ -546,6 +583,45 @@ async def memberships_roi(user_pin: str = Query(...)):
 
         items.append(d)
     return items
+
+
+class LogSpendBody(BaseModel):
+    user_pin: str
+    amount: float = Field(..., gt=0)  # ₹ spent on this purchase
+    note: Optional[str] = None
+
+
+@api.post("/memberships/{membership_id}/log-spend")
+async def log_membership_spend(membership_id: str, payload: LogSpendBody):
+    """Log a purchase made under this membership. Increments `total_spend`
+    and recomputes `savings_realized = total_spend × benefit_rate` so the
+    dashboard break-even bar and 'recovered ₹X of ₹Y' message stay live."""
+    try:
+        oid = ObjectId(membership_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid membership id")
+    doc = await db.vouchers.find_one({"_id": oid, "user_pin": payload.user_pin})
+    if not doc or doc.get("category") != "memberships":
+        raise HTTPException(status_code=404, detail="Membership not found")
+
+    new_spend = (doc.get("total_spend") or 0) + payload.amount
+    rate = doc.get("benefit_rate") or 0
+    new_savings = round(new_spend * rate, 2) if rate else (doc.get("savings_realized") or 0)
+    await db.vouchers.update_one(
+        {"_id": oid},
+        {
+            "$set": {"total_spend": round(new_spend, 2), "savings_realized": new_savings},
+            "$push": {
+                "spend_log": {
+                    "amount": payload.amount,
+                    "note": payload.note,
+                    "logged_at": datetime.now(timezone.utc).isoformat(),
+                }
+            },
+        },
+    )
+    updated = await db.vouchers.find_one({"_id": oid})
+    return _serialize(updated)
 
 
 # -------- OCR & SMS extraction --------

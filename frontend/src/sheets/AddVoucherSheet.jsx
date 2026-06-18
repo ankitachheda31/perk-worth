@@ -127,7 +127,7 @@ function BrandAutocomplete({ value, onChange, placeholder, onSelectSuggestion })
 export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast }) {
   const [mode, setMode] = useState('manual')
   const [busy, setBusy] = useState(false)
-  const [form, setForm] = useState({ brand: '', title: '', code: '', value: '', expiry: '', start_date: '', category: 'vouchers', membership_kind: '', fee_paid: '', how_to_redeem: '', notes: '' })
+  const [form, setForm] = useState({ brand: '', title: '', code: '', value: '', expiry: '', start_date: '', category: 'vouchers', membership_kind: '', fee_paid: '', benefit_rate: '', how_to_redeem: '', notes: '' })
   const [smsText, setSmsText] = useState('')
   const [imagePreview, setImagePreview] = useState(null)
   const [parentBrand, setParentBrand] = useState(null)
@@ -164,7 +164,7 @@ export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast }) 
   }, [form.start_date, form.expiry, form.category])
 
   const reset = () => {
-    setForm({ brand: '', title: '', code: '', value: '', expiry: '', start_date: '', category: 'vouchers', membership_kind: '', fee_paid: '', how_to_redeem: '', notes: '' })
+    setForm({ brand: '', title: '', code: '', value: '', expiry: '', start_date: '', category: 'vouchers', membership_kind: '', fee_paid: '', benefit_rate: '', how_to_redeem: '', notes: '' })
     setSmsText(''); setImagePreview(null); setMode('manual'); setParentBrand(null); setDateError('')
   }
 
@@ -188,6 +188,7 @@ export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast }) 
         category: form.category,
         membership_kind: form.category === 'memberships' ? (form.membership_kind || 'asset') : null,
         fee_paid: form.fee_paid ? Number(form.fee_paid) : null,
+        benefit_rate: (form.category === 'memberships' && form.benefit_rate) ? (Number(form.benefit_rate) / 100) : null,
         how_to_redeem: form.how_to_redeem || null,
         notes: form.notes || null,
       })
@@ -388,6 +389,12 @@ export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast }) 
                 </p>
               </div>
               <FormField label="Annual / membership fee paid (₹)" testid="field-fee" type="number" value={form.fee_paid} onChange={(v) => setForm({ ...form, fee_paid: v })} placeholder={form.membership_kind === 'asset' ? '1499' : '149/month'} />
+              <FormField label="Benefit rate (%) — e.g. 10 for 10% off all purchases" testid="field-benefit-rate" type="number" value={form.benefit_rate} onChange={(v) => setForm({ ...form, benefit_rate: v })} placeholder="10" />
+              {form.fee_paid && form.benefit_rate && Number(form.benefit_rate) > 0 ? (
+                <p data-testid="break-even-preview" className="text-[11px] text-emerald-800 font-semibold bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 -mt-1">
+                  💡 Break-even point: ₹{(Number(form.fee_paid) / (Number(form.benefit_rate) / 100)).toLocaleString('en-IN')} of spending recovers your ₹{Number(form.fee_paid).toLocaleString('en-IN')} fee
+                </p>
+              ) : null}
               <div className="grid grid-cols-2 gap-3" data-testid="membership-dates">
                 <FormField label="Start date *" testid="field-start-date" type="date" value={form.start_date} onChange={(v) => setForm({ ...form, start_date: v })} />
                 <FormField label="End date *" testid="field-end-date" type="date" value={form.expiry} onChange={(v) => setForm({ ...form, expiry: v })} />

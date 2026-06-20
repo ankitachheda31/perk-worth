@@ -1,0 +1,62 @@
+{
+  "summary": "Iteration 16 — Smart Spend Inference (GPT-4o categorisation + privacy-safe persistence) verified end-to-end. Backend pytest: 15/15 PASS (10 new + 5 regression). Health check 14/14 HEALTHY. Frontend: login → PIN setup → skip tour → Profile → Savings Assistant → Smart Spend CTA → paste SMS dump (10 txns + OTP noise) → GPT-4o returned in ~6s → breakdown sorted desc (₹17,893 Online Shopping → ₹11,571 Fuel → Groceries → Entertainment → Food Delivery → Travel) → total ₹35,772/mo → recommend online_shopping → Apply auto-fills slider to ₹18,000 and highlights online_shopping chip → fresh-session reload auto-restores profile via GET /api/spend/profile and CTA flips to 'Refresh spend profile · Last analyzed 10 txns · ₹35,772/mo'. Privacy invariants validated: GET /api/spend/profile response contains aggregated categories/totals only — no sms_text/raw_sms/transactions field.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter16_smart_spend.py",
+    "/app/test_reports/pytest/iter16_smart_spend.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "spend_intel.py _strip_json_fences + json.loads + regex fallback (lines 102-109): solid defence against GPT-4o markdown-fenced or chatty responses. 502 raised only if no JSON brace at all — appropriate.",
+    "spend_intel.py _aggregate_monthly: window_days_observed clamped to >=1 prevents divide-by-zero; monthly scaling (30/window_days) is correct. recommend_category excludes 'other' (line 142-143) so rent/utilities never get pitched as a card opportunity — UX-correct.",
+    "spend_intel.py persistence (lines 168-180): upsert keyed by user_pin, $set spreads aggregated fields only — raw SMS never written. Try/except wraps persist so user still sees inferred result if Mongo write fails. Verified empirically: spend_profiles doc has no sms_text/transactions field.",
+    "GET /spend/profile excludes _id (line 191) — JSON serialisable. Returns {exists:false} for missing rather than 404, which the frontend prefers for graceful auto-load.",
+    "CardOptimizerScreen.jsx applyInferred (lines 43-55): clamps spend to 2K-100K slider range and rounds to nearest 1K — handles edge cases where SMS reports tiny or huge monthly spend. Verified: ₹17,893 → slider 18,000.",
+    "SmartSpendSheet.jsx infer btn disabled until text.length >= 20 (line 108). Catches paste-too-small and toasts 'Paste at least one transaction SMS'. Good UX.",
+    "Privacy assurance copy ('Privacy first: we never store the raw SMS') and the green ShieldCheck block reinforce trust before the user pastes — matches the privacy-first product narrative.",
+    "api.js Spend.profile uses .catch(() => ({exists:false})) (line 122) — defensive on network/CORS failures so a flaky /api/spend/profile call never breaks the Savings Assistant load."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter16_smart_spend.py (new — 15 tests)"
+  ],
+  "success_rate": {
+    "backend": "100% (15/15)",
+    "frontend": "100% (all required testids + flows verified)"
+  },
+  "test_credentials": "test@perkorbit.app / Perk@1234 · PIN 1234 — verified working.",
+  "seed_data_creation": "Test created 3 spend_profiles docs (one auto-cleaned in fixture teardown, plus per-test PIN 'DEL****' deleted in test_delete_profile, plus one persisted via UI under PIN 1234 for the test user). Safe to leave; aggregated data only.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All Smart Spend Inference endpoints + UI flow PASS. The GPT-4o call latency was 6-12s in this run — fine for production but tests use 60s timeout. Persistence is upsert-by-user_pin and verified privacy-safe via direct GET assertion that no sms_text/raw_sms/transactions keys leak. Iter15 regression (current-card-select, already-optimal celebration, explain modal with vs-current-block, /api/cards/click full payload) is fully covered in iteration_15.json and test_iter15_userfirst.py — was spot-checked here (dropdown filtering + baseline render). The 'bpcl-sbi-octane' card-id guess in my last script failed because that's not the real id; iter15 already verified BPCL+fuel already-optimal scenario, so no retest needed.",
+  "validations_performed": {
+    "POST /api/spend/infer success shape (8 categories, total, window, txn count, recommend)": "PASS",
+    "Classification: SWIGGY/ZOMATO→food_delivery, AMAZON/MYNTRA→online_shopping, HPCL/INDIAN OIL→fuel, NETFLIX→entertainment, IRCTC→travel, DMART→groceries": "PASS (all 6 buckets have txn_count >= 1)",
+    "OTP/balance lines skipped": "PASS (transactions_parsed = 10, not 11)",
+    "Persistence persist=true + user_pin upserts MongoDB spend_profiles": "PASS (GET returns exists:true with aggregated fields, NO raw sms_text/raw_sms/transactions)",
+    "Upsert on re-run (single doc per user_pin)": "PASS",
+    "persist=false does NOT write": "PASS (GET returns {exists:false})",
+    "DELETE /spend/profile removes doc": "PASS (subsequent GET returns {exists:false})",
+    "Validation: empty sms_text → 400": "PASS",
+    "Validation: sms_text > 60KB → 413": "PASS",
+    "Regression /api/cards/best, /api/cards/click, /api/notifications, /api/membership/status, /api/vouchers": "PASS",
+    "health_check.py 14/14 HEALTHY": "PASS",
+    "Frontend Login → PIN → Profile → Savings Assistant navigation": "PASS",
+    "smart-spend-open CTA visible with 'Auto-fill from your SMS' first time": "PASS",
+    "Sheet opens (smart-spend-sheet), privacy block green, textarea + disabled Analyze button until >20 chars": "PASS",
+    "Paste 10+ Indian SMS → Analyze → loading 'Analyzing your spend…' + spinner": "PASS",
+    "Results: smart-spend-total = ₹35,772/month, smart-spend-breakdown sorted desc, gold 'Biggest reward opportunity' callout": "PASS",
+    "Apply (smart-spend-apply) closes sheet + auto-fills slider=18,000 + active category chip = cat-online_shopping": "PASS",
+    "Fresh session: CTA flips to 'Refresh spend profile · Last analyzed 10 txns · ₹35,772/mo' (auto-load via GET /spend/profile)": "PASS",
+    "smart-spend-close button dismisses the sheet": "PASS",
+    "current-card-select dropdown filtering still works (regression)": "PASS",
+    "current-card-baseline + best-cards-list render with current_card_id": "PASS"
+  }
+}

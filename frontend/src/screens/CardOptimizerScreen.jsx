@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { CreditCard, ExternalLink, Sparkles, Award, Info, Check, X } from 'lucide-react'
+import { CreditCard, ExternalLink, Sparkles, Award, Info, Check, X, Wand2 } from 'lucide-react'
 import { Card, TopBar } from '../components/ui'
-import { Cards as CardsApi } from '../lib/api'
+import { Cards as CardsApi, Spend } from '../lib/api'
+import SmartSpendSheet from '../sheets/SmartSpendSheet'
 
 const LS_CURRENT_CARD = 'perk_current_card_id'
 
@@ -27,6 +28,31 @@ export default function CardOptimizerScreen({ onBack, pin, toast }) {
   const [loadingBest, setLoadingBest] = useState(true)
   const [loadingList, setLoadingList] = useState(true)
   const [explainCard, setExplainCard] = useState(null)  // card object for "Why we suggest" modal
+  const [smartOpen, setSmartOpen] = useState(false)
+  const [inferredProfile, setInferredProfile] = useState(null)
+
+  // Try to restore a previously inferred spend profile so the user doesn't have to redo SMS paste.
+  useEffect(() => {
+    let alive = true
+    Spend.profile(pin).then((p) => { if (alive && p?.exists) setInferredProfile(p) })
+    return () => { alive = false }
+  }, [pin])
+
+  // When user finishes inference, auto-set category to the top reward-eligible bucket
+  // and seed the slider with their REAL monthly spend.
+  const applyInferred = (profile) => {
+    setInferredProfile(profile)
+    const cat = profile?.recommend_category
+    if (cat) {
+      setCategory(cat)
+      const monthly = profile.categories?.[cat]?.monthly_inr
+      if (monthly && monthly > 0) {
+        // Clamp slider range (2K to 1L) so wild values still fit
+        setSpend(Math.max(2000, Math.min(100000, Math.round(monthly / 1000) * 1000)))
+      }
+    }
+    toast?.('Spending profile loaded — see your picks below')
+  }
 
   useEffect(() => {
     CardsApi.list()
@@ -99,6 +125,32 @@ export default function CardOptimizerScreen({ onBack, pin, toast }) {
             </p>
           </div>
         </section>
+
+        {/* Smart Spend Inference CTA */}
+        <button
+          data-testid="smart-spend-open"
+          onClick={() => setSmartOpen(true)}
+          className="w-full text-left rounded-3xl p-5 bg-gradient-to-br from-gold-50 via-white to-emerald-50/40 border-2 border-dashed border-gold-300 hover:border-gold-400 active:scale-[0.99] transition group"
+        >
+          <div className="flex items-start gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-gold-400/20 border border-gold-300 grid place-items-center shrink-0">
+              <Wand2 className="w-5 h-5 text-gold-700" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-display font-bold text-ink-900 text-sm leading-tight">
+                {inferredProfile ? 'Refresh spend profile' : 'Auto-fill from your SMS'}
+              </p>
+              <p className="text-[11px] text-ink-600 mt-0.5 leading-relaxed">
+                {inferredProfile
+                  ? `Last analyzed ${inferredProfile.transactions_parsed} txns · ₹${Math.round(inferredProfile.total_monthly_inr).toLocaleString('en-IN')}/mo. Tap to re-run with newer SMS.`
+                  : 'Paste your bank/UPI SMS — we categorize your spending and pre-fill the sliders with your real data.'}
+              </p>
+              <p className="mt-2 inline-flex items-center gap-1 text-[10px] font-bold text-gold-700 uppercase tracking-wider">
+                <Sparkles className="w-3 h-3" /> One-tap magic
+              </p>
+            </div>
+          </div>
+        </button>
 
         {/* Inputs */}
         <Card className="p-5">
@@ -267,6 +319,14 @@ export default function CardOptimizerScreen({ onBack, pin, toast }) {
           onClose={() => setExplainCard(null)}
         />
       )}
+
+      <SmartSpendSheet
+        open={smartOpen}
+        onClose={() => setSmartOpen(false)}
+        pin={pin}
+        toast={toast}
+        onApplied={applyInferred}
+      />
     </>
   )
 }

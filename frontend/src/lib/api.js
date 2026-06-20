@@ -116,4 +116,11 @@ export const Cards = {
   logClick: (body) => api.post('/cards/click', body).then(r => r.data).catch(() => null),
 }
 
+export const Spend = {
+  infer: (sms_text, user_pin, persist = true) =>
+    api.post('/spend/infer', { sms_text, user_pin, persist }).then(r => r.data),
+  profile: (pin) => api.get('/spend/profile', { params: { user_pin: pin } }).then(r => r.data).catch(() => ({ exists: false })),
+  clear: (pin) => api.delete('/spend/profile', { params: { user_pin: pin } }).then(r => r.data),
+}
+
 export default api

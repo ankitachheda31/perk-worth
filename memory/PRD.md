@@ -304,3 +304,26 @@
 - **Tests** (`backend/tests/test_admin_dashboard.py`): 2/2 pass — anonymous request returns 401/403; admin request returns 200 with full shape + sanity invariants (`active_not_expired ≤ active_total`, `high_impact_pending ≤ pending`, `vouchers.redeemed == savings.total_redeemed_count`).
 - **Verified live** on `https://orbit-vouchers.preview.emergentagent.com/api/admin/dashboard/stats` — returned **27 users · 6 active Pro members · 18 vouchers · 3 pending registry items (1 HI)**.
 - Health 14/14 · Lint clean (Python + JS) · pytest 21/21 functional flows pass.
+
+
+## 2026-02-21 — Iteration 22 · Native Biometric on Android APK
+- **Plugin**: `@aparajita/capacitor-biometric-auth@8.0.2` — selected for Capacitor 6 compatibility (peer-deps `@capacitor/core@^6.1.0`, `@capacitor/android@^6.1.0`). v10 latest requires Cap 8; v8.0.2 is the right line for our v6 codebase.
+- **Architecture — strategy pattern in `frontend/src/lib/biometric.js`**:
+  - `getBiometricBackend()` returns `'native' | 'web' | 'none'` at runtime.
+  - Native branch (inside Capacitor APK): `await BiometricAuth.checkBiometry()` for availability; `await BiometricAuth.authenticate({ reason, androidTitle, androidSubtitle, … })` for enroll & verify. Local opt-in flag persists as `{ optedIn: true, backend: 'native', enrolledAt }` in `localStorage.perk_biometric_v1` — actual biometric template lives in the Android keystore, never leaves the OS.
+  - Web branch (PWA / preview): unchanged WebAuthn flow with credentialId persisted locally.
+  - Plugin loaded via dynamic `import('@aparajita/capacitor-biometric-auth')` so the web bundle code-splits the native code into its own chunk (`dist/assets/native-*.js`) — desktop users never download Android plugin code.
+- **Public API surface preserved** — `isBiometricAvailable`, `isBiometricEnrolled`, `enrollBiometric`, `verifyBiometric`, `disableBiometric` all behave identically. Plus new `getBiometricBackend()` for diagnostics. SettingsPage + PinLock needed zero behavioural changes.
+- **SettingsPage.jsx**: small UX upgrade — the Biometric card now shows `Mode: Native (Android/iOS BiometricPrompt)` / `Mode: Web (WebAuthn)` / `Mode: Unavailable` so the owner can immediately confirm the right backend is firing on each device (`data-testid="biometric-backend-tag"`).
+- **Live verification**: preview eval'd the module → `{ ok: true, backend: 'web', supported: false, enrolled: false }` — correct, because Playwright's headless Chromium isn't running inside Capacitor and has no platform authenticator.
+- **`BIOMETRIC_TEST_PLAN.md`** (full path `/app/BIOMETRIC_TEST_PLAN.md`): build instructions (`yarn install → yarn build → npx cap sync android → ./gradlew assembleDebug`), 7-section test matrix:
+  - Group A: 4 enrollment scenarios (success / no-OS-enrollment / cancel / disable)
+  - Group B: 5 unlock scenarios (auto-prompt / cancel-fallback / 3-fail lockout / not-enrolled / OS removes fingerprints)
+  - Group C: 3 multi-device + reinstall scenarios
+  - Group D: 4 edge cases (airplane mode / face unlock / dual SIM / API 29)
+  - Section 4: 4 negative/security checks (data wipe / localStorage contents / extra permissions audit / logcat scan)
+  - Section 7: rollback procedure (yarn remove + revert biometric.js + cap sync)
+- **Build**: `yarn build` produces dist with native chunk separated (`native-*.js ≈ 0.7 KB gz`). Web preview still operates fully via WebAuthn — preview testing path unaffected.
+- **Health 14/14** · `pytest backend/tests/ -q` → 21/21 functional flows pass · Lint clean (Python + JS).
+- **LAUNCH_CHECKLIST score**: 61% → **64% (51/80)**. Items 4.x (App-side compliance UX) and 5.x (Security & Infra) ticked.
+- **Owner next step**: build APK on Android Studio locally, run the A/B/C/D + S matrix on a real device, ping back with the table marked ✅/❌.

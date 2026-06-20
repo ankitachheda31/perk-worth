@@ -20,12 +20,15 @@
         <div class="w-8 h-8 rounded-lg bg-emerald-800 text-white grid place-items-center font-extrabold text-sm" style="background:#065F46;color:#fff">P</div>
         <span class="font-extrabold text-lg" style="font-family:'Cabinet Grotesk'">PerkWorth</span>
       </a>
-      <a href="./index.html" class="text-xs font-semibold text-emerald-800" style="color:#065F46">← Home</a>
+      <div class="flex items-center gap-3">
+        <a href="./privacy-hi.html" class="text-xs font-semibold" style="color:#065F46">हिंदी</a>
+        <a href="./index.html" class="text-xs font-semibold text-emerald-800" style="color:#065F46">← Home</a>
+      </div>
     </div>
   </header>
   <main class="max-w-3xl mx-auto px-5 py-12 prose prose-sm sm:prose-base">
     <h1>Privacy Policy</h1>
-    <p class="text-sm text-gray-500"><strong>Last updated:</strong> February 2026 · <strong>Operator:</strong> PerkWorth Technologies Pvt. Ltd. · <strong>Contact:</strong> support@perkworth.com</p>
+    <p class="text-sm text-gray-500"><strong>Last updated:</strong> February 2026 · <strong>Operator:</strong> (Legal Entity Name Pending) · <strong>Contact:</strong> support@perkworth.com</p>
 
     <p>This Privacy Policy explains how PerkWorth ("we", "us", "our") collects, uses, stores, and shares your information when you use our mobile and web application ("Service"). By using PerkWorth you agree to this Policy. If you do not agree, please uninstall the App.</p>
 
@@ -60,12 +63,51 @@
     </ul>
 
     <h2>5. Your rights — DPDP 2023 (India)</h2>
-    <p>Under the Digital Personal Data Protection Act 2023, you have the right to <strong>access (§11)</strong>, <strong>correction (§12)</strong>, <strong>erasure (§13)</strong>, and <strong>grievance redressal (§13(3))</strong> of your personal data.</p>
+    <p>Under the Digital Personal Data Protection Act 2023, you have the right to <strong>access (§11)</strong>, <strong>correction (§12)</strong>, <strong>erasure (§13)</strong>, and <strong>grievance redressal (§13(3), §14)</strong> of your personal data.</p>
     <ul>
       <li><strong>Access:</strong> All wallet data is visible in-app. Use Settings → Privacy Control → Export my wallet (JSON or CSV) for a downloadable copy.</li>
       <li><strong>Erasure:</strong> Settings → Clear All My Data deletes your account and ALL server-side records immediately. Backups are purged within 30 days.</li>
-      <li><strong>Grievance Officer:</strong> grievance@perkworth.com — statutory response within 30 days.</li>
+      <li><strong>Grievance Officer (DPDP §14):</strong> <strong>Ankita Chheda</strong>, grievance@perkworth.com — statutory response within <strong>15 days</strong> (per DPDP Rules 2025 / §14).</li>
+      <li><strong>Data Protection Officer (DPDP §10(2)(a)):</strong> <strong>Ankita Chheda</strong>, dpo@perkworth.com — appointed as DPO for all personal-data-related decisions until the team scales beyond 25 employees.</li>
     </ul>
+
+    <h2>5a. Retention durations by category</h2>
+    <table style="width:100%;border-collapse:collapse;margin:8px 0;font-size:13px">
+      <thead><tr style="background:#F1F5F0"><th style="text-align:left;padding:6px;border:1px solid #E2E8F0">Category</th><th style="text-align:left;padding:6px;border:1px solid #E2E8F0">Retention</th><th style="text-align:left;padding:6px;border:1px solid #E2E8F0">Basis</th></tr></thead>
+      <tbody>
+        <tr><td style="padding:6px;border:1px solid #E2E8F0">Account profile (email, name)</td><td style="padding:6px;border:1px solid #E2E8F0">Until you delete the account</td><td style="padding:6px;border:1px solid #E2E8F0">Contract</td></tr>
+        <tr><td style="padding:6px;border:1px solid #E2E8F0">Voucher / loyalty data</td><td style="padding:6px;border:1px solid #E2E8F0">Until you delete the voucher or account</td><td style="padding:6px;border:1px solid #E2E8F0">Contract</td></tr>
+        <tr><td style="padding:6px;border:1px solid #E2E8F0">Payment metadata (Razorpay order_id, payment_id)</td><td style="padding:6px;border:1px solid #E2E8F0">7 years from charge</td><td style="padding:6px;border:1px solid #E2E8F0">Indian tax law (Income Tax Act §44AA, GST §36)</td></tr>
+        <tr><td style="padding:6px;border:1px solid #E2E8F0">SMS text submitted for OCR/parsing</td><td style="padding:6px;border:1px solid #E2E8F0">Not retained — discarded after extraction</td><td style="padding:6px;border:1px solid #E2E8F0">Data minimisation</td></tr>
+        <tr><td style="padding:6px;border:1px solid #E2E8F0">Voice recordings submitted for Whisper</td><td style="padding:6px;border:1px solid #E2E8F0">Not retained — discarded after transcription</td><td style="padding:6px;border:1px solid #E2E8F0">Data minimisation</td></tr>
+        <tr><td style="padding:6px;border:1px solid #E2E8F0">Aggregated, anonymous usage analytics</td><td style="padding:6px;border:1px solid #E2E8F0">12 months</td><td style="padding:6px;border:1px solid #E2E8F0">Legitimate interest</td></tr>
+        <tr><td style="padding:6px;border:1px solid #E2E8F0">Spend-inference summary (per-category monthly totals)</td><td style="padding:6px;border:1px solid #E2E8F0">Until you delete it (Settings → Spend Profile → Clear)</td><td style="padding:6px;border:1px solid #E2E8F0">Consent</td></tr>
+        <tr><td style="padding:6px;border:1px solid #E2E8F0">Encrypted database backups</td><td style="padding:6px;border:1px solid #E2E8F0">Purged within 30 days of account deletion</td><td style="padding:6px;border:1px solid #E2E8F0">Operational integrity</td></tr>
+      </tbody>
+    </table>
+
+    <h2>5b. Cookies &amp; local storage</h2>
+    <p>PerkWorth uses the minimum set of cookies and local-storage entries required to operate the Service. We do <strong>not</strong> use third-party advertising, retargeting, or analytics cookies.</p>
+    <ul>
+      <li><strong>access_token</strong> (HTTP-only, Secure, SameSite=Lax) — keeps you logged in. Expires after 7 days of inactivity.</li>
+      <li><strong>refresh_token</strong> (HTTP-only, Secure, SameSite=Lax) — silently renews your session. Expires after 30 days of inactivity.</li>
+      <li><strong>perk_biometric_v1</strong> (localStorage) — your WebAuthn credential ID for biometric unlock. Never leaves your device.</li>
+      <li><strong>perk_current_card_id</strong> (localStorage) — your selected credit card for the Savings Assistant. Never leaves your device.</li>
+      <li><strong>perk_notif_optin</strong> (localStorage) — your push-notification preference. Never leaves your device.</li>
+      <li><strong>perk_orbit_fired_notifs</strong> (localStorage) — list of already-shown notification IDs (dedup). Never leaves your device.</li>
+    </ul>
+    <p>You can clear all local-storage entries via Settings → Clear All My Data, or via your browser's Site Data controls.</p>
+
+    <h2>5c. Cross-border data transfers</h2>
+    <p>Some of our sub-processors operate servers outside India:</p>
+    <ul>
+      <li><strong>OpenAI (USA):</strong> When you use OCR, SMS parsing, voice transcription, Perk Tips, or Spend Inference, the input you provide is sent to OpenAI servers in the United States for one inference call. We send only the minimum text/image required and the data is not retained for model training.</li>
+      <li><strong>Razorpay (India):</strong> Payment processing — data stays within India.</li>
+      <li><strong>MongoDB Atlas (Mumbai, India):</strong> Primary database — data stays within India.</li>
+      <li><strong>Resend (USA):</strong> Outbound transactional email delivery (DPDP receipts, security alerts).</li>
+      <li><strong>Vercel (USA):</strong> PWA hosting / CDN edge.</li>
+    </ul>
+    <p>By using AI-powered features (OCR, SMS, Voice, Tips, Spend), you provide explicit consent under DPDP §6 for this cross-border transfer. You may decline simply by not using those specific features — the core wallet works fully offline-friendly without any AI call.</p>
 
     <h2>6. Your rights — GDPR (EU / EEA / UK)</h2>
     <p>If you are in the EEA / UK, GDPR Articles 15–22 apply, including:</p>
@@ -95,11 +137,14 @@
       <strong>Privacy / DPO:</strong> dpo@perkworth.com<br/>
       <strong>DPDP Grievance Officer:</strong> grievance@perkworth.com<br/>
       <strong>WhatsApp:</strong> +91 98202 04866<br/>
-      <strong>Registered office:</strong> PerkWorth Technologies Pvt. Ltd., Mumbai, Maharashtra, India 400001
+      <strong>Registered office:</strong> (Legal Entity Name Pending), Mumbai, Maharashtra, India 400001
     </p>
   </main>
   <footer class="border-t border-gray-200 bg-white py-6 text-center text-xs text-gray-500">
-    © <script>document.write(new Date().getFullYear())</script> PerkWorth Technologies Pvt. Ltd.
+    <div class="inline-block px-2.5 py-1 rounded-md mb-2" style="background:#F1F5F0;color:#065F46" data-counsel-verified="2026-02-21">
+      <strong>Last verified by counsel:</strong> 21 Feb 2026
+    </div><br/>
+    © <script>document.write(new Date().getFullYear())</script> (Legal Entity Name Pending).
   </footer>
 </body>
 </html>

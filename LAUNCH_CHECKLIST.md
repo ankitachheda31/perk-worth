@@ -21,11 +21,11 @@ Status legend:
 | 1. DPDP Act 2023 compliance | 11 | 10 | 🟢 91% |
 | 2. Razorpay Live activation | 13 | 5 | 🟡 38% |
 | 3. Static legal pages | 12 | 9 | 🟡 75% |
-| 4. App-side compliance UX | 10 | 8 | 🟡 80% |
-| 5. Security & Infra | 12 | 9 | 🟡 75% |
+| 4. App-side compliance UX | 10 | 9 | 🟡 90% |
+| 5. Security & Infra | 12 | 10 | 🟡 83% |
 | 6. Google Play / iOS App Store | 14 | 3 | 🔴 21% |
 | 7. Customer-facing operations | 8 | 5 | 🟡 63% |
-| **TOTAL** | **80** | **49** | **🟡 61%** |
+| **TOTAL** | **80** | **51** | **🟡 64%** |
 
 ---
 
@@ -265,6 +265,8 @@ Razorpay requires the following to switch from Test Mode → Live. **Submit at**
 | 2026-02-21 | 19 | Compliance pages finalized: `(Legal Entity Name Pending)` placeholder applied across privacy/terms/refund; Grievance Officer (Ankita Chheda · grievance@perkworth.com · 15-day SLA) + DPO formally designated on all three pages; refund.html got T+5 Razorpay SLA + chargeback policy; terms.html got Arbitration Act 1996 + Force-Majeure clauses; `/privacy-hi.html` draft generated via GPT-4o (24KB, banner "मसौदा / Draft — pending native review"). Score moved 50% → **56% (45/80)**. Items 1.1, 1.7, 1.9, 2.12 → ✅ ; 2.10 → 🟡. |
 | 2026-02-21 | 19 | "Last verified by counsel: 21 Feb 2026" badge added to footer of all 4 compliance pages + regression test `backend/tests/test_counsel_verified.py` fails if any page goes >180 days unreviewed (4/4 passing). |
 | 2026-02-21 | 20 | **Backend monolith refactor.** `server.py` 1358 → 141 lines (-90%). Split into `services/{db,llm,billing_logic,notifications_logic}.py` (shared infra) + `routes/{vouchers,extraction,circle,billing,notifications}.py` (5 feature routers using existing `build_*_router(db)` factory pattern). Lint clean. Health 14/14. Backend pytest 15/15 functional flows pass via the new modules (voucher CRUD, OCR, ending-soon, points, ROI, circle share/unshare, membership). 3 pre-existing brand-string-equality test failures (registry returns "Tata Group" vs legacy "Tata") are NOT regressions — same behavior pre-refactor. |
+| 2026-02-21 | 21 | **Admin Dashboard Stats endpoint.** New `/api/admin/dashboard/stats` (admin-gated, role=admin only). Returns savings (total/YTD/last-7d ₹), members (active/active-not-expired/new 7d), users, vouchers, registry queue. MongoDB `$group` aggregation, no per-doc Python iteration. New `Dashboard` tab added to Admin Registry screen (now default landing tab). Tests 2/2, health 14/14. |
+| 2026-02-21 | 22 | **Native biometric (Android APK) wired.** Added `@aparajita/capacitor-biometric-auth@8.0.2` (Cap 6 compatible — peer-deps `@capacitor/core@^6.1.0`). Refactored `frontend/src/lib/biometric.js` to a strategy pattern: native plugin path inside Capacitor APK + WebAuthn fallback on web. Public API surface unchanged → zero edits needed in `SettingsPage.jsx`, `PinLock.jsx`. Settings card now shows a `Mode: Native / Web / Unavailable` diagnostic tag. Capacitor plugin loaded via dynamic `import()` so the web bundle splits the native code into its own chunk. `BIOMETRIC_TEST_PLAN.md` written (7 sections, A1–S4 matrix, rollback plan) for owner to execute on real device. Score moved 61% → **64% (51/80)**. |
 
 ---
 

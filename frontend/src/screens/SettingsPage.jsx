@@ -3,7 +3,7 @@ import { ShieldCheck, KeyRound, ChevronRight, FileText, MessageCircle, Lock, Spa
 import { Card, GhostButton, TopBar } from '../components/ui'
 import { Auth } from '../lib/api'
 import { setStoredPin, setProfile } from '../lib/store'
-import { isBiometricAvailable, isBiometricEnrolled, enrollBiometric, disableBiometric } from '../lib/biometric'
+import { isBiometricAvailable, isBiometricEnrolled, enrollBiometric, disableBiometric, getBiometricBackend } from '../lib/biometric'
 import { isNotifOptedIn, setNotifOptIn, requestNotificationPermission } from '../lib/push'
 
 export default function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpenPrivacy, onOpenFAQ, onOpenPrivacyControl, onOpenPerkTips, onReplayTour, onWipe, onLogout, toast }) {
@@ -13,6 +13,7 @@ export default function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpen
   const [bioSupported, setBioSupported] = useState(false)
   const [bioEnabled, setBioEnabled] = useState(isBiometricEnrolled())
   const [bioBusy, setBioBusy] = useState(false)
+  const [bioBackend, setBioBackend] = useState(getBiometricBackend())
   const [notifOn, setNotifOn] = useState(isNotifOptedIn())
   const [notifBusy, setNotifBusy] = useState(false)
 
@@ -136,6 +137,9 @@ export default function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpen
                 <p className="font-display font-bold text-ink-900">Biometric unlock</p>
                 <p className="text-xs text-ink-500 mt-0.5 leading-relaxed">
                   Unlock with Face ID / Fingerprint. PIN stays as backup — your cloud account is always recoverable.
+                </p>
+                <p className="text-[10px] text-ink-400 mt-1.5 font-mono" data-testid="biometric-backend-tag">
+                  Mode: {bioBackend === 'native' ? 'Native (Android/iOS BiometricPrompt)' : bioBackend === 'web' ? 'Web (WebAuthn)' : 'Unavailable'}
                 </p>
                 <button
                   data-testid="biometric-toggle"

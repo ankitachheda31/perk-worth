@@ -68,9 +68,18 @@
     <ol>
       <li>Email <a href="mailto:support@perkworth.com">support@perkworth.com</a> from the email associated with your PerkWorth account.</li>
       <li>Include: the Razorpay <strong>order_id</strong> or <strong>payment_id</strong>, the date of charge, and the reason (duplicate / outage / unauthorized / mistaken renewal).</li>
-      <li>We acknowledge within 2 business days and either approve or explain rejection within 7 business days.</li>
-      <li>Approved refunds are processed via Razorpay back to the original payment method. Bank settlement typically takes 5–10 business days.</li>
+      <li>We acknowledge within <strong>2 business days</strong> and either approve or explain rejection within <strong>7 business days</strong>.</li>
+      <li>Approved refunds are processed via Razorpay back to the <strong>original payment method only</strong> (RBI guidance). Once we trigger the refund through Razorpay, bank settlement typically completes within <strong>T+5 business days</strong> (i.e. credited to your card / UPI / bank within 5 working days of approval). For UPI and net-banking, settlement is usually faster (1–3 days); for credit cards, it can take the full 5 days depending on the issuing bank.</li>
     </ol>
+
+    <h2>5a. Chargebacks &amp; bank disputes</h2>
+    <p>If you raise a chargeback / dispute directly with your card-issuing bank (instead of using the in-app refund flow), please be aware:</p>
+    <ul>
+      <li>Razorpay will notify us of the chargeback. We will respond with the order_id, payment_id, signature verification, and activation record within the timeline mandated by the bank (typically 7–10 working days).</li>
+      <li>If the chargeback is found valid by the bank, the amount is reversed to you — no further action needed on your part.</li>
+      <li>If the chargeback is rejected by the bank (because the subscription was genuinely delivered and active), the original charge stands and your Pro access continues unaffected.</li>
+      <li>We <strong>strongly recommend</strong> contacting support@perkworth.com first — most refundable cases (duplicate charges, outages, unauthorized payments) can be resolved by us within 7 business days without involving a chargeback, which is faster for you and avoids any risk of dispute fees.</li>
+    </ul>
 
     <h2>6. Right to delete your data</h2>
     <p>Cancellation of auto-renewal does <strong>not</strong> delete your data. If you also wish to delete your account and all stored data, use the in-app <strong>Settings → Clear All My Data</strong> flow (DPDP 2023 §13 / GDPR Art. 17). This is independent of the refund process.</p>
@@ -81,13 +90,17 @@
     <h2>8. Contact</h2>
     <p>
       <strong>Billing &amp; refunds:</strong> support@perkworth.com<br/>
-      <strong>Grievance (DPDP):</strong> grievance@perkworth.com<br/>
+      <strong>Grievance Officer (DPDP):</strong> Ankita Chheda · grievance@perkworth.com · response SLA 15 days<br/>
+      <strong>Data Protection Officer:</strong> Ankita Chheda · dpo@perkworth.com<br/>
       <strong>WhatsApp:</strong> +91 98202 04866<br/>
-      <strong>Registered office:</strong> PerkWorth Technologies Pvt. Ltd., Mumbai, Maharashtra, India 400001
+      <strong>Registered office:</strong> (Legal Entity Name Pending), Mumbai, Maharashtra, India 400001
     </p>
   </main>
   <footer class="border-t border-gray-200 bg-white py-6 text-center text-xs text-gray-500">
-    © <script>document.write(new Date().getFullYear())</script> PerkWorth Technologies Pvt. Ltd.
+    <div class="inline-block px-2.5 py-1 rounded-md mb-2" style="background:#F1F5F0;color:#065F46" data-counsel-verified="2026-02-21">
+      <strong>Last verified by counsel:</strong> 21 Feb 2026
+    </div><br/>
+    © <script>document.write(new Date().getFullYear())</script> (Legal Entity Name Pending).
   </footer>
 </body>
 </html>

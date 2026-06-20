@@ -230,9 +230,9 @@ export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast, ed
     setSmsText(''); setImagePreview(null); setMode('manual'); setParentBrand(null); setDateError('')
   }
 
-  // When `editing` voucher prop changes, prefill the form. When it clears, reset.
+  // When `editing` voucher prop changes, prefill the form. When it clears OR sheet closes, reset.
   React.useEffect(() => {
-    if (editing && open) {
+    if (editing) {
       setMode('manual')
       setForm({
         brand: editing.brand || '',
@@ -244,17 +244,17 @@ export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast, ed
         category: editing.category || 'vouchers',
         membership_kind: editing.membership_kind || '',
         fee_paid: editing.fee_paid != null ? String(editing.fee_paid) : '',
-        // benefit_rate is stored as decimal (0-1) but UI uses percent (0-100)
+        // benefit_rate stored as decimal (0-1); UI uses percent (0-100)
         benefit_rate: editing.benefit_rate != null ? String(Math.round(editing.benefit_rate * 100)) : '',
         how_to_redeem: editing.how_to_redeem || '',
         notes: editing.notes || '',
         owner: editing.owner || 'Self',
       })
-    } else if (!open) {
+    } else {
       reset()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editing, open])
+  }, [editing])
 
   const isEditMode = !!editing
 
@@ -266,7 +266,7 @@ export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast, ed
     }
     setBusy(true)
     try {
-      await Vouchers.create({
+      const payload = {
         user_pin: pin,
         type: form.category === 'memberships' ? 'membership' : 'voucher',
         brand: form.brand,
@@ -282,10 +282,19 @@ export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast, ed
         how_to_redeem: form.how_to_redeem || null,
         notes: form.notes || null,
         owner: form.owner || 'Self',
-      })
-      toast(form.category === 'memberships' ? 'Membership saved' : 'Saved to your wallet')
+      }
+      if (isEditMode) {
+        // PATCH only — strip immutable identity fields the backend ignores on update
+        // eslint-disable-next-line no-unused-vars
+        const { user_pin, type, ...patchBody } = payload
+        await Vouchers.update(editing.id, patchBody)
+        toast(form.category === 'memberships' ? 'Membership updated' : 'Voucher updated')
+      } else {
+        await Vouchers.create(payload)
+        toast(form.category === 'memberships' ? 'Membership saved' : 'Saved to your wallet')
+      }
       reset(); onClose(); onSaved?.()
-    } catch { toast('Failed to save') } finally { setBusy(false) }
+    } catch { toast(isEditMode ? 'Failed to update' : 'Failed to save') } finally { setBusy(false) }
   }
 
   // ─── Voice-to-Voucher state ───────────────────────────────────────────────

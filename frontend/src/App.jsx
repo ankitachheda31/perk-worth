@@ -326,7 +326,7 @@ export default function App() {
       <HowWeProtectYouModal open={protectOpen} onClose={() => setProtectOpen(false)} />
       <ProfileMenu open={profileOpen} onClose={() => setProfileOpen(false)} onNavigate={handleNavigate} memberStatus={memberStatus} />
 
-      <AddVoucherSheet open={addOpen} onClose={closeAddSheet} pin={effectivePin} onSaved={bumpRefresh} toast={toast} editing={editingVoucher} />
+      <AddVoucherSheet key={editingVoucher?.id || 'new'} open={addOpen} onClose={closeAddSheet} pin={effectivePin} onSaved={bumpRefresh} toast={toast} editing={editingVoucher} />
       <HowToSheet voucher={howToFor} open={!!howToFor} onClose={() => setHowToFor(null)} />
       <ShareSheet open={!!shareFor} onClose={() => setShareFor(null)} voucher={shareFor} pin={effectivePin} toast={toast} refresh={bumpRefresh} />
       <NotificationSheet

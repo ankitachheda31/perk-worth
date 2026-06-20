@@ -11,23 +11,46 @@ import usePullToRefresh from '../lib/usePullToRefresh'
 
 export default function HomeScreen({ pin, onProfileClick, memberStatus, onOpenAdd, toast, refreshKey, openHowTo, onOpenNotifs, unread, bumpRefresh }) {
   const [ending, setEnding] = useState([])
+  const [allItems, setAllItems] = useState([])  // for Household Wallet Summary
   const [q, setQ] = useState('')
   const [loading, setLoading] = useState(true)
 
   const load = async () => {
     setLoading(true)
     try {
-      const data = await Vouchers.endingSoon(pin, 7)
+      const [data, fullList] = await Promise.all([
+        Vouchers.endingSoon(pin, 7).catch(() => []),
+        Vouchers.list(pin).catch(() => []),
+      ])
       setEnding(Array.isArray(data) ? data : [])
+      setAllItems(Array.isArray(fullList) ? fullList : [])
     } catch (e) {
       // eslint-disable-next-line no-console
-      console.warn('[HomeScreen] failed to load ending-soon vouchers', e)
-      setEnding([])
+      console.warn('[HomeScreen] failed to load', e)
+      setEnding([]); setAllItems([])
     } finally { setLoading(false) }
   }
   useEffect(() => { load() /* eslint-disable-next-line */ }, [pin, refreshKey])
 
   const { pullY, refreshing } = usePullToRefresh(async () => { await load(); bumpRefresh?.() })
+
+  // Household Wallet Summary — only meaningful with 2+ distinct owners
+  const householdSummary = React.useMemo(() => {
+    if (!allItems.length) return null
+    const perOwner = new Map()
+    let totalValue = 0
+    for (const v of allItems) {
+      const o = v.owner || 'Self'
+      const value = (typeof v.value === 'number' && v.value > 0) ? v.value : 0
+      totalValue += value
+      const cur = perOwner.get(o) || { count: 0, value: 0 }
+      cur.count += 1; cur.value += value
+      perOwner.set(o, cur)
+    }
+    const owners = Array.from(perOwner.entries()).map(([name, stats]) => ({ name, ...stats }))
+    owners.sort((a, b) => b.value - a.value)
+    return { owners, totalValue, totalCount: allItems.length }
+  }, [allItems])
 
   const handleCopy = async (v) => {
     if (!v.code) return
@@ -70,6 +93,41 @@ export default function HomeScreen({ pin, onProfileClick, memberStatus, onOpenAd
           </div>
           <SearchResult q={q} pin={pin} onOpenVoucher={(u) => openHowTo(u)} />
         </section>
+
+        {/* Household Wallet Summary — surfaces multi-person value, only shows when family has 2+ owners */}
+        {householdSummary && householdSummary.owners.length >= 2 ? (
+          <section data-testid="household-summary" className="relative overflow-hidden rounded-3xl p-5 bg-gradient-to-br from-emerald-900 via-emerald-800 to-ink-900 text-white border border-emerald-900/40">
+            <div className="absolute -top-12 -right-12 w-44 h-44 rounded-full bg-gold-500/15 blur-2xl pointer-events-none" />
+            <div className="relative">
+              <p className="text-[10px] uppercase tracking-[0.18em] font-bold text-emerald-100/80">Family Wallet</p>
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="font-display font-bold text-3xl" data-testid="household-total-value">
+                  ₹{Math.round(householdSummary.totalValue).toLocaleString('en-IN')}
+                </span>
+                <span className="text-xs text-white/70">
+                  across {householdSummary.totalCount} {householdSummary.totalCount === 1 ? 'item' : 'items'}
+                </span>
+              </div>
+              <p className="text-[12px] text-white/80 mt-1" data-testid="household-owner-count">
+                Tracked for <strong>{householdSummary.owners.length}</strong> {householdSummary.owners.length === 1 ? 'person' : 'people'} in your household
+              </p>
+              <div className="flex items-center gap-2 mt-4 -ml-1 overflow-x-auto no-scrollbar">
+                {householdSummary.owners.slice(0, 8).map((o, i) => (
+                  <div key={o.name} data-testid={`household-owner-${o.name.toLowerCase().replace(/\s+/g, '-')}`} className="flex flex-col items-center gap-1 px-2 py-1.5 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/15 min-w-[68px]">
+                    <div className="w-7 h-7 rounded-full bg-white/20 grid place-items-center text-white text-[11px] font-bold border border-white/25">
+                      {o.name === 'Self' ? '🪞' : (o.name[0] || '?').toUpperCase()}
+                    </div>
+                    <span className="text-[9px] font-bold text-white/90 leading-tight text-center whitespace-nowrap">{o.name}</span>
+                    <span className="text-[9px] text-emerald-100/70 leading-none">{o.count}×</span>
+                  </div>
+                ))}
+                {householdSummary.owners.length > 8 ? (
+                  <div className="text-[10px] text-white/60 px-1 font-semibold">+{householdSummary.owners.length - 8} more</div>
+                ) : null}
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         {!memberStatus?.active ? (
           <button

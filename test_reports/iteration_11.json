@@ -1,0 +1,59 @@
+{
+  "summary": "Iteration 11 frontend E2E test of three owner-leveraged features on Emergent preview URL. RESULT: Feature D (Household Wallet Summary) and Feature C (Owner Filter) FULLY WORKING and verified end-to-end. Feature E (Edit voucher flow) has a CRITICAL BUG: the AddVoucherSheet.handleSave() never branches on isEditMode — it ALWAYS calls Vouchers.create() (POST). Clicking 'Update' on an existing voucher creates a NEW duplicate voucher with the modified owner and leaves the original untouched. Confirmed by card-count delta (3 → 4 after one 'Update') and visible duplicate Croma rows in the list. A second related regression also reproduced: after opening edit sheet for voucher A then opening Add new, the form is still prefilled and the title still says 'Edit Voucher' — exactly the scenario flagged in the test request.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "AddVoucherSheet (handleSave)", "issue": "Update button POSTs a new voucher instead of PATCHing the existing one. Original voucher untouched; a duplicate with the new owner appears. Card count grew from 3 → 4 after a single 'Update' click. The api client already exposes Vouchers.update(id, body) (PATCH /vouchers/{id}) at /app/frontend/src/lib/api.js:47 — handleSave just never calls it.", "selector": "[data-testid='save-voucher']", "priority": "CRITICAL"},
+      {"component": "AddVoucherSheet (open/editing state)", "issue": "Closing the Edit sheet via the X button and then tapping 'Add new' still shows the sheet titled 'Edit Voucher' with the previous voucher's brand ('Croma') prefilled. Owner default is also not reset to Self. The useEffect at lines 233-257 only resets when (!open); when open stays true and only editing flips to null (or the close click is intercepted by the still-mounted sheet), the form keeps stale data. This is the exact regression the request asked to watch for.", "selector": "[data-testid='add-sheet'] / [data-testid='add-coupon']", "priority": "HIGH"}
+    ],
+    "integration_issues": [
+      {"flow": "Edit voucher save persistence", "issue": "PATCH /api/vouchers/<id> is never called on save; instead POST /api/vouchers fires. Toast 'Voucher updated' was NOT observed (sheet shows generic 'Saved to your wallet' toast path because POST branch runs).", "affected_selectors": ["[data-testid='save-voucher']", "[data-testid^='voucher-']"]}
+    ],
+    "design_issues": []
+  },
+  "tests_executed_and_verified": [
+    "Login (test@perkorbit.app / Perk@1234) → success",
+    "PIN 1234 entered via keypad → home loaded",
+    "Walkthrough Skip tour → home loaded",
+    "FEATURE D PASS: [data-testid='household-summary'] visible. household-total-value='₹150'. household-owner-count='Tracked for 2 people in your household'. chips: household-owner-brother, household-owner-self. Card renders cleanly at 390px width with gradient + emerald-900 background and gold accent.",
+    "FEATURE C PASS: [data-testid='owner-filter-row'] renders below the All/Memberships/Vouchers tabs. Chips: owner-filter-all ('All (2)'), owner-filter-brother ('👤 Brother (1)'), owner-filter-self ('👤 Self (1)'). Filter behavior PASS: clicking owner-filter-brother left exactly 1 card with owner '👤 BROTHER' visible; clicking owner-filter-all restored 2 cards. After the buggy edit-save, owner-filter-row dynamically picked up the new 'Father-in-law' owner — proving the derivation logic is correct.",
+    "FEATURE E partial: pencil button [data-testid='edit-<voucherid>'] renders on every VoucherCard. Click opens sheet with title 'Edit Voucher' (correct). Mode selector (Manual/Scan/SMS/Voice) is hidden in edit mode (correct). All fields are prefilled correctly: brand='Croma', title='Test Rs 100 off', code='TEST100', value='100', expiry='2026-12-31'. Save button label says 'Update' (correct). Owner-chip-mother and owner-chip-father-in-law are clickable. ALL UI SIGNALS LOOK RIGHT — but the actual save is broken (POST instead of PATCH).",
+    "REGRESSION CHECK: Add new voucher from MyCoupons works and shows 'Add Voucher' title and 'Save voucher' button label when opened fresh (without preceding edit). Brand input is empty in that case.",
+    "REGRESSION CHECK FAILED: Open edit on voucher A → click X (sheet-close) → click 'Add new' → sheet still shows 'Edit Voucher' with Croma prefilled. (See bug #2 above.)",
+    "Layout check: owner-filter-row scrolls horizontally cleanly at 390px width with no overflow. Household summary card stays within screen edges (gradient extends to rounded-3xl edges, no horizontal scroll on body)."
+  ],
+  "not_tested": [
+    "Membership edit (Feature E for memberships) — the test account has ZERO membership records, so [data-testid^='membership-'] is empty on MyCoupons → Memberships tab. Code review of /app/frontend/src/components/Cards.jsx:194-198 confirms the pencil button is correctly rendered with [data-testid='edit-<id>'] for MembershipCard. But since handleSave has the same POST-only logic, the membership edit will exhibit the SAME duplicate-creation bug — main agent should fix once and it covers both."
+  ],
+  "rca_of_the_critical_bug": {
+    "bug": "Feature E edit-save creates new voucher instead of updating existing one",
+    "file": "/app/frontend/src/sheets/AddVoucherSheet.jsx",
+    "lines": "261-289 (handleSave function)",
+    "root_cause": "handleSave has a single code path that calls `await Vouchers.create({ user_pin, type, brand, ... })` regardless of isEditMode. The test request expected lines 273-295 to branch on isEditMode and call Vouchers.update(editing.id, payload) (PATCH) when editing. That branch is missing.",
+    "fix_outline": "Wrap the persistence call in: `if (isEditMode) { const { user_pin, type, ...patchBody } = payload; await Vouchers.update(editing.id, patchBody); toast(form.category === 'memberships' ? 'Membership updated' : 'Voucher updated') } else { await Vouchers.create(payload); toast(form.category === 'memberships' ? 'Membership saved' : 'Saved to your wallet') }`. Vouchers.update is already defined at /app/frontend/src/lib/api.js:47 as PATCH /vouchers/{id}.",
+    "secondary_bug": "useEffect at lines 233-257 should also reset() when editing flips from truthy to falsy while open remains true (case: user closes edit sheet via something other than the Sheet's onClose, or the close handler races with re-open). Recommend: `if (editing && open) prefill; else if (!editing) reset();` — drop the !open guard so any transition out of edit mode clears the form."
+  },
+  "test_report_links": ["/app/test_reports/iteration_11.json"],
+  "action_items": [
+    "CRITICAL: Add isEditMode branch to AddVoucherSheet.handleSave that calls Vouchers.update(editing.id, patchBody) (strip user_pin and type from the body before PATCH per backend contract). Show 'Voucher updated' / 'Membership updated' toast on success.",
+    "HIGH: Fix form reset in AddVoucherSheet so closing an Edit sheet and opening Add new always shows an empty form titled 'Add Voucher' with owner=Self. Suggest dropping the !open guard in the useEffect or running reset() also in the closeAddSheet flow regardless of close path.",
+    "After fix, re-run iteration_11 tests — both Feature E save persistence and the cancel→add reset case must be re-verified.",
+    "Optional: backend PATCH /api/vouchers/{id} was not exercised this round (because frontend never reached it) — once frontend fix lands, please curl-verify it returns 200 with the updated owner (the request also calls this out)."
+  ],
+  "critical_code_review_comments": [
+    "AddVoucherSheet.jsx handleSave (lines 261-289) does NOT honor isEditMode — single POST path. This is the source of the Feature E bug.",
+    "AddVoucherSheet.jsx useEffect (lines 233-257) resets only when !open — does not handle editing→null transition while sheet stays open. Fragile.",
+    "Sheet open-state contract is unclear: closeAddSheet in App.jsx clears editingVoucher and onOpenAdd also clears it, but if Add-new is tapped while the edit sheet is still mounted (e.g., backdrop click race), state can desync. Safer: derive isEditMode purely from a single source and force a full unmount/remount of AddVoucherSheet between modes (key=editing?.id || 'new').",
+    "MyCouponsScreen.jsx owner-filter-row derivation only counts owners present in the current tab's items — correct behavior; verified Brother+Self correctly listed when on All tab.",
+    "HomeScreen.jsx household-summary card conditionally renders only when owners.length >= 2 — correct (verified ON when 2 owners exist).",
+    "VoucherCard pencil button is exposed via onEdit prop and rendered conditionally — clean implementation."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not_tested_this_iteration", "frontend": "65% — Features D and C 100%; Feature E UI 100% but save persistence broken"},
+  "test_credentials": "test@perkorbit.app / Perk@1234 / PIN 1234 — verified working on https://orbit-vouchers.preview.emergentagent.com",
+  "seed_data_creation": "Created 1 duplicate voucher inadvertently while testing edit-save (Croma → owner=Father-in-law, id=6a368f47187511d979c52931). Also previously created Croma → owner=Mother duplicate (id=6a368f08187511d979c52930) during initial probe. These are visible duplicates of the original Croma (id=6a367bb1f6e7633d6f3ef516, owner=Brother). Main agent may want to clean these up via DELETE after fix verification.",
+  "retest_needed": true,
+  "main_agent_can_self_test": false,
+  "context_for_next_testing_agent": "Two of three features (D Household Summary, C Owner Filter) are production-ready. Feature E voucher edit UI is perfect (title, prefill, hidden mode selector, Update button label) but the save still POSTs — confirmed by card count delta and original record persistence. Membership edit was not exercisable due to zero memberships in the test seed; once the POST→PATCH bug is fixed in handleSave (single change), membership edit should work too since the code path is shared. After fix, also retest the cancel-edit→add-new flow: open edit on a voucher, hit X close, hit Add new → must show 'Add Voucher' (not 'Edit Voucher') with empty form. The test account is at test@perkorbit.app/PIN 1234; some duplicate Croma vouchers from this run can be cleaned up.",
+  "rca_summary_for_main_agent": "Single 5-line code change in /app/frontend/src/sheets/AddVoucherSheet.jsx handleSave will fix Feature E. The reset useEffect is a secondary fix to make cancel→add bulletproof. Backend is untouched and already supports PATCH /api/vouchers/{id} per VoucherUpdate model (per iteration_10 verification)."
+}

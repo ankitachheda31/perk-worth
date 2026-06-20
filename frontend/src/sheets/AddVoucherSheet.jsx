@@ -447,15 +447,18 @@ export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast, ed
   }
 
   return (
-    <Sheet open={open} onClose={() => { reset(); onClose() }} title={form.category === 'memberships' ? 'Add Membership' : 'Add Voucher'} testid="add-sheet">
-      <div className="flex gap-2 p-1 bg-ink-100 rounded-full mb-5">
-        <button data-testid="mode-manual" onClick={() => setMode('manual')} className={`pill-tab ${mode === 'manual' ? 'active' : ''}`}>Manual</button>
-        <button data-testid="mode-scan" onClick={() => setMode('scan')} className={`pill-tab ${mode === 'scan' ? 'active' : ''}`}>Scan</button>
-        <button data-testid="mode-sms" onClick={() => setMode('sms')} className={`pill-tab ${mode === 'sms' ? 'active' : ''}`}>SMS</button>
-        <button data-testid="mode-voice" onClick={() => { setMode('voice'); setVoiceState('idle'); setVoiceError('') }} className={`pill-tab ${mode === 'voice' ? 'active' : ''}`}>
-          <Mic className="w-3.5 h-3.5 inline -mt-0.5" /> Voice
-        </button>
-      </div>
+    <Sheet open={open} onClose={() => { reset(); onClose() }} title={isEditMode ? (form.category === 'memberships' ? 'Edit Membership' : 'Edit Voucher') : (form.category === 'memberships' ? 'Add Membership' : 'Add Voucher')} testid="add-sheet">
+      {/* Mode selector — hidden in edit mode (only Manual makes sense when editing) */}
+      {!isEditMode ? (
+        <div className="flex gap-2 p-1 bg-ink-100 rounded-full mb-5">
+          <button data-testid="mode-manual" onClick={() => setMode('manual')} className={`pill-tab ${mode === 'manual' ? 'active' : ''}`}>Manual</button>
+          <button data-testid="mode-scan" onClick={() => setMode('scan')} className={`pill-tab ${mode === 'scan' ? 'active' : ''}`}>Scan</button>
+          <button data-testid="mode-sms" onClick={() => setMode('sms')} className={`pill-tab ${mode === 'sms' ? 'active' : ''}`}>SMS</button>
+          <button data-testid="mode-voice" onClick={() => { setMode('voice'); setVoiceState('idle'); setVoiceError('') }} className={`pill-tab ${mode === 'voice' ? 'active' : ''}`}>
+            <Mic className="w-3.5 h-3.5 inline -mt-0.5" /> Voice
+          </button>
+        </div>
+      ) : null}
 
       {mode === 'voice' ? (
         <div className="space-y-3" data-testid="voice-mode">
@@ -677,7 +680,7 @@ export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast, ed
             placeholder={form.category === 'memberships' ? 'Includes Prime Video, free delivery on Pantry, exclusive deals on Lightning Sale…' : "Apply at checkout under 'Promo code'…"}
           />
           <PrimaryButton data-testid="save-voucher" onClick={handleSave} disabled={busy || !!dateError}>
-            {busy ? 'Saving…' : (form.category === 'memberships' ? 'Save membership' : 'Save voucher')}
+            {busy ? 'Saving…' : (isEditMode ? 'Update' : (form.category === 'memberships' ? 'Save membership' : 'Save voucher'))}
           </PrimaryButton>
         </div>
       )}

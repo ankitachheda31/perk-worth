@@ -48,6 +48,7 @@ export default function App() {
   const [stack, setStack] = useState([{ screen: 'home', params: {} }])
   const [profileOpen, setProfileOpen] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
+  const [editingVoucher, setEditingVoucher] = useState(null)  // when set, AddVoucherSheet enters EDIT mode
   const [howToFor, setHowToFor] = useState(null)
   const [shareFor, setShareFor] = useState(null)
   const [toastMsg, setToastMsg] = useState('')
@@ -230,7 +231,9 @@ export default function App() {
     setStack([{ screen: 'home' }])
   }
 
-  const onOpenAdd = (kind) => { if (kind === 'upsell') { push('membership'); return } setAddOpen(true) }
+  const onOpenAdd = (kind) => { if (kind === 'upsell') { push('membership'); return } setEditingVoucher(null); setAddOpen(true) }
+  const onOpenEdit = (voucher) => { setEditingVoucher(voucher); setAddOpen(true) }
+  const closeAddSheet = () => { setAddOpen(false); setEditingVoucher(null) }
   const bumpRefresh = () => setRefreshKey(k => k + 1)
 
   return (
@@ -252,7 +255,7 @@ export default function App() {
           <MyCouponsScreen
             pin={effectivePin}
             onProfileClick={() => setProfileOpen(true)}
-            onOpenAdd={onOpenAdd} toast={toast}
+            onOpenAdd={onOpenAdd} onOpenEdit={onOpenEdit} toast={toast}
             refreshKey={refreshKey} openHowTo={setHowToFor}
             openShareSheet={setShareFor} setRefreshKey={setRefreshKey}
             bumpRefresh={bumpRefresh}
@@ -323,7 +326,7 @@ export default function App() {
       <HowWeProtectYouModal open={protectOpen} onClose={() => setProtectOpen(false)} />
       <ProfileMenu open={profileOpen} onClose={() => setProfileOpen(false)} onNavigate={handleNavigate} memberStatus={memberStatus} />
 
-      <AddVoucherSheet open={addOpen} onClose={() => setAddOpen(false)} pin={effectivePin} onSaved={bumpRefresh} toast={toast} />
+      <AddVoucherSheet open={addOpen} onClose={closeAddSheet} pin={effectivePin} onSaved={bumpRefresh} toast={toast} editing={editingVoucher} />
       <HowToSheet voucher={howToFor} open={!!howToFor} onClose={() => setHowToFor(null)} />
       <ShareSheet open={!!shareFor} onClose={() => setShareFor(null)} voucher={shareFor} pin={effectivePin} toast={toast} refresh={bumpRefresh} />
       <NotificationSheet

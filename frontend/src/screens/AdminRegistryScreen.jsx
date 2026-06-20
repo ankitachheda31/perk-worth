@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, CheckCircle2, XCircle, RefreshCw, ShieldCheck, ClipboardList, Activity, ExternalLink, Loader2, Square, CheckSquare } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, XCircle, RefreshCw, ShieldCheck, ClipboardList, Activity, ExternalLink, Loader2, Square, CheckSquare, BarChart3, TrendingUp, Users, Wallet } from 'lucide-react'
 import { Card, TopBar } from '../components/ui'
 import { Admin } from '../lib/api'
 
@@ -15,11 +15,12 @@ import { Admin } from '../lib/api'
  *  - Hard guard: any 403 sends the user back home with a clear message.
  */
 export default function AdminRegistryScreen({ onBack, toast }) {
-  const [tab, setTab] = useState('pending')
+  const [tab, setTab] = useState('dashboard')
   const [pending, setPending] = useState([])
   const [changelog, setChangelog] = useState([])
   const [runs, setRuns] = useState([])
   const [stats, setStats] = useState({ pending: 0, high_impact_pending: 0, approved_total: 0, rejected_total: 0 })
+  const [dashboard, setDashboard] = useState(null)
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(new Set())
   const [busy, setBusy] = useState(false)
@@ -28,16 +29,18 @@ export default function AdminRegistryScreen({ onBack, toast }) {
   const fetchAll = useCallback(async () => {
     setLoading(true)
     try {
-      const [s, p, cl, rn] = await Promise.all([
+      const [s, p, cl, rn, dash] = await Promise.all([
         Admin.stats(),
         Admin.pending('pending'),
         Admin.changelog(),
         Admin.runs(),
+        Admin.dashboardStats().catch(() => null), // tolerant: don't block other panes if dashboard fails
       ])
       setStats(s)
       setPending(p.items || [])
       setChangelog(cl.items || [])
       setRuns(rn.items || [])
+      setDashboard(dash)
       setForbidden(false)
     } catch (e) {
       if (e?.response?.status === 403) {
@@ -144,7 +147,7 @@ export default function AdminRegistryScreen({ onBack, toast }) {
         {/* Tabs + run-now */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex gap-2" data-testid="admin-tabs">
-            {[['pending','Pending'],['changelog','Changelog'],['runs','Runs']].map(([k,label]) => (
+            {[['dashboard','Dashboard'],['pending','Pending'],['changelog','Changelog'],['runs','Runs']].map(([k,label]) => (
               <button
                 key={k}
                 data-testid={`tab-${k}`}
@@ -169,6 +172,8 @@ export default function AdminRegistryScreen({ onBack, toast }) {
         {/* CONTENT */}
         {loading ? (
           <Card className="p-6 text-center text-sm text-ink-500">Loading…</Card>
+        ) : tab === 'dashboard' ? (
+          <DashboardPanel data={dashboard} />
         ) : tab === 'pending' ? (
           <>
             {sortedPending.length === 0 ? (
@@ -244,6 +249,111 @@ export default function AdminRegistryScreen({ onBack, toast }) {
     </>
   )
 }
+
+function DashboardPanel({ data }) {
+  if (!data) {
+    return (
+      <Card className="p-6 text-center text-sm text-ink-500" data-testid="dashboard-empty">
+        Dashboard data unavailable. Try refreshing.
+      </Card>
+    )
+  }
+  const fmtINR = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
+  const s = data.savings || {}
+  const m = data.members || {}
+  const u = data.users || {}
+  const v = data.vouchers || {}
+  const r = data.registry || {}
+  const generated = data.generated_at ? new Date(data.generated_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : ''
+  return (
+    <div className="space-y-4" data-testid="admin-dashboard-panel">
+      {/* Hero row — the three KPIs you asked for */}
+      <section className="grid grid-cols-1 sm:grid-cols-3 gap-3" data-testid="dashboard-hero">
+        <HeroCard
+          icon={<Wallet className="w-4 h-4" />}
+          label="Total ₹ saved (all-time)"
+          value={fmtINR(s.total_saved_inr)}
+          sub={`${s.total_redeemed_count || 0} redemptions · ${fmtINR(s.ytd_saved_inr)} in ${s.current_year}`}
+          tone="emerald"
+          testid="kpi-total-savings"
+        />
+        <HeroCard
+          icon={<Users className="w-4 h-4" />}
+          label="Active Pro members"
+          value={String(m.active_not_expired ?? m.active_total ?? 0)}
+          sub={`+${m.new_in_7d || 0} new in last 7 days`}
+          tone="gold"
+          testid="kpi-active-members"
+        />
+        <HeroCard
+          icon={<AlertTriangle className="w-4 h-4" />}
+          label="Pending registry items"
+          value={String(r.pending || 0)}
+          sub={`${r.high_impact_pending || 0} high-impact · ${r.approved_total || 0} approved to date`}
+          tone={r.high_impact_pending ? 'terracotta' : 'ink'}
+          testid="kpi-pending-registry"
+        />
+      </section>
+
+      {/* Secondary stats grid */}
+      <Card className="p-4" data-testid="dashboard-secondary">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-ink-500 mb-3">System snapshot</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <MiniStat label="Total users" value={String(u.total || 0)} delta={`+${u.new_in_7d || 0} (7d)`} testid="mini-users" />
+          <MiniStat label="Total vouchers" value={String(v.total || 0)} delta={`${v.active || 0} active`} testid="mini-vouchers" />
+          <MiniStat label="Redeemed (7d)" value={String(s.recent_redeemed_count_7d || 0)} delta={fmtINR(s.recent_saved_inr_7d)} testid="mini-recent-redeems" />
+          <MiniStat label="Active members" value={String(m.active_total || 0)} delta={`${m.active_not_expired || 0} not expired`} testid="mini-active-total" />
+        </div>
+      </Card>
+
+      {/* Tip strip — investor-pitch friendly */}
+      <Card className="p-4 bg-emerald-50/40 border-emerald-200" data-testid="dashboard-tip">
+        <div className="flex items-start gap-2.5">
+          <TrendingUp className="w-4 h-4 text-emerald-800 mt-0.5 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-emerald-900">Demo-ready snapshot</p>
+            <p className="text-[11px] text-emerald-900/80 mt-1 leading-relaxed">
+              This view is the single roll-up you can screen-share during Razorpay KYC interviews or investor calls. Numbers are computed live from MongoDB on every visit — no cached values, no mocks.
+            </p>
+            {generated && (
+              <p className="text-[10px] text-emerald-900/60 mt-1.5">Generated {generated}</p>
+            )}
+          </div>
+        </div>
+      </Card>
+    </div>
+  )
+}
+
+function HeroCard({ icon, label, value, sub, tone, testid }) {
+  const toneCls = {
+    emerald: 'bg-emerald-800 text-white',
+    gold: 'bg-gold-100 text-gold-900 border border-gold-300',
+    terracotta: 'bg-terracotta-100 text-terracotta-900 border border-terracotta-300',
+    ink: 'bg-white text-ink-900 border border-ink-200',
+  }[tone] || 'bg-white text-ink-900 border border-ink-200'
+  return (
+    <div className={`rounded-3xl p-4 ${toneCls}`} data-testid={testid}>
+      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider opacity-80">
+        {icon}
+        <span>{label}</span>
+      </div>
+      <p className="font-display font-bold text-3xl tabular-nums mt-2 leading-none">{value}</p>
+      <p className="text-[11px] mt-2 opacity-80 leading-snug">{sub}</p>
+    </div>
+  )
+}
+
+function MiniStat({ label, value, delta, testid }) {
+  return (
+    <div className="rounded-2xl bg-white border border-ink-200 px-3 py-2.5" data-testid={testid}>
+      <p className="text-[9px] font-bold uppercase tracking-wider text-ink-500">{label}</p>
+      <p className="font-display font-bold text-lg tabular-nums leading-none mt-1 text-ink-900">{value}</p>
+      <p className="text-[10px] text-ink-500 mt-1">{delta}</p>
+    </div>
+  )
+}
+
 
 function StatTile({ label, value, tone, testid }) {
   const toneCls = {

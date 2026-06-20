@@ -94,6 +94,7 @@ from spend_intel import build_spend_router  # noqa: E402
 from loyalty_registry import build_loyalty_router  # noqa: E402
 from registry_service import ensure_admins, start_registry_intel_cron  # noqa: E402
 from admin_routes import build_admin_router  # noqa: E402
+from routes.admin_dashboard import build_admin_dashboard_router  # noqa: E402
 
 app.include_router(build_auth_router(db))
 app.include_router(build_intelligence_router(db, EMERGENT_LLM_KEY))
@@ -103,6 +104,7 @@ app.include_router(build_cards_router(db))
 app.include_router(build_spend_router(db, EMERGENT_LLM_KEY))
 app.include_router(build_loyalty_router(db))
 app.include_router(build_admin_router(db, EMERGENT_LLM_KEY, make_get_current_user(db)))
+app.include_router(build_admin_dashboard_router(db, make_get_current_user(db)))
 
 
 @app.on_event("startup")

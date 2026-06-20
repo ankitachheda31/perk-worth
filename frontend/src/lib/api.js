@@ -76,6 +76,7 @@ export const Loyalty = {
 
 export const Admin = {
   stats: () => api.get('/admin/registry/stats').then(r => r.data),
+  dashboardStats: () => api.get('/admin/dashboard/stats').then(r => r.data),
   pending: (status = 'pending') => api.get('/admin/registry/pending', { params: { status } }).then(r => r.data),
   changelog: () => api.get('/admin/registry/changelog').then(r => r.data),
   runs: () => api.get('/admin/registry/runs').then(r => r.data),

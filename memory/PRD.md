@@ -288,3 +288,19 @@
 - **Lint**: 0 errors across `server.py`, `routes/`, `services/`.
 - **Files created**: `services/{__init__,db,llm,billing_logic,notifications_logic}.py`, `routes/{__init__,vouchers,extraction,circle,billing,notifications}.py` (11 new files, 1182 lines total — well-organised).
 - **What this unlocks**: Future features land in their domain module without touching `server.py`. New devs can read one 150-line file end-to-end. Unit-testing helpers (`apply_referral_bonus`, `generate_dynamic_notifications`) without spinning up FastAPI.
+
+
+## 2026-02-21 — Iteration 21 · Admin Dashboard Stats (KYC-demo ready)
+- **Backend** (`/app/backend/routes/admin_dashboard.py`, ~140 lines):
+  - New router `build_admin_dashboard_router(db, get_current_user)` mounted at `/api/admin/dashboard`.
+  - Single endpoint `GET /api/admin/dashboard/stats` returns five sub-blocks: `savings`, `members`, `users`, `vouchers`, `registry`.
+  - **Auth**: same `_admin_required(get_current_user)` gate used by `admin_routes.py` → role `admin` only. Anonymous = 401; non-admin user = 403.
+  - **Aggregations**: uses MongoDB `$group` pipelines for ₹ savings (server-side; no per-doc Python iteration). Counts: total/YTD/last-7-days savings, active Pro members (raw + not-yet-expired), new Pro signups in 7d, total users, new users 7d, total vouchers, active vouchers, redeemed vouchers, pending registry items, high-impact pending, approved-total. Read-only; never mutates.
+- **Frontend** (`AdminRegistryScreen.jsx` + `lib/api.js`):
+  - New `Dashboard` tab (now the default landing tab) with three hero KPI cards (Total ₹ saved · Active Pro members · Pending registry items) plus a "System snapshot" mini-stats grid (Users · Vouchers · Redeems-7d · Active members) and an emerald demo-ready tip card.
+  - Tolerant fetch: dashboard panel uses `.catch(() => null)` so if `/dashboard/stats` ever 5xx's the rest of the admin UI (pending/changelog/runs) still loads.
+  - testids: `admin-dashboard-panel`, `dashboard-hero`, `kpi-total-savings`, `kpi-active-members`, `kpi-pending-registry`, `dashboard-secondary`, `mini-users`, `mini-vouchers`, `mini-recent-redeems`, `mini-active-total`, `tab-dashboard`.
+  - `Admin.dashboardStats()` added to `lib/api.js`.
+- **Tests** (`backend/tests/test_admin_dashboard.py`): 2/2 pass — anonymous request returns 401/403; admin request returns 200 with full shape + sanity invariants (`active_not_expired ≤ active_total`, `high_impact_pending ≤ pending`, `vouchers.redeemed == savings.total_redeemed_count`).
+- **Verified live** on `https://orbit-vouchers.preview.emergentagent.com/api/admin/dashboard/stats` — returned **27 users · 6 active Pro members · 18 vouchers · 3 pending registry items (1 HI)**.
+- Health 14/14 · Lint clean (Python + JS) · pytest 21/21 functional flows pass.

@@ -160,3 +160,10 @@
 - Added new env var `CORS_ORIGIN_REGEX=https://.*\.vercel\.app` so every Vercel preview deployment (`perk-orbit-xyz.vercel.app`) works automatically.
 - `server.py` ~line 348: passes `allow_origin_regex=os.environ.get("CORS_ORIGIN_REGEX") or None` to FastAPI's `CORSMiddleware`.
 - Verified via curl preflight against both `perkorbit.app` and `*.vercel.app` origins — both pass. Health: 14/14 HEALTHY.
+
+
+## 2026-02-20 — Redemption Tracker (P0 user feature)
+- **Backend `Voucher.status`** field (active | redeemed | expired) + `redeemed_at` ISO timestamp.
+- **4 new endpoints**: POST `/api/vouchers/{id}/redeem` + `/unredeem` + GET `/savings-stats` + GET `/vouchers?status=redeemed|all` filter. Default `/vouchers` list now hides redeemed (cleaner wallet view).
+- **Frontend**: green "Used" button on every active VoucherCard. New `HistoryScreen.jsx` with savings hero (`₹X all-time · ₹Y in 2026`), owner-breakdown grid, and Undo affordance per redeemed card. History icon shortcut in MyCoupons header.
+- **Testing**: Iteration 13 backend 10/10 pytest + full UI flow verified end-to-end. Pluralization fix applied. Health 14/14 HEALTHY.

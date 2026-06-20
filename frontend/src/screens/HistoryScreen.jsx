@@ -74,7 +74,7 @@ export default function HistoryScreen({ pin, refreshKey, toast, bumpRefresh, ope
               <span className="text-xs text-emerald-100/70 ml-1">all-time</span>
             </div>
             <p className="text-[12px] text-white/80 mt-1.5" data-testid="year-saved">
-              <strong className="text-gold-300">₹{Math.round(stats?.this_year_saved || 0).toLocaleString('en-IN')}</strong> saved in {stats?.current_year || new Date().getFullYear()} ({stats?.count_this_year || 0} vouchers)
+              <strong className="text-gold-300">₹{Math.round(stats?.this_year_saved || 0).toLocaleString('en-IN')}</strong> saved in {stats?.current_year || new Date().getFullYear()} ({stats?.count_this_year || 0} {(stats?.count_this_year || 0) === 1 ? 'voucher' : 'vouchers'})
             </p>
 
             {/* Per-owner breakdown */}

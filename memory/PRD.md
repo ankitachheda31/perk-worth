@@ -205,3 +205,23 @@
 - **Wired** into Profile menu (`menu-card-optimizer` row with NEW badge) and App.jsx routing (`card-optimizer` screen).
 - Verified iteration 14: backend 100% pass, frontend 100% pass (live slider updates, category switching, affiliate click POST + new-tab open all working).
 - Affiliate-ready: swap `apply_url` for tracked deeplink (Cardz / BankBazaar / direct issuer affiliate codes) — zero frontend change required.
+
+## 2026-02-20 — Iteration 15 · Trust + Revenue User-First Combo
+- **Backend models centralized** — extracted Pydantic models from server.py into `/app/backend/models.py`. Eliminates duplicate definitions; cleaner import surface for future route extractions.
+- **Push Notifications · Trust-First Retention**:
+  - `_generate_dynamic_notifications` now fires expiry alerts ONLY at exactly `days_left == 3` (kind=`ending_soon`) and `0 <= days_left <= 1` (kind=`urgent_expiry`). Never spammy — max TWO push events per voucher per lifetime.
+  - Redeemed vouchers are excluded from notifications (no false alerts).
+  - Browser push (`lib/push.js`) now includes `ending_soon` in the OS-toast eligible list. Added quiet-hours guard (22:00-08:00 local, suppressed). Added opt-in flag (`isNotifOptedIn` / `setNotifOptIn` in localStorage).
+  - Settings → "Expiry alerts" card (data-testid `settings-notifications-card`) with toggle (`notif-toggle`). Tells the user honestly: "Two reminders per voucher — exactly 3 days and 1 day before expiry. Never spammy."
+- **Card Optimizer → "Savings Assistant" (User-First)**:
+  - `/api/cards/best` now accepts `current_card_id` param. When provided, ONLY cards with **higher net annual value** than the user's current card are returned. Each result includes `delta_inr` (extra ₹/yr saved vs current).
+  - New `you_are_already_optimal` flag — when user is on the best card for that category, we celebrate ("You're already on the best card 🎉") instead of pitching alternatives.
+  - Frontend rewritten: current-card dropdown (`current-card-select`), current-card baseline display (`current-card-baseline`), green delta pill on each recommendation ("You save ₹X more per year"), "I own this" toggle on every catalog row, persisted to localStorage.
+  - Screen + menu label now "Savings Assistant" — positioned as helpful, not salesy.
+- **Transparency UI · "Why we suggest this" modal** (`ExplainModal`):
+  - ⓘ button on every recommendation (data-testid `explain-<card_id>`).
+  - Shows full math: monthly spend × 12 → annual reward, minus fee (with waiver status), → net value.
+  - "vs your current card" block (`vs-current-block`) only appears when a current card is set, showing concrete ₹ delta.
+  - Collapsible "What's NOT counted" with honest caveats (welcome bonuses, capped accelerators, GST on fee).
+- **Affiliate Tracking enhanced**: `card_clicks` now persists `current_card_id`, `monthly_spend_inr`, `delta_inr` for richer attribution analytics. UI stays clean — no popups, no nag.
+- Verified iteration 15: 26/26 backend pytest, 100% frontend, health 14/14. Iteration 11 edit-voucher fix regression confirmed intact.

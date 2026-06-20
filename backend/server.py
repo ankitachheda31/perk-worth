@@ -1310,6 +1310,7 @@ from optimizer import build_optimizer_router
 from webhook_export import build_webhook_router
 from cards import build_cards_router
 from spend_intel import build_spend_router
+from loyalty_registry import build_loyalty_router
 
 app.include_router(build_auth_router(db))
 app.include_router(build_intelligence_router(db, EMERGENT_LLM_KEY))
@@ -1317,6 +1318,7 @@ app.include_router(build_optimizer_router(db, EMERGENT_LLM_KEY))
 app.include_router(build_webhook_router(db, make_get_current_user(db)))
 app.include_router(build_cards_router(db))
 app.include_router(build_spend_router(db, EMERGENT_LLM_KEY))
+app.include_router(build_loyalty_router())
 
 
 @app.on_event("startup")

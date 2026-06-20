@@ -189,11 +189,15 @@ function OwnerPicker({ value, onChange }) {
 export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast, editing }) {
   const [mode, setMode] = useState('manual')
   const [busy, setBusy] = useState(false)
-  const [form, setForm] = useState({ brand: '', title: '', code: '', value: '', expiry: '', start_date: '', category: 'vouchers', membership_kind: '', fee_paid: '', benefit_rate: '', how_to_redeem: '', notes: '', owner: 'Self' })
+  const [form, setForm] = useState({ brand: '', title: '', code: '', value: '', expiry: '', start_date: '', category: 'vouchers', membership_kind: '', fee_paid: '', benefit_rate: '', how_to_redeem: '', notes: '', owner: 'Self', membership_number: '', program_type: '' })
   const [smsText, setSmsText] = useState('')
   const [imagePreview, setImagePreview] = useState(null)
   const [parentBrand, setParentBrand] = useState(null)
   const [dateError, setDateError] = useState('')
+  // Smart loyalty auto-detect — fires when user types a known brand
+  const [loyalty, setLoyalty] = useState(null)             // backend classify response when matched
+  const [autoApplied, setAutoApplied] = useState(false)    // form was auto-switched (user can undo with "Custom")
+  const [overrideActive, setOverrideActive] = useState(false)  // user clicked "Custom" → stop auto-applying
 
   // Live parent-brand resolution kept as a fallback (in case the user types
   // the brand name verbatim without picking a suggestion).

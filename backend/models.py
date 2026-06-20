@@ -72,6 +72,8 @@ class Voucher(BaseDocument):
     owner: Optional[str] = "Self"
     status: Optional[str] = "active"  # active | redeemed | expired
     redeemed_at: Optional[str] = None  # ISO timestamp when marked redeemed
+    membership_number: Optional[str] = None  # for memberships: FF#, loyalty id, fuel card, etc.
+    program_type: Optional[str] = None  # airline | hotel | fuel | retail | ecommerce | banking_rewards | ott | music | telecom | cab_mobility | ota_travel | food_qsr | fitness | healthcare | news | education | automotive | insurance | beauty | lounge | generic
     shared_with: List[str] = Field(default_factory=list)
     is_sharing: bool = False
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -97,6 +99,8 @@ class VoucherCreate(BaseModel):
     how_to_redeem: Optional[str] = None
     notes: Optional[str] = None
     owner: Optional[str] = "Self"
+    membership_number: Optional[str] = None
+    program_type: Optional[str] = None
 
 
 class VoucherUpdate(BaseModel):
@@ -119,6 +123,8 @@ class VoucherUpdate(BaseModel):
     owner: Optional[str] = None
     status: Optional[str] = None
     redeemed_at: Optional[str] = None
+    membership_number: Optional[str] = None
+    program_type: Optional[str] = None
     is_sharing: Optional[bool] = None
     shared_with: Optional[List[str]] = None
 

@@ -69,6 +69,11 @@ export const Search = {
   brand: (q, user_pin) => api.get('/search/brand', { params: { q, user_pin } }).then(r => r.data),
 }
 
+export const Loyalty = {
+  programs: () => api.get('/loyalty/programs').then(r => r.data),
+  classify: (brand) => api.get('/loyalty/classify', { params: { brand } }).then(r => r.data),
+}
+
 export const Circle = {
   list: (pin) => api.get('/circle/members', { params: { user_pin: pin } }).then(r => r.data),
   add: (body) => api.post('/circle/members', body).then(r => r.data),

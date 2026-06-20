@@ -225,3 +225,19 @@
   - Collapsible "What's NOT counted" with honest caveats (welcome bonuses, capped accelerators, GST on fee).
 - **Affiliate Tracking enhanced**: `card_clicks` now persists `current_card_id`, `monthly_spend_inr`, `delta_inr` for richer attribution analytics. UI stays clean — no popups, no nag.
 - Verified iteration 15: 26/26 backend pytest, 100% frontend, health 14/14. Iteration 11 edit-voucher fix regression confirmed intact.
+
+## 2026-02-20 — Iteration 17 · Comprehensive India Loyalty Registry + Smart Auto-Detect (149 programs · 23 types)
+- **Backend**:
+  - New `/app/backend/data/loyalty_programs.json` — 149 curated Indian loyalty programs across 23 program types (airlines · hotels · fuel · retail · ecommerce · banking_rewards · fintech · ott · music · telecom · cab_mobility · ota_travel · food_qsr · entertainment · fitness · healthcare · news · education · automotive · insurance · beauty · lounge · generic). Includes CRED · Slice · Jupiter · FamPay · PVR INOX · BookMyShow · Trident · Welcomhotel · PhysicsWallah · Aakash · WhiteHat Jr · Apollo Hospitals · Spinny · CarDekho · Citi-India migration + all major retail/banking/airlines/hotels.
+  - New `/app/backend/loyalty_registry.py` — `build_loyalty_router()` exposes `GET /api/loyalty/programs` (full registry, cacheable) and `GET /api/loyalty/classify?brand=X` (alias lookup with substring fallback at 3+ chars to avoid false positives).
+  - Models updated: `Voucher`, `VoucherCreate`, `VoucherUpdate` now carry `membership_number` and `program_type` optional fields. Persistence + PATCH update verified.
+- **Frontend · AddVoucherSheet**:
+  - Live classifier (320ms debounce) — typing a known brand auto-switches the form to `category=memberships`, auto-selects the right `membership_kind` chip, and renames the membership-number field with program-specific label + placeholder (e.g. "✈ Frequent Flyer Number · 6E12345678" for IndiGo, "⛽ Fuel Card Number · 1234-5678-9012" for HPCL).
+  - **Loyalty detection banner** (data-testid `loyalty-detected-banner`) — green/gold gradient when auto-applied, ink-50 when in Custom mode.
+  - **Use custom format** override (data-testid `loyalty-custom-override`) — clearly visible button on the banner; clicking it preserves ALL user-typed values, only swaps labels back to generic.
+  - **Re-apply auto-detect** (data-testid `loyalty-reapply`) — appears in Custom mode; restores the smart form without losing typed values.
+  - Auto-detect intentionally suppressed in Edit mode (never overwrites existing voucher fields).
+- **Frontend · MembershipCard**:
+  - New `MaskedMembershipNumber` component shows the saved number as `••••5678` with a per-card eye-toggle to reveal — banking-app pattern users already trust.
+  - Type-aware label (FFP, Card, Member ID, Sub, Policy, etc.) sits above the masked number.
+- **Verified iter17**: 26/26 backend pytest pass, health 14/14, all 14 sample alias lookups (IndiGo · HPCL · CRED · PVR · BookMyShow · Trident · Welcomhotel · PW · Aakash · HDFC · Axis · Tata Neu · Netflix · Spotify) return correct payloads; substring guard verified (2-char strings don't match, 3+ char strings do); POST/PATCH for membership_number persists correctly. Frontend testids confirmed via code review.

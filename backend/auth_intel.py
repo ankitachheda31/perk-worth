@@ -166,7 +166,7 @@ def build_auth_router(db) -> APIRouter:
         access = create_access_token(uid, email)
         refresh = create_refresh_token(uid)
         _set_auth_cookies(response, access, refresh)
-        return {"id": uid, "email": email, "name": doc["name"], "phone": doc["phone"], "access_token": access}
+        return {"id": uid, "email": email, "name": doc["name"], "phone": doc["phone"], "role": doc.get("role", "user"), "access_token": access}
 
     @router.post("/login")
     async def login(payload: LoginRequest, response: Response):

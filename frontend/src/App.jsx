@@ -128,7 +128,7 @@ export default function App() {
         // Defensive: backend must return an object with an email; otherwise treat as unauth.
         // (Guards against rewrites returning HTML as 200 if backend URL ever misconfigured.)
         if (alive && me && typeof me === 'object' && me.email) {
-          setAuthUser({ id: me._id || me.id, email: me.email, name: me.name, phone: me.phone })
+          setAuthUser({ id: me._id || me.id, email: me.email, name: me.name, phone: me.phone, role: me.role })
         } else if (alive) {
           setAuthUser(null); localStorage.removeItem('perk_orbit_token')
         }
@@ -157,13 +157,13 @@ export default function App() {
     return (
       <ResetPasswordScreen
         token={resetToken}
-        onAuthed={(u) => { setResetToken(null); setAuthUser({ id: u.id, email: u.email, name: u.name || '', phone: u.phone || '' }); setLocked(false) }}
+        onAuthed={(u) => { setResetToken(null); setAuthUser({ id: u.id, email: u.email, name: u.name || '', phone: u.phone || '', role: u.role }); setLocked(false) }}
         onCancel={() => { setResetToken(null); try { const url = new URL(window.location.href); url.searchParams.delete('reset_token'); window.history.replaceState({}, '', url.toString()) } catch { /* ignore */ } }}
       />
     )
   }
   if (!authUser) {
-    return <AuthScreen existingPin={pin} onAuthed={(u) => { setAuthUser({ id: u.id, email: u.email, name: u.name, phone: u.phone }); setLocked(false) }} />
+    return <AuthScreen existingPin={pin} onAuthed={(u) => { setAuthUser({ id: u.id, email: u.email, name: u.name, phone: u.phone, role: u.role }); setLocked(false) }} />
   }
   if (!pin) {
     return <PinLock mode="set" onSuccess={(p) => { setStoredPin(p); setPin(p); setLocked(false) }} />

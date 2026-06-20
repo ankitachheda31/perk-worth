@@ -241,3 +241,18 @@
   - New `MaskedMembershipNumber` component shows the saved number as `••••5678` with a per-card eye-toggle to reveal — banking-app pattern users already trust.
   - Type-aware label (FFP, Card, Member ID, Sub, Policy, etc.) sits above the masked number.
 - **Verified iter17**: 26/26 backend pytest pass, health 14/14, all 14 sample alias lookups (IndiGo · HPCL · CRED · PVR · BookMyShow · Trident · Welcomhotel · PW · Aakash · HDFC · Axis · Tata Neu · Netflix · Spotify) return correct payloads; substring guard verified (2-char strings don't match, 3+ char strings do); POST/PATCH for membership_number persists correctly. Frontend testids confirmed via code review.
+
+## 2026-02-20 — Iteration 18 · Registry Intelligence + Admin UI + Launch Checklist
+- **Backend (clean split per user's modularization request)**:
+  - `/app/backend/registry_service.py` — pure business logic: 8 curated India RSS sources, GPT-4o classifier (strict JSON), high-impact heuristic + LLM flag, APScheduler cron (Mon/Wed/Fri 04:00 IST), `apply_approval` / `apply_rejection` helpers, `notify_admins_high_impact` (Resend email + bell notification), `ensure_admins` seed.
+  - `/app/backend/admin_routes.py` — HTTP-only router (build_admin_router). Endpoints: stats, pending (HI pinned ASC), changelog, runs, run-now, single approve/reject, bulk-approve, bulk-reject.
+  - `/app/backend/loyalty_registry.py` — classify now reads `registry_overlay` collection first (live updates without restart). `/api/loyalty/programs` merges overlay into JSON list.
+  - Admin gate: role='admin' field on user doc. `ensure_admins(db)` runs on startup, auto-promoting configured owner emails (ankitachheda31@gmail.com + test@perkorbit.app).
+- **Frontend Admin UI** (`AdminRegistryScreen.jsx`):
+  - 4-stat strip · 3-tab nav (Pending / Changelog / Runs) · Run Scan Now button · Bulk select all · Sticky bulk action bar (`bulk-approve`, `bulk-reject`) · Per-row approve/reject · 403 guard with "Admin access required" empty state.
+  - **HIGH IMPACT visual treatment**: terracotta red rail (left edge), terracotta badge (HIGH IMPACT with ⚠ icon), terracotta sub-box explaining `why high-impact`. Always pinned first.
+  - Admin menu (`menu-admin-registry`) shows only when `authUser.role === 'admin'`.
+- **Critical bug fix** (caught by iter18 testing agent): `setAuthUser({...})` at 3 sites in App.jsx was dropping the `role` field returned from /auth/me, /signup, /login. Fixed — admin menu now shows correctly. Signup endpoint also now returns `role` in payload.
+- **Verified iter18**: 21/21 backend pytest pass, admin UI live screenshot confirms HI red rail, badge, bulk select working. Pending=3 (1 HI), Approved=4, Rejected=1 after manual e2e.
+- **LAUNCH_CHECKLIST.md** created at `/app/LAUNCH_CHECKLIST.md` — 80-item launch readiness tracker covering DPDP 2023, Razorpay Live KYC, static-page compliance audit (privacy.html / terms.html / refunds.html), Google Play data-safety, security/infra, ops. Current score: 50% (40/80). Action items in 3-week pre-launch sequence.
+

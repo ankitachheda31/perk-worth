@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { History, Sparkles, IndianRupee, Share2 } from 'lucide-react'
-import { Vouchers } from '../lib/api'
+import { Vouchers, Membership } from '../lib/api'
 import { VoucherCard } from '../components/Cards'
 import { Empty } from '../components/ui'
 
@@ -11,21 +11,24 @@ import { Empty } from '../components/ui'
 export default function HistoryScreen({ pin, refreshKey, toast, bumpRefresh, openHowTo }) {
   const [items, setItems] = useState([])
   const [stats, setStats] = useState(null)
+  const [memberStatus, setMemberStatus] = useState(null)  // for referral code
   const [loading, setLoading] = useState(true)
 
   const load = async () => {
     setLoading(true)
     try {
-      const [list, s] = await Promise.all([
+      const [list, s, m] = await Promise.all([
         Vouchers.list(pin, undefined, 'redeemed').catch(() => []),
         Vouchers.savingsStats(pin).catch(() => null),
+        Membership.status(pin).catch(() => null),
       ])
       setItems(Array.isArray(list) ? list : [])
       setStats(s || null)
+      setMemberStatus(m || null)
     } catch (e) {
       // eslint-disable-next-line no-console
       console.warn('[History] failed', e)
-      setItems([]); setStats(null)
+      setItems([]); setStats(null); setMemberStatus(null)
     } finally { setLoading(false) }
   }
   useEffect(() => { load() /* eslint-disable-next-line */ }, [pin, refreshKey])
@@ -64,11 +67,22 @@ export default function HistoryScreen({ pin, refreshKey, toast, bumpRefresh, ope
     const allAmt = Math.round(stats.total_saved || 0).toLocaleString('en-IN')
     const count = stats.count_this_year || 0
     const year = stats.current_year || new Date().getFullYear()
-    const message = `Saved ₹${yearAmt} in ${year} with PerkWorth! 🎉\n\n${count} vouchers redeemed, ₹${allAmt} all-time. Coupons + memberships + family wallet all in one app.\n\nTry it free → https://www.perkworth.com`
+    const ref = memberStatus?.referral_code  // only present for Pro members
+    const link = ref
+      ? `https://www.perkworth.com/?ref=${ref}`
+      : 'https://www.perkworth.com'
+    const refLine = ref
+      ? `\n\nUse my code *${ref}* when upgrading to Pro — both of us get 3 months FREE 🎁`
+      : ''
+    const message =
+      `Saved ₹${yearAmt} in ${year} with PerkWorth! 🎉\n\n` +
+      `${count} ${count === 1 ? 'voucher' : 'vouchers'} redeemed, ₹${allAmt} all-time.\n` +
+      `All my coupons, points & family memberships — tracked in one app.${refLine}\n\n` +
+      `Try it free → ${link}`
     const shareData = {
       title: 'My PerkWorth Savings',
       text: message,
-      url: 'https://www.perkworth.com',
+      url: link,
     }
     try {
       if (navigator.share && navigator.canShare?.(shareData)) {

@@ -263,6 +263,8 @@ Razorpay requires the following to switch from Test Mode → Live. **Submit at**
 |---|---|---|
 | 2026-02-20 | 18 | Initial checklist created. Score: 50% (40/80 items). Pages audit complete. Razorpay docs list finalized. |
 | 2026-02-21 | 19 | Compliance pages finalized: `(Legal Entity Name Pending)` placeholder applied across privacy/terms/refund; Grievance Officer (Ankita Chheda · grievance@perkworth.com · 15-day SLA) + DPO formally designated on all three pages; refund.html got T+5 Razorpay SLA + chargeback policy; terms.html got Arbitration Act 1996 + Force-Majeure clauses; `/privacy-hi.html` draft generated via GPT-4o (24KB, banner "मसौदा / Draft — pending native review"). Score moved 50% → **56% (45/80)**. Items 1.1, 1.7, 1.9, 2.12 → ✅ ; 2.10 → 🟡. |
+| 2026-02-21 | 19 | "Last verified by counsel: 21 Feb 2026" badge added to footer of all 4 compliance pages + regression test `backend/tests/test_counsel_verified.py` fails if any page goes >180 days unreviewed (4/4 passing). |
+| 2026-02-21 | 20 | **Backend monolith refactor.** `server.py` 1358 → 141 lines (-90%). Split into `services/{db,llm,billing_logic,notifications_logic}.py` (shared infra) + `routes/{vouchers,extraction,circle,billing,notifications}.py` (5 feature routers using existing `build_*_router(db)` factory pattern). Lint clean. Health 14/14. Backend pytest 15/15 functional flows pass via the new modules (voucher CRUD, OCR, ending-soon, points, ROI, circle share/unshare, membership). 3 pre-existing brand-string-equality test failures (registry returns "Tata Group" vs legacy "Tata") are NOT regressions — same behavior pre-refactor. |
 
 ---
 

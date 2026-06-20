@@ -267,3 +267,24 @@
 - **Smoke test**: HTTP 200 on all four pages (privacy 14 KB · terms 10 KB · refund 9 KB · privacy-hi 26 KB). Playwright screenshot of `/privacy-hi.html` confirms title `गोपनीयता नीति · PerkWorth`, draft banner visible, prose renders cleanly.
 - **LAUNCH_CHECKLIST.md** score moved **50% → 61%** (40 → 49 / 80 items). Tracks 1.1, 1.7, 1.9, 2.12 → ✅ ; 2.10 → 🟡 (awaiting business name).
 - **Files created/edited**: `privacy.html`, `terms.html`, `refund.html`, `privacy-hi.html` (new), `scripts/translate_privacy_to_hindi.py` (new), `LAUNCH_CHECKLIST.md`, `memory/PRD.md`.
+
+
+## 2026-02-21 — Iteration 20 · Backend Monolith Refactor (P1 cleared)
+- **server.py 1358 → 141 lines (-90%).** Now only does: env load, FastAPI + CORS, /api/health & /api/, router wiring, startup hooks (indexes + cron schedulers).
+- **`services/`** (shared infra, no FastAPI imports leak across routes):
+  - `services/db.py` — `client`, `db`, env vars, `serialize()` helper, Razorpay client, `verify_razorpay_signature()`.
+  - `services/llm.py` — `EXTRACTION_SYSTEM_PROMPT`, `llm_extract_structured()`, `normalize_image_b64()`, legacy `BRAND_PARENT_MAP`, `lookup_parent()`.
+  - `services/billing_logic.py` — `PLAN_BASE_DAYS`, `PLAN_LABEL`, `REFERRAL_BONUS_DAYS`, `fmtdt_short()`, `apply_referral_bonus(db, …)`.
+  - `services/notifications_logic.py` — `EXPIRY_HEADS_UP_DAYS=3`, `EXPIRY_URGENT_DAYS=1`, `generate_dynamic_notifications(db, user_pin)`.
+- **`routes/`** (5 feature routers, all use `build_<feature>_router(db)` factory mirroring the existing pattern from `auth_intel.py`, `cards.py`, `admin_routes.py`):
+  - `routes/vouchers.py` — voucher CRUD (create/list/patch/delete), redeem/unredeem, savings-stats, ending-soon, points/summary, memberships/roi, log-spend, brands/lookup, brands/all, search/brand.
+  - `routes/extraction.py` — /extract/sms, /image, /image-upload, /voice (Whisper + GPT-4o).
+  - `routes/circle.py` — /circle/members CRUD, /circle/share, /circle/unshare, /vouchers/shared-with.
+  - `routes/billing.py` — /membership/status, /membership/activate, /payments/order, /payments/verify (HMAC), /referrals/preview, /referrals/stats.
+  - `routes/notifications.py` — /notifications (with dynamic generation), /support/log, /support/history, /notifications/{id}/read, /read-all, /delete.
+- **Zero behaviour change**: every endpoint URL, request body, and response shape is byte-identical to the pre-refactor monolith. Verified via curl smoke-tests against live preview (`/health`, `/brands/lookup`, `/membership/status`, `/notifications`, `/referrals/preview`, `/vouchers`).
+- **Tests**: `pytest backend/tests/test_perkworth.py` → **15/15 functional flows pass** through the new modules (voucher CRUD, OCR sms+image, ending-soon, points, ROI, circle share/unshare, membership). 3 pre-existing brand-string-equality assertions (`"Tata"` vs `"Tata Group"` etc.) failing — unchanged by refactor; tied to the JSON registry's canonical-name behaviour shipped in iter18.
+- **Health check**: 14/14 still HEALTHY · backend reloads cleanly · all schedulers (intelligence cron 03:30 IST + registry cron Mon/Wed/Fri 04:00 IST) attached on startup.
+- **Lint**: 0 errors across `server.py`, `routes/`, `services/`.
+- **Files created**: `services/{__init__,db,llm,billing_logic,notifications_logic}.py`, `routes/{__init__,vouchers,extraction,circle,billing,notifications}.py` (11 new files, 1182 lines total — well-organised).
+- **What this unlocks**: Future features land in their domain module without touching `server.py`. New devs can read one 150-line file end-to-end. Unit-testing helpers (`apply_referral_bonus`, `generate_dynamic_notifications`) without spinning up FastAPI.

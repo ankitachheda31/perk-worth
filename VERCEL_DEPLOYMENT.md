@@ -81,7 +81,7 @@ Then restart backend: `sudo supervisorctl restart backend`.
 
 After Vercel reports ✓ Ready:
 1. Visit `https://your-vercel-url.vercel.app/`
-2. Login with `test@perkworth.app` / `Perk@1234` / PIN `1234`.
+2. Login with `test@perkworth.com` / `Perk@1234` / PIN `1234`.
 3. Open browser DevTools → **Network** tab → confirm API calls go to your `REACT_APP_BACKEND_URL` (not localhost).
 4. Try **Add Voucher** → ensures backend connectivity.
 5. Try **Membership** → confirms Razorpay key loaded.

@@ -61,9 +61,9 @@ curl -I https://perkworth.com/refund.html    # → 200
 
 | Razorpay Field | Value |
 |---|---|
-| **Support Email** | `support@perkworth.app` *(once Resend DNS is verified)* — interim: your personal email |
+| **Support Email** | `support@perkworth.com` *(once Resend DNS is verified)* — interim: your personal email |
 | **Support Phone** | Your business phone |
-| **Grievance Email** | `grievance@perkworth.app` |
+| **Grievance Email** | `grievance@perkworth.com` |
 | **Business Address** | Your full registered address with PIN code |
 
 ### Bank Account (Razorpay Settlement)
@@ -93,7 +93,7 @@ Open each URL in **incognito** and confirm:
 - [ ] `/privacy.html` opens, scroll-able, mentions DPDP 2023 + GDPR, has last-updated date
 - [ ] `/terms.html` opens, full content visible
 - [ ] `/refund.html` opens, refund policy clearly stated
-- [ ] Contact links (`mailto:support@perkworth.app`, WhatsApp `+91 98202 04866`) clickable
+- [ ] Contact links (`mailto:support@perkworth.com`, WhatsApp `+91 98202 04866`) clickable
 - [ ] Footer shows "© 2026 PerkWorth Technologies Pvt. Ltd." or your entity
 - [ ] No "Coming Soon" / "Under Construction" anywhere
 - [ ] Mobile view also looks clean (resize browser to 375px width)

@@ -3,7 +3,7 @@
 **Effective Date:** _<INSERT LAUNCH DATE>_
 **Last Updated:** _<INSERT LAUNCH DATE>_
 **Operator:** PerkWorth (the "App", "we", "us", or "our")
-**Contact:** support@perkworth.app · WhatsApp +91 98202 04866
+**Contact:** support@perkworth.com · WhatsApp +91 98202 04866
 
 > This Privacy Policy explains how PerkWorth collects, uses, stores, and shares your information when you use our mobile and web application ("Service"). By using PerkWorth you agree to this Policy. If you do not agree, please uninstall the App.
 
@@ -86,7 +86,7 @@ We do **not** share data with advertisers, data brokers, or analytics platforms.
 - Razorpay order ledger retained for 7 years per Indian RBI / tax norms.
 - Notifications older than 30 days are auto-purged.
 - SMS scan history: **none retained** server-side; only extracted voucher fields persist (in your wallet).
-- Account deletion: email support@perkworth.app from the email on your profile, or uninstall the app (server data automatically becomes unreachable since your `user_pin` lives only on the device).
+- Account deletion: email support@perkworth.com from the email on your profile, or uninstall the app (server data automatically becomes unreachable since your `user_pin` lives only on the device).
 
 ---
 
@@ -106,15 +106,15 @@ You may:
 - **Access** all data we hold about your wallet via the in-app screens.
 - **Delete** individual vouchers, memberships, circle members, notifications at any time.
 - **Self-service wipe** — Open Settings → **Clear All My Data** to delete your account and ALL server-side records instantly. No email required. (Implements DPDP 2023 §13 Right to Erasure and GDPR Article 17 Right to be Forgotten.)
-- **Export** your wallet (P1 backlog — request via support@perkworth.app).
+- **Export** your wallet (P1 backlog — request via support@perkworth.com).
 - **Withdraw consent** for SMS auto-scan via Android Settings → Apps → PerkWorth → Permissions → SMS → Deny.
-- **Request deletion** of all server-side records: email support@perkworth.app from your profile email if you cannot access the in-app option.
+- **Request deletion** of all server-side records: email support@perkworth.com from your profile email if you cannot access the in-app option.
 
 ### 6.1 DPDP Act 2023 (India) rights
-Access (§11), correction (§12), erasure (§13), grievance redressal (§13(3)). Grievance Officer: grievance@perkworth.app. Statutory response within 30 days.
+Access (§11), correction (§12), erasure (§13), grievance redressal (§13(3)). Grievance Officer: grievance@perkworth.com. Statutory response within 30 days.
 
 ### 6.2 GDPR (EU / EEA / UK) rights
-Articles 15 (access), 16 (rectification), 17 (erasure), 18 (restriction), 20 (portability), 21 (object), and 22 (no solely-automated decisions). Lawful basis: consent (SMS scanning), contract (Pro membership), legitimate interest (fraud prevention on payments). DPO contact: dpo@perkworth.app.
+Articles 15 (access), 16 (rectification), 17 (erasure), 18 (restriction), 20 (portability), 21 (object), and 22 (no solely-automated decisions). Lawful basis: consent (SMS scanning), contract (Pro membership), legitimate interest (fraud prevention on payments). DPO contact: dpo@perkworth.com.
 
 We honor all valid requests within 30 days.
 
@@ -156,7 +156,7 @@ We may update this Policy from time to time. We will notify users of material ch
 
 ## 11. Contact
 
-**Support Email:** support@perkworth.app
+**Support Email:** support@perkworth.com
 **WhatsApp:** +91 98202 04866
 **Postal Address:** _<INSERT REGISTERED ADDRESS>_, India
 **Grievance Officer (Indian DPDP Act):** _<INSERT NAME + EMAIL>_

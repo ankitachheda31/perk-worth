@@ -149,7 +149,7 @@ If any of the above is unchecked, do NOT submit your app to the Play Store yet.
 ## Emergency contacts
 
 - Razorpay support: support@razorpay.com / 080-46669999
-- PerkWorth on-call: support@perkworth.app (you)
+- PerkWorth on-call: support@perkworth.com (you)
 
 ---
 

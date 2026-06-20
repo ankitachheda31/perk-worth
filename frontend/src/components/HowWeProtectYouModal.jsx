@@ -38,7 +38,7 @@ export default function HowWeProtectYouModal({ open, onClose }) {
           ))}
           <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 mt-3">
             <p className="text-xs text-emerald-900 leading-relaxed">
-              <span className="font-bold">Questions?</span> Email <span className="font-mono">support@perkworth.app</span> or message us on WhatsApp +91 98202 04866. We reply within 24 hours.
+              <span className="font-bold">Questions?</span> Email <span className="font-mono">support@perkworth.com</span> or message us on WhatsApp +91 98202 04866. We reply within 24 hours.
             </p>
           </div>
         </div>

@@ -53,7 +53,7 @@ def webhook_body(event_id: str, event: str = "payment.captured", *, order_id="or
 def session_user():
     s = requests.Session()
     s.headers.update({"Content-Type": "application/json"})
-    email = f"TEST_export_{int(time.time())}@perkworth.app"
+    email = f"TEST_export_{int(time.time())}@perkworth.com"
     password = "test1234"
     r = s.post(f"{BASE_URL}/api/auth/signup", json={"email": email, "password": password, "name": "Export Test"})
     assert r.status_code in (200, 201), f"signup failed: {r.status_code} {r.text}"

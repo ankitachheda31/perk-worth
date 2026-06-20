@@ -12,7 +12,7 @@ export default function PrivacyScreen({ onBack, onOpenProtect }) {
             <ShieldCheck className="w-5 h-5 text-emerald-800" />
             <p className="font-display text-lg font-bold text-ink-900">Your data, your control</p>
           </div>
-          <p className="text-xs text-ink-600">Last updated · February 2026 · Operator: PerkWorth · Contact: <span className="font-mono">support@perkworth.app</span></p>
+          <p className="text-xs text-ink-600">Last updated · February 2026 · Operator: PerkWorth · Contact: <span className="font-mono">support@perkworth.com</span></p>
           <GhostButton data-testid="privacy-open-protect" onClick={onOpenProtect} className="mt-4">
             <ShieldCheck className="w-4 h-4" /> How we protect you (plain English)
           </GhostButton>
@@ -38,12 +38,12 @@ export default function PrivacyScreen({ onBack, onOpenProtect }) {
 
         <Card className="p-5 space-y-2">
           <p className="font-display font-bold text-ink-900">4. Your rights — DPDP 2023 (India)</p>
-          <p>Under the Digital Personal Data Protection Act 2023, you have the right to: <span className="font-semibold">access</span>, <span className="font-semibold">correct</span>, <span className="font-semibold">erase</span>, and <span className="font-semibold">withdraw consent</span> for your personal data. Use Settings → <span className="font-semibold">Clear All My Data</span> to exercise erasure instantly. Grievance Officer: <span className="font-mono">grievance@perkworth.app</span>.</p>
+          <p>Under the Digital Personal Data Protection Act 2023, you have the right to: <span className="font-semibold">access</span>, <span className="font-semibold">correct</span>, <span className="font-semibold">erase</span>, and <span className="font-semibold">withdraw consent</span> for your personal data. Use Settings → <span className="font-semibold">Clear All My Data</span> to exercise erasure instantly. Grievance Officer: <span className="font-mono">grievance@perkworth.com</span>.</p>
         </Card>
 
         <Card className="p-5 space-y-2">
           <p className="font-display font-bold text-ink-900">5. Your rights — GDPR (EU)</p>
-          <p>If you are in the EEA/UK, GDPR Articles 15–22 apply: right to <span className="font-semibold">access (Art.15)</span>, <span className="font-semibold">rectification (Art.16)</span>, <span className="font-semibold">erasure / &ldquo;right to be forgotten&rdquo; (Art.17)</span>, <span className="font-semibold">data portability (Art.20)</span>, and to <span className="font-semibold">object (Art.21)</span>. Lawful basis: consent (SMS), contract (membership), legitimate interest (fraud-prevention on payments). DPO: <span className="font-mono">dpo@perkworth.app</span>.</p>
+          <p>If you are in the EEA/UK, GDPR Articles 15–22 apply: right to <span className="font-semibold">access (Art.15)</span>, <span className="font-semibold">rectification (Art.16)</span>, <span className="font-semibold">erasure / &ldquo;right to be forgotten&rdquo; (Art.17)</span>, <span className="font-semibold">data portability (Art.20)</span>, and to <span className="font-semibold">object (Art.21)</span>. Lawful basis: consent (SMS), contract (membership), legitimate interest (fraud-prevention on payments). DPO: <span className="font-mono">dpo@perkworth.com</span>.</p>
         </Card>
 
         <Card className="p-5 space-y-2">

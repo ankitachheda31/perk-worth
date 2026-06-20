@@ -166,7 +166,7 @@ Welcome to PerkWorth.
 
 Terms: perkworth.app/terms
 Privacy: perkworth.app/privacy
-Support: support@perkworth.app · WhatsApp +91 98202 04866
+Support: support@perkworth.com · WhatsApp +91 98202 04866
 ```
 
 ### Keywords (100 chars max, comma-separated, no spaces after commas)

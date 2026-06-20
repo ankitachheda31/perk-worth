@@ -121,7 +121,7 @@ def check_backend(api_url: str, results: list, json_out: dict):
 def check_auth_flow(api_url: str, results: list, json_out: dict):
     print(hdr("2. Auth flow & MongoDB write/read/delete"))
     ts = int(time.time())
-    email = f"healthcheck-{ts}@perkworth.app"
+    email = f"healthcheck-{ts}@perkworth.com"
     pw = "health1234"
 
     # Signup

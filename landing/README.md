@@ -65,7 +65,7 @@ Search-and-replace these placeholders across all 4 HTML files before going live:
 
 - [ ] **Registered office address** — currently `Mumbai, Maharashtra, India 400001`. Update to your actual registered address as filed with MCA.
 - [ ] **Company name** — currently `PerkWorth Technologies Pvt. Ltd.`. Update to your registered entity name if different.
-- [ ] **Email addresses** — `support@perkworth.app`, `grievance@perkworth.app`, `dpo@perkworth.app`. Set up these mailboxes (Zoho Mail / Google Workspace) before submission.
+- [ ] **Email addresses** — `support@perkworth.com`, `grievance@perkworth.com`, `dpo@perkworth.com`. Set up these mailboxes (Zoho Mail / Google Workspace) before submission.
 - [ ] **WhatsApp number** — currently `+91 98202 04866`. Already production-ready per your prior input.
 - [ ] **Pricing** — currently `₹99 / quarter`. Already correct.
 

@@ -104,7 +104,7 @@ def _shell(title: str, inner_html: str) -> str:
     </div>
     <div class="footer">
       PerkWorth Technologies Pvt. Ltd. · Mumbai, India<br/>
-      <a href="mailto:support@perkworth.app">support@perkworth.app</a> · DPDP 2023 &amp; GDPR compliant
+      <a href="mailto:support@perkworth.com">support@perkworth.com</a> · DPDP 2023 &amp; GDPR compliant
     </div>
   </div>
 </body></html>"""

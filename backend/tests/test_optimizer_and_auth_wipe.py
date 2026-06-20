@@ -82,7 +82,7 @@ def test_optimizer_expiry_urgent():
 @pytest.fixture
 def signed_up_user():
     ts = int(time.time() * 1000)
-    email = f"e2e-{ts}@perkworth.app"
+    email = f"e2e-{ts}@perkworth.com"
     password = "test1234"
     s = requests.Session()
     s.headers.update({"Content-Type": "application/json"})
@@ -95,7 +95,7 @@ def signed_up_user():
 
 def test_auth_full_flow_and_logout():
     ts = int(time.time() * 1000)
-    email = f"flow-{ts}@perkworth.app"
+    email = f"flow-{ts}@perkworth.com"
     password = "test1234"
     s = requests.Session()
     s.headers.update({"Content-Type": "application/json"})

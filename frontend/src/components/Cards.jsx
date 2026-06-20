@@ -1,5 +1,5 @@
 import React from 'react'
-import { Copy, Clock, KeyRound, Share2, Trash2, MessageSquareText, BadgeCheck, Pencil } from 'lucide-react'
+import { Copy, Clock, KeyRound, Share2, Trash2, MessageSquareText, BadgeCheck, Pencil, CircleCheck, RotateCcw } from 'lucide-react'
 import { Tag } from './ui'
 import { daysUntil, fmtDate, fmtINR } from '../lib/format'
 import { WA_SUPPORT_NUMBER } from '../lib/constants'
@@ -22,7 +22,7 @@ export async function logSupportThenOpenWa(v, pin) {
   window.open(buildWaHelpUrl(v), '_blank', 'noopener,noreferrer')
 }
 
-export function VoucherCard({ v, onCopy, onHowTo, onDelete, onShare, onUnshare, onEdit, pin }) {
+export function VoucherCard({ v, onCopy, onHowTo, onDelete, onShare, onUnshare, onEdit, onRedeem, onUnredeem, pin }) {
   const dleft = daysUntil(v.expiry)
   const endingSoon = dleft != null && dleft <= 7 && dleft >= 0
   return (
@@ -44,19 +44,43 @@ export function VoucherCard({ v, onCopy, onHowTo, onDelete, onShare, onUnshare, 
               </span>
             ) : null}
             {v.is_sharing ? <Tag tone="emerald">Shared</Tag> : null}
+            {v.status === 'redeemed' ? <Tag tone="emerald" data-testid={`redeemed-tag-${v.id}`}>✓ Redeemed</Tag> : null}
+            {v.status === 'expired' ? <Tag tone="terracotta">Expired</Tag> : null}
           </div>
         </div>
         {v.code ? <div className="code-box text-xs whitespace-nowrap">{v.code}</div> : null}
       </div>
 
       <div className="mt-3 pt-3 border-t border-dashed border-ink-200 flex items-center gap-2">
+        {v.status === 'redeemed' ? (
+          <>
+            <div className="flex-1 text-[11px] text-emerald-800 font-semibold flex items-center gap-1.5">
+              <CircleCheck className="w-3.5 h-3.5" />
+              Saved ₹{(v.savings_realized || 0).toLocaleString('en-IN')}{v.redeemed_at ? ` · ${fmtDate(v.redeemed_at.slice(0,10))}` : ''}
+            </div>
+            {onUnredeem ? (
+              <button data-testid={`unredeem-${v.id}`} onClick={() => onUnredeem(v)} className="text-xs font-semibold text-ink-700 bg-ink-100 hover:bg-ink-200 py-2 px-3 rounded-full active:scale-95 transition flex items-center gap-1" title="Move back to active">
+                <RotateCcw className="w-3.5 h-3.5" /> Undo
+              </button>
+            ) : null}
+            <button data-testid={`delete-${v.id}`} onClick={() => onDelete(v)} className="text-xs font-semibold text-terracotta-700 bg-terracotta-50 hover:bg-terracotta-50 py-2 px-3 rounded-full active:scale-95 transition flex items-center justify-center">
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </>
+        ) : (
+          <>
         {v.code ? (
           <button data-testid={`copy-${v.id}`} onClick={() => onCopy(v)} className="flex-1 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 py-2 rounded-full active:scale-95 transition flex items-center justify-center gap-1.5">
             <Copy className="w-3.5 h-3.5" /> Copy code
           </button>
         ) : null}
-        <button data-testid={`howto-${v.id}`} onClick={() => onHowTo(v)} className="flex-1 text-xs font-semibold text-ink-700 bg-ink-100 hover:bg-ink-200 py-2 rounded-full active:scale-95 transition flex items-center justify-center gap-1.5">
-          <KeyRound className="w-3.5 h-3.5" /> How to redeem
+        {onRedeem ? (
+          <button data-testid={`redeem-${v.id}`} onClick={() => onRedeem(v)} className="text-xs font-bold text-white bg-emerald-800 hover:bg-emerald-900 py-2 px-3 rounded-full active:scale-95 transition flex items-center gap-1.5" title="Mark as redeemed (used)">
+            <CircleCheck className="w-3.5 h-3.5" /> Used
+          </button>
+        ) : null}
+        <button data-testid={`howto-${v.id}`} onClick={() => onHowTo(v)} className="text-xs font-semibold text-ink-700 bg-ink-100 hover:bg-ink-200 py-2 px-3 rounded-full active:scale-95 transition flex items-center justify-center gap-1.5">
+          <KeyRound className="w-3.5 h-3.5" />
         </button>
         <button data-testid={`share-${v.id}`} onClick={() => v.is_sharing ? onUnshare(v) : onShare(v)} className="text-xs font-semibold text-ink-700 bg-ink-100 hover:bg-ink-200 py-2 px-3 rounded-full active:scale-95 transition flex items-center justify-center">
           <Share2 className="w-3.5 h-3.5" />
@@ -79,6 +103,8 @@ export function VoucherCard({ v, onCopy, onHowTo, onDelete, onShare, onUnshare, 
         <button data-testid={`delete-${v.id}`} onClick={() => onDelete(v)} className="text-xs font-semibold text-terracotta-700 bg-terracotta-50 hover:bg-terracotta-50 py-2 px-3 rounded-full active:scale-95 transition flex items-center justify-center">
           <Trash2 className="w-3.5 h-3.5" />
         </button>
+          </>
+        )}
       </div>
     </div>
   )

@@ -1,0 +1,68 @@
+{
+  "summary": "Iteration 13 — Redemption Tracker E2E verification PASSED on both backend and frontend. Backend: 10/10 pytest cases green covering POST /redeem (default + override), POST /unredeem, GET /vouchers (default hides redeemed + ?status=redeemed filter), GET /savings-stats aggregation, and 400/404 error edges. Frontend: Login → PIN → Walkthrough-skip → My Coupons → all expected new affordances rendered. open-history icon in header, redeem-{id} 'Used' button on every active voucher, browser prompt() handled via page.on('dialog', d.accept(default_value)) — the voucher disappeared from My Coupons immediately, the History screen showed savings-hero with ₹20 all-time + ₹20 in 2026 (1 vouchers) + owner-breakdown grid ('Self ₹20 · 1×'). Undo button on the redeemed card reverted the state cleanly (total-saved back to ₹0, voucher reappeared in My Coupons). Regressions intact: Family Wallet Summary (₹370 across 5 items, 4 people), Ending soon section, owner filter row, Add new flow all visible.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "HistoryScreen savings-hero", "issues": ["Pluralisation: 'saved in 2026 (1 vouchers)' should read '(1 voucher)' when count==1 — cosmetic only"]}
+    ]
+  },
+  "tests_executed_and_verified": [
+    "BACKEND test_redemption_tracker.py (10/10 PASS): redeem default uses voucher.value, redeem override accepted, list default hides redeemed, list?status=redeemed returns only redeemed, unredeem reverts to active+savings_realized=0, savings-stats returns total_saved/this_year_saved/count_total/count_this_year/current_year/by_owner[], 404 on missing id, 400 on invalid id, 404 on unredeem missing.",
+    "UI [V1] data-testid='open-history' present in MyCoupons header next to profile-avatar-coupons ✅",
+    "UI [V2] 5 redeem-{id} 'Used' buttons rendered, one per active voucher card ✅",
+    "UI [V3] Browser prompt fired with message 'Mark \"TEST_RegB12 — TEST_iter12_v2\" as REDEEMED. How much did you actually save? (₹, defaults to 20)' default_value='20' — accepted with default ✅",
+    "UI [V4] After redeem, redeem-{id} button no longer present in My Coupons (default list correctly hides redeemed) ✅",
+    "UI [V5] data-testid='savings-hero' rendered on History route ✅",
+    "UI [V6] data-testid='total-saved' = '₹20' matches the just-redeemed voucher value ✅",
+    "UI [V7] data-testid='year-saved' = '₹20 saved in 2026 (1 vouchers)' ✅ (minor pluralisation nit logged)",
+    "UI [V8] data-testid='owner-breakdown' grid rendered with 'Self ₹20 · 1×' card ✅",
+    "UI [V9-V10] unredeem-{id} present in History list for the just-redeemed voucher ✅",
+    "UI [V11] After clicking Undo, unredeem-{id} disappeared from History (card removed) ✅",
+    "UI [V12] total-saved updated live from ₹20 → ₹0 after undo ✅",
+    "REGRESSION: household-summary visible on Home (₹370 across 5 items, 4 owners) — Family Wallet intact ✅",
+    "REGRESSION: ending-soon-list visible on Home with DemoBrand 'Test ending-soon notification trigger' ✅",
+    "REGRESSION: owner-filter-row + Add new chip visible on My Coupons ✅"
+  ],
+  "verification_evidence": {
+    "backend_pytest": "10 passed in 1.83s — /app/test_reports/pytest/iter13_redemption.xml",
+    "redeemed_voucher_id_used": "6a3692b1187511d979c52934 (TEST_RegB12 / TEST_iter12_v2, value=₹20 — leftover from iter12)",
+    "redeem_prompt_message_captured": "Mark \"TEST_RegB12 — TEST_iter12_v2\" as REDEEMED. How much did you actually save? (₹, defaults to 20)",
+    "savings_hero_text": "SAVED WITH PERKWORTH | ₹20 all-time | ₹20 saved in 2026 (1 vouchers)",
+    "owner_breakdown_first_chip": "Self · ₹20 · 1×",
+    "post_undo_total_saved": "₹0",
+    "post_undo_my_coupons_count": "voucher reappeared at top of list (visible as 'TEST_RegB12 · ITER12V2 · Used pill' in coupons screenshot)"
+  },
+  "minor_notes": [
+    "Toast capture returned empty string both times (after redeem and after undo). This is the same 2.2s auto-dismiss timing window observed in iter12 — the toast text is wired in code (MyCouponsScreen handleRedeem and HistoryScreen handleUnredeem) and the visible behaviour (card removal, list refresh, hero update) confirms the success branch executed. Not a product bug.",
+    "Pluralisation nit on year-saved string: backend returns count_this_year=1 and frontend renders '(1 vouchers)'. Recommend `(${n} voucher${n===1?'':'s'})` in HistoryScreen.jsx line 77.",
+    "savings-stats: by_owner aggregator currently writes to a shared `cur` dict reference per-owner (server.py:512-515). Functionally correct because it's stored back via `by_owner[owner] = cur`, but the explicit re-assign is good defensive code — no change needed."
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_redemption_tracker.py",
+    "/app/test_reports/pytest/iter13_redemption.xml"
+  ],
+  "action_items": [
+    "OPTIONAL nit: HistoryScreen.jsx line 77 — pluralise 'vouchers' → 'voucher' when count===1.",
+    "Cleanup: the test account now has 3+ TEST_ prefixed vouchers (TEST_RegB12 from iter12 + TEST_RedemptionBrand/StatsA/StatsB from iter13 backend run). Recommend a batch cleanup before any UX walkthrough demo."
+  ],
+  "critical_code_review_comments": [
+    "server.py redeem_voucher correctly defaults savings_realized to existing.value when body['savings_realized'] is None or missing — robust to both `{}` and `{savings_realized: null}` payloads.",
+    "server.py list_vouchers default branch ($or with status==active OR status missing OR status==None) gracefully handles legacy pre-redemption-feature documents — good backfill strategy.",
+    "server.py savings_stats uses ISO string compare for year filter (`ra >= year_start_iso`). Works only because redeemed_at is consistently emitted as ISO from redeem_voucher. Safe as long as future direct DB writes also use ISO. Consider switching to BSON date comparison if you ever start storing native dates.",
+    "HistoryScreen.jsx Promise.all with per-call .catch(() => []) is correct — one failing endpoint won't blank the whole screen. Empty state copy ('Tap the green Used button…') is great UX.",
+    "Cards.jsx VoucherCard onRedeem/onUnredeem conditional render branch correctly omits the Used button when v.status==='redeemed' (verified in History screen, only Undo + Delete buttons shown).",
+    "MyCouponsScreen passes onOpenHistory to render the header History icon — verified data-testid='open-history' present.",
+    "api.js Vouchers.redeem correctly sends `{savings_realized}` only when explicitly provided, else `{}` — matches backend default-branch contract.",
+    "Backend endpoint ordering: GET /vouchers/savings-stats and /vouchers/ending-soon are declared BEFORE PATCH /vouchers/{id} but they're GET so no method-level conflict; still good practice to keep static segments above param routes — currently safe."
+  ],
+  "updated_files": ["/app/backend/tests/test_redemption_tracker.py"],
+  "success_rate": {"backend": "100% (10/10 pytest)", "frontend": "100% (13/13 manual verifications)"},
+  "test_credentials": "test@perkorbit.app / Perk@1234 / PIN 1234 — verified working on https://orbit-vouchers.preview.emergentagent.com",
+  "seed_data_creation": "Backend test created (and cleaned up via fixture teardown) 5 TEST_ vouchers: TEST_redeem_default, TEST_redeem_override, TEST_redeem_hide, TEST_redeem_filter, TEST_unredeem, TEST_stats_1, TEST_stats_2. Frontend reused iter12's leftover TEST_RegB12 voucher (₹20) for the redeem/unredeem cycle — voucher is currently in active state again after final undo.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iteration 13 Redemption Tracker is fully shipped. Backend endpoints solid (10 pytests in test_redemption_tracker.py). Frontend tested with real browser prompt() via page.on('dialog', d.accept(default)) — that pattern works on this preview URL. The one cosmetic issue is plural 'vouchers' vs 'voucher' in year-saved (HistoryScreen.jsx:77). PIN flow on fresh container: 'Set a 4-digit PIN' → enter 1234 → 'Confirm your PIN' → enter 1234 again; subsequent runs only ask once. Always handle the Walkthrough modal via [data-testid='walkthrough-skip'] right after PIN.",
+  "rca_of_the_issue": "Not applicable — no bugs found; this iteration verified a new feature shipped correctly."
+}

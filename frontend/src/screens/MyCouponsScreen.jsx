@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Plus, Ticket } from 'lucide-react'
+import { Plus, Ticket, History as HistoryIcon } from 'lucide-react'
 import { Empty, TopBar } from '../components/ui'
 import { PtrIndicator } from '../components/widgets'
 import { VoucherCard, MembershipCard } from '../components/Cards'
@@ -8,7 +8,7 @@ import { getProfile } from '../lib/store'
 import { fmtINR } from '../lib/format'
 import usePullToRefresh from '../lib/usePullToRefresh'
 
-export default function MyCouponsScreen({ pin, onProfileClick, onOpenAdd, onOpenEdit, toast, refreshKey, openHowTo, openShareSheet, setRefreshKey, bumpRefresh }) {
+export default function MyCouponsScreen({ pin, onProfileClick, onOpenAdd, onOpenEdit, onOpenHistory, toast, refreshKey, openHowTo, openShareSheet, setRefreshKey, bumpRefresh }) {
   const [tab, setTab] = useState('all')
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
@@ -57,6 +57,24 @@ export default function MyCouponsScreen({ pin, onProfileClick, onOpenAdd, onOpen
   const handleDelete = async (v) => { await Vouchers.remove(v.id); toast('Deleted'); load(); setRefreshKey(k => k + 1) }
   const handleUnshare = async (v) => { await Circle.unshare(v.id, pin); toast('Stopped sharing'); load() }
 
+  const handleRedeem = async (v) => {
+    // Ask user to confirm savings amount (defaults to voucher value).
+    // Allow override since real-world redemption value may differ (e.g. ₹150 off applied to ₹120 bill).
+    const defaultSavings = v.value || 0
+    const input = prompt(
+      `Mark "${v.brand} — ${v.title}" as REDEEMED.\n\nHow much did you actually save? (₹, defaults to ${defaultSavings})`,
+      String(defaultSavings)
+    )
+    if (input === null) return  // user cancelled
+    const saved = Number(input)
+    if (Number.isNaN(saved) || saved < 0) { toast('Invalid amount'); return }
+    try {
+      await Vouchers.redeem(v.id, saved)
+      toast(`✓ Saved ₹${saved.toLocaleString('en-IN')} · added to History`)
+      load(); setRefreshKey(k => k + 1)
+    } catch { toast('Failed to mark redeemed') }
+  }
+
   const logSavings = async (m) => {
     // If benefit_rate is configured, prompt for spend amount; backend computes savings automatically.
     // Otherwise fall back to legacy direct-savings entry.
@@ -83,9 +101,21 @@ export default function MyCouponsScreen({ pin, onProfileClick, onOpenAdd, onOpen
       <TopBar
         title="My Coupons"
         right={
-          <button data-testid="profile-avatar-coupons" onClick={onProfileClick} className="w-10 h-10 rounded-full bg-emerald-800 grid place-items-center text-white font-display font-bold border-2 border-white shadow-soft">
-            {(getProfile().name || 'M')[0].toUpperCase()}
-          </button>
+          <div className="flex items-center gap-2">
+            {onOpenHistory ? (
+              <button
+                data-testid="open-history"
+                onClick={onOpenHistory}
+                className="w-10 h-10 rounded-full bg-white border border-ink-200 grid place-items-center text-ink-700 hover:border-emerald-700 transition active:scale-95"
+                title="Redemption history"
+              >
+                <HistoryIcon className="w-4 h-4" />
+              </button>
+            ) : null}
+            <button data-testid="profile-avatar-coupons" onClick={onProfileClick} className="w-10 h-10 rounded-full bg-emerald-800 grid place-items-center text-white font-display font-bold border-2 border-white shadow-soft">
+              {(getProfile().name || 'M')[0].toUpperCase()}
+            </button>
+          </div>
         }
       />
       <main className="px-5 space-y-5">
@@ -157,6 +187,7 @@ export default function MyCouponsScreen({ pin, onProfileClick, onOpenAdd, onOpen
                 onShare={() => openShareSheet(v)}
                 onUnshare={handleUnshare}
                 onEdit={() => onOpenEdit?.(v)}
+                onRedeem={handleRedeem}
               />
             ))}
           </div>

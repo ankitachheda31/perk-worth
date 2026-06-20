@@ -23,7 +23,7 @@ from typing import Annotated, Any, List, Optional
 
 from bson import ObjectId
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, HTTPException, Query, UploadFile, APIRouter
+from fastapi import FastAPI, File, HTTPException, Query, UploadFile, APIRouter, Body
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from PIL import Image
@@ -110,6 +110,8 @@ class Voucher(BaseDocument):
     how_to_redeem: Optional[str] = None
     notes: Optional[str] = None
     owner: Optional[str] = "Self"  # Self | Spouse | Husband | Wife | Father | Mother | Brother | Sister | Sister-in-law | Brother-in-law | Son | Daughter | Other
+    status: Optional[str] = "active"  # active | redeemed | expired
+    redeemed_at: Optional[str] = None  # ISO timestamp when marked redeemed
     shared_with: List[str] = Field(default_factory=list)
     is_sharing: bool = False
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -155,6 +157,8 @@ class VoucherUpdate(BaseModel):
     how_to_redeem: Optional[str] = None
     notes: Optional[str] = None
     owner: Optional[str] = None
+    status: Optional[str] = None
+    redeemed_at: Optional[str] = None
     is_sharing: Optional[bool] = None
     shared_with: Optional[List[str]] = None
 
@@ -415,13 +419,108 @@ async def brand_all():
 
 
 @api.get("/vouchers")
-async def list_vouchers(user_pin: str = Query(...), category: Optional[str] = None):
+async def list_vouchers(user_pin: str = Query(...), category: Optional[str] = None, status: Optional[str] = None):
+    """
+    List vouchers/memberships for a user.
+    By default, only `active` items are returned (redeemed/expired hidden from main wallet).
+    Pass status='all' to include redeemed+expired, or status='redeemed' for the History view.
+    """
     q: dict = {"user_pin": user_pin}
     if category and category != "all":
         q["category"] = category
+    if status == "all":
+        pass  # no status filter
+    elif status:
+        q["status"] = status
+    else:
+        # Default: hide redeemed (active OR status missing = legacy data treated as active)
+        q["$or"] = [{"status": "active"}, {"status": {"$exists": False}}, {"status": None}]
     cursor = db.vouchers.find(q).sort("created_at", -1)
     items = [_serialize(d) async for d in cursor]
     return items
+
+
+@api.post("/vouchers/{voucher_id}/redeem")
+async def redeem_voucher(voucher_id: str, body: dict = Body(default={})):
+    """
+    Mark a voucher as redeemed. Optionally record the actual savings_realized
+    (defaults to the voucher's stated `value`). Adds redeemed_at timestamp.
+    """
+    if not ObjectId.is_valid(voucher_id):
+        raise HTTPException(status_code=400, detail="Invalid voucher id")
+    existing = await db.vouchers.find_one({"_id": ObjectId(voucher_id)})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Voucher not found")
+    saved_amount = body.get("savings_realized")
+    if saved_amount is None:
+        saved_amount = existing.get("value") or 0
+    try:
+        saved_amount = float(saved_amount)
+    except Exception:
+        saved_amount = 0.0
+    update = {
+        "status": "redeemed",
+        "redeemed_at": datetime.now(timezone.utc).isoformat(),
+        "savings_realized": saved_amount,
+    }
+    res = await db.vouchers.find_one_and_update(
+        {"_id": ObjectId(voucher_id)},
+        {"$set": update},
+        return_document=True,
+    )
+    return _serialize(res)
+
+
+@api.post("/vouchers/{voucher_id}/unredeem")
+async def unredeem_voucher(voucher_id: str):
+    """Undo a redemption (move back to active). For the misclick safety net."""
+    if not ObjectId.is_valid(voucher_id):
+        raise HTTPException(status_code=400, detail="Invalid voucher id")
+    res = await db.vouchers.find_one_and_update(
+        {"_id": ObjectId(voucher_id)},
+        {"$set": {"status": "active", "redeemed_at": None, "savings_realized": 0.0}},
+        return_document=True,
+    )
+    if not res:
+        raise HTTPException(status_code=404, detail="Voucher not found")
+    return _serialize(res)
+
+
+@api.get("/vouchers/savings-stats")
+async def savings_stats(user_pin: str = Query(...)):
+    """
+    Aggregate stats for the Redemption Tracker dashboard:
+    total ₹ saved, count redeemed, by-owner breakdown, current calendar year saved.
+    """
+    today = datetime.now(timezone.utc).date()
+    year_start_iso = f"{today.year}-01-01T00:00:00+00:00"
+    cursor = db.vouchers.find({"user_pin": user_pin, "status": "redeemed"})
+    total_saved = 0.0
+    this_year_saved = 0.0
+    count_total = 0
+    count_this_year = 0
+    by_owner: dict = {}
+    async for d in cursor:
+        s = float(d.get("savings_realized") or 0)
+        total_saved += s
+        count_total += 1
+        ra = d.get("redeemed_at") or ""
+        if ra and ra >= year_start_iso:
+            this_year_saved += s
+            count_this_year += 1
+        owner = d.get("owner") or "Self"
+        cur = by_owner.get(owner, {"saved": 0.0, "count": 0})
+        cur["saved"] += s
+        cur["count"] += 1
+        by_owner[owner] = cur
+    return {
+        "total_saved": round(total_saved, 2),
+        "this_year_saved": round(this_year_saved, 2),
+        "count_total": count_total,
+        "count_this_year": count_this_year,
+        "current_year": today.year,
+        "by_owner": [{"owner": k, **v} for k, v in sorted(by_owner.items(), key=lambda kv: -kv[1]["saved"])],
+    }
 
 
 @api.get("/vouchers/ending-soon")

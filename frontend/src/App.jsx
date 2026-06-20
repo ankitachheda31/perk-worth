@@ -25,6 +25,7 @@ import FamilyCardsPage from './screens/FamilyCardsPage'
 import SmsScannerScreen from './screens/SmsScannerScreen'
 import SupportHistoryScreen from './screens/SupportHistoryScreen'
 import PrivacyScreen from './screens/PrivacyScreen'
+import HistoryScreen from './screens/HistoryScreen'
 
 import AddVoucherSheet from './sheets/AddVoucherSheet'
 import HowToSheet from './sheets/HowToSheet'
@@ -256,6 +257,7 @@ export default function App() {
             pin={effectivePin}
             onProfileClick={() => setProfileOpen(true)}
             onOpenAdd={onOpenAdd} onOpenEdit={onOpenEdit} toast={toast}
+            onOpenHistory={() => push('history')}
             refreshKey={refreshKey} openHowTo={setHowToFor}
             openShareSheet={setShareFor} setRefreshKey={setRefreshKey}
             bumpRefresh={bumpRefresh}
@@ -306,6 +308,15 @@ export default function App() {
           <SmsScannerScreen onBack={pop} pin={effectivePin} toast={toast} onSaved={bumpRefresh} onOpenProtect={() => setProtectOpen(true)} />
         )}
         {current.screen === 'support' && (<SupportHistoryScreen onBack={pop} pin={effectivePin} />)}
+        {current.screen === 'history' && (
+          <HistoryScreen
+            pin={effectivePin}
+            refreshKey={refreshKey}
+            toast={toast}
+            bumpRefresh={bumpRefresh}
+            openHowTo={setHowToFor}
+          />
+        )}
         {current.screen === 'privacy' && (<PrivacyScreen onBack={pop} onOpenProtect={() => setProtectOpen(true)} />)}
         {current.screen === 'perk-tips' && (
           <PerkTipsScreen onBack={pop} pin={effectivePin} isPro={!!memberStatus?.active} onUpgrade={() => push('membership')} />

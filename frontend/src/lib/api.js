@@ -41,11 +41,14 @@ export const Intelligence = {
 }
 
 export const Vouchers = {
-  list: (pin, category) => api.get('/vouchers', { params: { user_pin: pin, category } }).then(r => r.data),
+  list: (pin, category, status) => api.get('/vouchers', { params: { user_pin: pin, category, status } }).then(r => r.data),
   endingSoon: (pin, days = 7) => api.get('/vouchers/ending-soon', { params: { user_pin: pin, days } }).then(r => r.data),
   create: (body) => api.post('/vouchers', body).then(r => r.data),
   update: (id, body) => api.patch(`/vouchers/${id}`, body).then(r => r.data),
   remove: (id) => api.delete(`/vouchers/${id}`).then(r => r.data),
+  redeem: (id, savings_realized) => api.post(`/vouchers/${id}/redeem`, savings_realized != null ? { savings_realized } : {}).then(r => r.data),
+  unredeem: (id) => api.post(`/vouchers/${id}/unredeem`).then(r => r.data),
+  savingsStats: (pin) => api.get('/vouchers/savings-stats', { params: { user_pin: pin } }).then(r => r.data),
 }
 
 export const Points = {

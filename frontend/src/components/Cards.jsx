@@ -1,9 +1,44 @@
 import React from 'react'
-import { Copy, Clock, KeyRound, Share2, Trash2, MessageSquareText, BadgeCheck, Pencil, CircleCheck, RotateCcw } from 'lucide-react'
+import { Copy, Clock, KeyRound, Share2, Trash2, MessageSquareText, BadgeCheck, Pencil, CircleCheck, RotateCcw, Eye, EyeOff } from 'lucide-react'
 import { Tag } from './ui'
 import { daysUntil, fmtDate, fmtINR } from '../lib/format'
 import { WA_SUPPORT_NUMBER } from '../lib/constants'
 import { Support } from '../lib/api'
+
+/**
+ * Masked membership / FFP / card number display — last 4 visible, eye toggle reveals all.
+ * Used inside MembershipCard. Mirrors the banking-app pattern users already trust.
+ */
+function MaskedMembershipNumber({ number, type, testId }) {
+  const [reveal, setReveal] = React.useState(false)
+  const TYPE_LABEL = {
+    airline: 'FFP', hotel: 'Member ID', fuel: 'Card', retail: 'Loyalty', ecommerce: 'Customer',
+    banking_rewards: 'Card', fintech: 'Account', ott: 'Account', music: 'Account', telecom: 'Mobile',
+    cab_mobility: 'Account', ota_travel: 'Account', food_qsr: 'Account', entertainment: 'Account',
+    fitness: 'Member', healthcare: 'Patient', news: 'Sub', education: 'Account', automotive: 'VIN',
+    insurance: 'Policy', beauty: 'Customer', lounge: 'Member',
+  }
+  const tag = TYPE_LABEL[type] || 'ID'
+  const masked = number.length > 4
+    ? '•'.repeat(Math.max(0, number.length - 4)) + number.slice(-4)
+    : number
+  return (
+    <div className="mt-3 flex items-center justify-between gap-2 bg-white/10 border border-white/15 rounded-2xl px-3 py-2" data-testid={testId}>
+      <div className="min-w-0">
+        <p className="text-[9px] uppercase font-bold tracking-[0.18em] text-white/60">{tag}</p>
+        <p className="text-sm font-mono tracking-wide text-white truncate">{reveal ? number : masked}</p>
+      </div>
+      <button
+        onClick={() => setReveal((v) => !v)}
+        className="shrink-0 w-7 h-7 rounded-full grid place-items-center bg-white/10 hover:bg-white/20 active:scale-90 transition text-white"
+        aria-label={reveal ? 'Hide membership number' : 'Reveal membership number'}
+        data-testid={`${testId}-toggle`}
+      >
+        {reveal ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+      </button>
+    </div>
+  )
+}
 
 export function buildWaHelpUrl(v) {
   const text = encodeURIComponent(
@@ -148,6 +183,11 @@ export function MembershipCard({ m, onUpdateSavings, onEdit }) {
 
       <p className="text-sm text-white/80 mt-2">{m.title}</p>
 
+      {/* Membership / Frequent Flyer / Card number — masked for privacy unless tapped */}
+      {m.membership_number ? (
+        <MaskedMembershipNumber number={m.membership_number} type={m.program_type} testId={`membership-num-${m.id}`} />
+      ) : null}
+
       {/* Days-remaining progress bar — visible for any membership with dates */}
       {daysTotal !== null && daysRemaining !== null ? (
         <div className="mt-4 space-y-1.5" data-testid={`days-remaining-${m.id}`}>
@@ -176,7 +216,7 @@ export function MembershipCard({ m, onUpdateSavings, onEdit }) {
                 <span className="font-bold text-emerald-200 uppercase tracking-wider text-[10px]">🎉 Active Profit</span>
                 <span className="font-bold text-emerald-100" data-testid={`profit-earned-${m.id}`}>+{fmtINR(m.profit_earned)} earned</span>
               </div>
-              <p className="text-[11px] text-white/70 mt-1">You've fully recovered your ₹{fmtINR(fee).replace('₹', '')} fee. Keep using this membership — every additional rupee saved is pure profit.</p>
+              <p className="text-[11px] text-white/70 mt-1">You&apos;ve fully recovered your ₹{fmtINR(fee).replace('₹', '')} fee. Keep using this membership — every additional rupee saved is pure profit.</p>
             </div>
           ) : (
             <>
@@ -192,7 +232,7 @@ export function MembershipCard({ m, onUpdateSavings, onEdit }) {
                 />
               </div>
               <p className="text-[11px] text-white/70 mt-1">
-                You've recovered <span className="font-bold text-gold-200">{fmtINR(m.cumulative_savings || saved)}</span> of your <span className="font-bold">{fmtINR(fee)}</span> fee
+                You&apos;ve recovered <span className="font-bold text-gold-200">{fmtINR(m.cumulative_savings || saved)}</span> of your <span className="font-bold">{fmtINR(fee)}</span> fee
                 {m.remaining_spend_to_break_even ? (
                   <> · <span className="font-semibold">{fmtINR(m.remaining_spend_to_break_even)}</span> more spending to break-even</>
                 ) : null}

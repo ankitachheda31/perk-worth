@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Sparkles, ShieldCheck, Camera, Mic, Square } from 'lucide-react'
 import { Sheet, PrimaryButton } from '../components/ui'
-import { Vouchers, Extract } from '../lib/api'
+import { Vouchers, Extract, Loyalty } from '../lib/api'
 
 function FormField({ label, value, onChange, placeholder, testid, type = 'text', textarea, mono }) {
   return (
@@ -220,6 +220,57 @@ export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast, ed
     return () => clearTimeout(id)
   }, [form.brand])
 
+  // Live loyalty classifier — detect "this is an airline / hotel / fuel card / etc."
+  // and auto-switch the form unless the user has opted into Custom mode.
+  useEffect(() => {
+    if (editing) return  // never auto-switch while editing an existing voucher
+    if (!form.brand || form.brand.length < 2) { setLoyalty(null); setAutoApplied(false); return }
+    const id = setTimeout(() => {
+      Loyalty.classify(form.brand)
+        .then((d) => {
+          if (!d?.matched) { setLoyalty(null); setAutoApplied(false); return }
+          setLoyalty(d)
+          // Only auto-apply when:
+          //  · the user hasn't switched to Custom mode,
+          //  · we haven't already auto-applied (don't keep overwriting their tweaks),
+          //  · the form is still in the default voucher state.
+          if (!overrideActive && !autoApplied) {
+            setForm((prev) => ({
+              ...prev,
+              category: 'memberships',
+              membership_kind: d.membership_kind || prev.membership_kind || 'content',
+              program_type: d.type || prev.program_type || '',
+            }))
+            setAutoApplied(true)
+          }
+        })
+        .catch(() => { setLoyalty(null); setAutoApplied(false) })
+    }, 320)
+    return () => clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.brand, editing])
+
+  const enterCustomMode = () => {
+    setOverrideActive(true)
+    setAutoApplied(false)
+    // Keep user's typed values — only label/structure changes.
+  }
+  const reapplyAutoDetect = () => {
+    if (!loyalty) return
+    setOverrideActive(false)
+    setForm((prev) => ({
+      ...prev,
+      category: 'memberships',
+      membership_kind: loyalty.membership_kind || prev.membership_kind || 'content',
+      program_type: loyalty.type || prev.program_type || '',
+    }))
+    setAutoApplied(true)
+  }
+
+  // Active field label for the membership number input.
+  // Honors the override: in Custom mode we always fall back to generic.
+  const detectedFieldLabel = (loyalty && !overrideActive) ? loyalty.field_label : null
+
   // Validate End >= Start for memberships
   React.useEffect(() => {
     if (form.category === 'memberships' && form.start_date && form.expiry) {
@@ -230,8 +281,9 @@ export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast, ed
   }, [form.start_date, form.expiry, form.category])
 
   const reset = () => {
-    setForm({ brand: '', title: '', code: '', value: '', expiry: '', start_date: '', category: 'vouchers', membership_kind: '', fee_paid: '', benefit_rate: '', how_to_redeem: '', notes: '', owner: 'Self' })
+    setForm({ brand: '', title: '', code: '', value: '', expiry: '', start_date: '', category: 'vouchers', membership_kind: '', fee_paid: '', benefit_rate: '', how_to_redeem: '', notes: '', owner: 'Self', membership_number: '', program_type: '' })
     setSmsText(''); setImagePreview(null); setMode('manual'); setParentBrand(null); setDateError('')
+    setLoyalty(null); setAutoApplied(false); setOverrideActive(false)
   }
 
   // When `editing` voucher prop changes, prefill the form. When it clears OR sheet closes, reset.
@@ -253,6 +305,8 @@ export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast, ed
         how_to_redeem: editing.how_to_redeem || '',
         notes: editing.notes || '',
         owner: editing.owner || 'Self',
+        membership_number: editing.membership_number || '',
+        program_type: editing.program_type || '',
       })
     } else {
       reset()
@@ -286,6 +340,8 @@ export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast, ed
         how_to_redeem: form.how_to_redeem || null,
         notes: form.notes || null,
         owner: form.owner || 'Self',
+        membership_number: form.category === 'memberships' ? (form.membership_number || null) : null,
+        program_type: form.category === 'memberships' ? (form.program_type || null) : null,
       }
       if (isEditMode) {
         // PATCH only — strip immutable identity fields the backend ignores on update
@@ -627,6 +683,55 @@ export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast, ed
               🏢 Part of <span className="font-bold">{parentBrand.parent_company}</span> · auto-tagged for ROI tracking
             </div>
           ) : null}
+
+          {/* SMART LOYALTY AUTO-DETECT BANNER (with always-visible Custom override) */}
+          {loyalty && (
+            <div
+              data-testid="loyalty-detected-banner"
+              className={`rounded-2xl px-4 py-3 border ${
+                overrideActive
+                  ? 'bg-ink-50 border-ink-200'
+                  : 'bg-gradient-to-br from-emerald-50 to-gold-50 border-emerald-200'
+              }`}
+            >
+              <div className="flex items-start gap-2.5">
+                <span className="text-lg leading-none mt-0.5" aria-hidden="true">{loyalty.field_label?.icon || '🎫'}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">
+                    {overrideActive ? 'Custom format active' : 'Detected'}
+                  </p>
+                  <p className="text-sm font-display font-bold text-ink-900 leading-tight mt-0.5">
+                    {loyalty.brand} <span className="text-ink-500 font-semibold">·</span> {loyalty.program}
+                  </p>
+                  <p className="text-[11px] text-ink-600 mt-1 leading-snug">
+                    {overrideActive
+                      ? `Using generic 'Membership Number' field — your typed values are preserved.`
+                      : `Form auto-switched to ${loyalty.type.replace(/_/g, ' ')} membership · field below is "${loyalty.field_label?.label}".`}
+                  </p>
+                </div>
+              </div>
+              <div className="flex justify-end mt-2">
+                {overrideActive ? (
+                  <button
+                    data-testid="loyalty-reapply"
+                    onClick={reapplyAutoDetect}
+                    className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 bg-white border border-emerald-300 rounded-full px-3 py-1.5 hover:bg-emerald-50 active:scale-95 transition"
+                  >
+                    ↻ Re-apply auto-detect
+                  </button>
+                ) : (
+                  <button
+                    data-testid="loyalty-custom-override"
+                    onClick={enterCustomMode}
+                    className="text-[11px] font-bold uppercase tracking-wider text-ink-700 bg-white border border-ink-200 rounded-full px-3 py-1.5 hover:bg-ink-50 active:scale-95 transition"
+                  >
+                    Use custom format
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
           <FormField
             label={form.category === 'memberships' ? 'Plan name' : 'Title'}
             testid="field-title"
@@ -664,6 +769,19 @@ export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast, ed
               </div>
               <FormField label="Annual / membership fee paid (₹)" testid="field-fee" type="number" value={form.fee_paid} onChange={(v) => setForm({ ...form, fee_paid: v })} placeholder={form.membership_kind === 'asset' ? '1499' : '149/month'} />
               <FormField label="Benefit rate (%) — e.g. 10 for 10% off all purchases" testid="field-benefit-rate" type="number" value={form.benefit_rate} onChange={(v) => setForm({ ...form, benefit_rate: v })} placeholder="10" />
+
+              {/* MEMBERSHIP NUMBER — label + placeholder are dynamic based on detected program type.
+                 In Custom mode (overrideActive=true) we always fall back to the generic label,
+                 preserving any value the user has typed. */}
+              <FormField
+                label={detectedFieldLabel ? `${detectedFieldLabel.icon} ${detectedFieldLabel.label}` : '🎫 Membership Number'}
+                testid="field-membership-number"
+                value={form.membership_number}
+                onChange={(v) => setForm({ ...form, membership_number: v })}
+                placeholder={detectedFieldLabel?.placeholder || 'Membership / Customer ID'}
+                mono
+              />
+
               {form.fee_paid && form.benefit_rate && Number(form.benefit_rate) > 0 ? (
                 <p data-testid="break-even-preview" className="text-[11px] text-emerald-800 font-semibold bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 -mt-1">
                   💡 Break-even point: ₹{(Number(form.fee_paid) / (Number(form.benefit_rate) / 100)).toLocaleString('en-IN')} of spending recovers your ₹{Number(form.fee_paid).toLocaleString('en-IN')} fee

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { History, Sparkles, IndianRupee } from 'lucide-react'
+import { History, Sparkles, IndianRupee, Share2 } from 'lucide-react'
 import { Vouchers } from '../lib/api'
 import { VoucherCard } from '../components/Cards'
 import { Empty } from '../components/ui'
@@ -51,6 +51,42 @@ export default function HistoryScreen({ pin, refreshKey, toast, bumpRefresh, ope
     }
   }
 
+  /**
+   * Share savings achievement via Web Share API (mobile-native sheet) or clipboard fallback.
+   * Indians LOVE sharing money wins on WhatsApp — this is zero-cost viral acquisition.
+   */
+  const handleShare = async () => {
+    if (!stats || (stats.total_saved || 0) <= 0) {
+      toast('Mark a voucher as Used first — then share your savings!')
+      return
+    }
+    const yearAmt = Math.round(stats.this_year_saved || 0).toLocaleString('en-IN')
+    const allAmt = Math.round(stats.total_saved || 0).toLocaleString('en-IN')
+    const count = stats.count_this_year || 0
+    const year = stats.current_year || new Date().getFullYear()
+    const message = `Saved ₹${yearAmt} in ${year} with PerkWorth! 🎉\n\n${count} vouchers redeemed, ₹${allAmt} all-time. Coupons + memberships + family wallet all in one app.\n\nTry it free → https://www.perkworth.com`
+    const shareData = {
+      title: 'My PerkWorth Savings',
+      text: message,
+      url: 'https://www.perkworth.com',
+    }
+    try {
+      if (navigator.share && navigator.canShare?.(shareData)) {
+        await navigator.share(shareData)
+        toast('Thanks for sharing 💚')
+      } else {
+        // Desktop / unsupported — copy to clipboard
+        await navigator.clipboard.writeText(message)
+        toast('Copied to clipboard — paste anywhere!')
+      }
+    } catch (e) {
+      if (e?.name !== 'AbortError') {
+        // user cancelled = normal, not an error
+        toast('Share failed — try again')
+      }
+    }
+  }
+
   return (
     <>
       <header className="px-5 pt-6 pb-3 flex items-center gap-2">
@@ -76,6 +112,18 @@ export default function HistoryScreen({ pin, refreshKey, toast, bumpRefresh, ope
             <p className="text-[12px] text-white/80 mt-1.5" data-testid="year-saved">
               <strong className="text-gold-300">₹{Math.round(stats?.this_year_saved || 0).toLocaleString('en-IN')}</strong> saved in {stats?.current_year || new Date().getFullYear()} ({stats?.count_this_year || 0} {(stats?.count_this_year || 0) === 1 ? 'voucher' : 'vouchers'})
             </p>
+
+            {/* Share button — only render when there's something to brag about */}
+            {(stats?.total_saved || 0) > 0 ? (
+              <button
+                data-testid="share-savings"
+                onClick={handleShare}
+                className="mt-4 inline-flex items-center gap-2 bg-gold-500 hover:bg-gold-400 text-ink-900 text-xs font-bold uppercase tracking-wide px-4 py-2.5 rounded-full active:scale-95 transition shadow-md"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                Share your savings
+              </button>
+            ) : null}
 
             {/* Per-owner breakdown */}
             {stats?.by_owner?.length ? (

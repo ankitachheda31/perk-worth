@@ -167,3 +167,17 @@
 - **4 new endpoints**: POST `/api/vouchers/{id}/redeem` + `/unredeem` + GET `/savings-stats` + GET `/vouchers?status=redeemed|all` filter. Default `/vouchers` list now hides redeemed (cleaner wallet view).
 - **Frontend**: green "Used" button on every active VoucherCard. New `HistoryScreen.jsx` with savings hero (`₹X all-time · ₹Y in 2026`), owner-breakdown grid, and Undo affordance per redeemed card. History icon shortcut in MyCoupons header.
 - **Testing**: Iteration 13 backend 10/10 pytest + full UI flow verified end-to-end. Pluralization fix applied. Health 14/14 HEALTHY.
+
+
+## 2026-02-20 — "Share Your Savings" Viral Feature
+- Added gold pill button on HistoryScreen savings hero, only shows when `total_saved > 0`.
+- Composes message: `"Saved ₹X in YYYY with PerkWorth! 🎉 N vouchers redeemed, ₹Y all-time. Try it free → https://www.perkworth.com"`
+- Uses Web Share API (`navigator.share`) on mobile — opens native share sheet (WhatsApp, Insta, etc.).
+- Falls back to clipboard copy on desktop / unsupported browsers.
+- Zero-cost viral acquisition loop: every redemption celebration becomes a marketing post.
+- Health 14/14 HEALTHY. Bundle verified to contain `Share your savings` + `navigator.share` references.
+
+## 2026-02-20 — Handoff PRDs Written for Next Sessions
+- `/app/PRD_BIOMETRIC_AUTH.md` — full spec for Face ID/Fingerprint + WebAuthn fallback (6-10 hrs, needs APK device test, 2 sessions)
+- `/app/PRD_BACKEND_REFACTOR.md` — split server.py (1400+ lines) into routes/ models/ services/ (4-6 hrs, post-KYC)
+- `/app/AUDIT_REPORT.md` — comprehensive feature audit for dev-partner review

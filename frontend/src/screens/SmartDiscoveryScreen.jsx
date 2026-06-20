@@ -103,7 +103,7 @@ export default function SmartDiscoveryScreen({ pin, onComplete, onOpenProtect, t
         <header className="px-5 pt-6 pb-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-emerald-800 grid place-items-center text-white font-display font-bold text-sm">P</div>
-            <span className="font-display font-bold text-ink-900">Perk Orbit</span>
+            <span className="font-display font-bold text-ink-900">PerkWorth</span>
           </div>
           <button data-testid="discovery-skip" onClick={onComplete} className="text-xs font-semibold text-ink-500 hover:text-ink-800 underline underline-offset-4">Skip for now</button>
         </header>

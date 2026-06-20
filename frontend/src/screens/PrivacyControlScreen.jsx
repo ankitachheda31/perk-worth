@@ -72,7 +72,7 @@ export default function PrivacyControlScreen({ onBack, onOpenProtect, onOpenFAQ,
 
   return (
     <>
-      <TopBar title="Privacy Control" onBack={onBack} subtitle="Decide what Perk Orbit can see" />
+      <TopBar title="Privacy Control" onBack={onBack} subtitle="Decide what PerkWorth can see" />
       <main className="px-5 space-y-3 pb-10">
         <Card className="p-5 bg-emerald-50/40 border-emerald-200" data-testid="privacy-control-hero">
           <div className="flex items-center gap-2 mb-1">

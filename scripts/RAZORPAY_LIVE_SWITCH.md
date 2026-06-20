@@ -1,4 +1,4 @@
-# Switching Perk Orbit to Razorpay LIVE — secure key rotation playbook
+# Switching PerkWorth to Razorpay LIVE — secure key rotation playbook
 
 This is the exact sequence to flip from **test mode** to **production / live**
 without ever exposing your live keys in chat, screenshots, GitHub, or build
@@ -66,10 +66,10 @@ or "Environment" tab in the Emergent dashboard:
 
 ```bash
 # SSH into your server
-ssh your-user@your-perk-orbit-server.com
+ssh your-user@your-perk-worth-server.com
 
 # Open the backend env file with restricted permissions
-sudo nano /etc/perk-orbit/backend.env
+sudo nano /etc/perk-worth/backend.env
 # (we recommend storing real prod env OUTSIDE /app)
 
 # Edit these three lines (paste from your password manager):
@@ -78,15 +78,15 @@ RAZORPAY_KEY_SECRET=XXXXXXXXXXXXXXXXXXXXXXXX
 RAZORPAY_WEBHOOK_SECRET=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 # Save (Ctrl+O, Enter, Ctrl+X) and lock the file down
-sudo chmod 600 /etc/perk-orbit/backend.env
-sudo chown perk-orbit:perk-orbit /etc/perk-orbit/backend.env
+sudo chmod 600 /etc/perk-worth/backend.env
+sudo chown perk-worth:perk-worth /etc/perk-worth/backend.env
 
 # Restart the backend
 sudo supervisorctl restart backend
 
 # Verify
 curl -s -o /dev/null -w "%{http_code}\n" \
-  -X POST https://api.perkorbit.app/api/payments/webhook \
+  -X POST https://api.perkworth.app/api/payments/webhook \
   -H "X-Razorpay-Signature: bad" -d '{}'
 # Expected: 400 (rejecting bad signatures means the webhook secret loaded)
 ```
@@ -149,7 +149,7 @@ If any of the above is unchecked, do NOT submit your app to the Play Store yet.
 ## Emergency contacts
 
 - Razorpay support: support@razorpay.com / 080-46669999
-- Perk Orbit on-call: support@perkorbit.app (you)
+- PerkWorth on-call: support@perkworth.app (you)
 
 ---
 

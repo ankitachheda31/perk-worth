@@ -1,6 +1,6 @@
 """Tests for brand registry, voucher auto-tagging, and membership ROI.
 
-Iteration 8 — Perk Orbit voucher wallet:
+Iteration 8 — PerkWorth voucher wallet:
   - /api/brands/lookup, /api/brands/all
   - POST /api/vouchers auto-populates parent_company from brand registry
   - /api/memberships/roi extended fields: days_total, days_remaining,
@@ -34,7 +34,7 @@ def _load_backend_url() -> str:
 BASE_URL = _load_backend_url()
 API = f"{BASE_URL}/api"
 
-TEST_EMAIL = "test@perkorbit.app"
+TEST_EMAIL = "test@perkworth.app"
 TEST_PASSWORD = "Perk@1234"
 PIN = "1234"
 

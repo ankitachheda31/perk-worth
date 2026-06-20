@@ -1,4 +1,4 @@
-# Perk Orbit — App Store Listing Copy
+# PerkWorth — App Store Listing Copy
 
 > Use these as-is in Google Play Console and Apple App Store Connect.
 
@@ -16,7 +16,7 @@
 
 ### App Name (50 chars max)
 ```
-Perk Orbit — Voucher Wallet
+PerkWorth — Voucher Wallet
 ```
 *(28 chars — well within limit)*
 
@@ -31,13 +31,13 @@ AI-powered wallet for India: save vouchers, points & memberships in one place.
 ```
 Stop losing vouchers in your inbox.
 
-Perk Orbit is the premium voucher-first wallet built for Indian households. We turn the chaos of cashback codes, loyalty points, gift cards, and membership renewals into one calm, organized place — so you actually use every rupee you've earned.
+PerkWorth is the premium voucher-first wallet built for Indian households. We turn the chaos of cashback codes, loyalty points, gift cards, and membership renewals into one calm, organized place — so you actually use every rupee you've earned.
 
 ✦ WHY PERK ORBIT IS DIFFERENT
 
 ▪ AI AUTO-SCAN — Photograph any coupon, screenshot, or membership card and our GPT-4o vision instantly extracts brand, code, value, and expiry. No more typing.
 
-▪ SMS AUTO-IMPORT — Grant one-time SMS permission and Perk Orbit silently scans incoming promotional SMS, suggesting "Save to Perk Orbit" for every voucher detected.
+▪ SMS AUTO-IMPORT — Grant one-time SMS permission and PerkWorth silently scans incoming promotional SMS, suggesting "Save to PerkWorth" for every voucher detected.
 
 ▪ SMART BRAND MAPPING — Search "Croma" and we instantly show "Tata"; search "Myntra" and we show "Flipkart". 40+ Indian conglomerates mapped so you understand the parent ecosystem behind every brand.
 
@@ -77,7 +77,7 @@ Made for India. Designed in the spirit of Swiss minimalism — premium feel, zer
 
 Built for the saver who's tired of forgetting that ₹500 Croma voucher in the back of the inbox.
 
-Welcome to Perk Orbit.
+Welcome to PerkWorth.
 ```
 *(~3,150 chars)*
 
@@ -100,7 +100,7 @@ Welcome to Perk Orbit.
 
 ### App Name (30 chars max)
 ```
-Perk Orbit — Voucher Wallet
+PerkWorth — Voucher Wallet
 ```
 
 ### Subtitle (30 chars max)
@@ -117,11 +117,11 @@ Save every voucher, point & membership in one premium wallet. AI auto-scan, fami
 ### Description (4000 chars max)
 
 ```
-Perk Orbit is the AI-powered voucher wallet built for Indian households.
+PerkWorth is the AI-powered voucher wallet built for Indian households.
 
 Stop losing cashback codes in your inbox. Stop forgetting that ₹500 Croma gift card. Stop wondering whether your Reliance One membership is actually paying off.
 
-Perk Orbit turns rewards chaos into one calm, premium wallet.
+PerkWorth turns rewards chaos into one calm, premium wallet.
 
 WHY PERK ORBIT IS DIFFERENT
 
@@ -160,13 +160,13 @@ PRIVACY-FIRST BY DESIGN
 
 Made for India. Designed with Swiss-minimalist polish — premium feel, zero clutter.
 
-Welcome to Perk Orbit.
+Welcome to PerkWorth.
 
 —
 
-Terms: perkorbit.app/terms
-Privacy: perkorbit.app/privacy
-Support: support@perkorbit.app · WhatsApp +91 98202 04866
+Terms: perkworth.app/terms
+Privacy: perkworth.app/privacy
+Support: support@perkworth.app · WhatsApp +91 98202 04866
 ```
 
 ### Keywords (100 chars max, comma-separated, no spaces after commas)
@@ -177,12 +177,12 @@ voucher,coupon,wallet,cashback,rewards,loyalty,points,offer,deal,membership,fami
 
 ### Support URL
 ```
-https://perkorbit.app/help
+https://perkworth.app/help
 ```
 
 ### Marketing URL (optional)
 ```
-https://perkorbit.app
+https://perkworth.app
 ```
 
 ### Primary Category
@@ -207,7 +207,7 @@ https://perkorbit.app
 ---
 
 ## Press Pitch (50 words)
-> *Perk Orbit is India's first AI-powered voucher wallet that turns inbox chaos into ₹. With GPT-4o scanning, Smart Brand Mapping (Croma → Tata), an ROI tracker for retail memberships, and private family sharing, it's the saver's app every household has been waiting for.*
+> *PerkWorth is India's first AI-powered voucher wallet that turns inbox chaos into ₹. With GPT-4o scanning, Smart Brand Mapping (Croma → Tata), an ROI tracker for retail memberships, and private family sharing, it's the saver's app every household has been waiting for.*
 
 ## Founder One-Liner
 > *Built so my mom never throws away another Reliance Digital gift card.*

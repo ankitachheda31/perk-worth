@@ -1,4 +1,4 @@
-"""Perk Orbit — Intelligent Redemption Optimizer (a.k.a. Masterclass engine).
+"""PerkWorth — Intelligent Redemption Optimizer (a.k.a. Masterclass engine).
 
 Hybrid approach:
 - A curated rules-based library covering top Indian loyalty programs

@@ -6,12 +6,12 @@ const FAQ = [
   {
     q: 'Can you read my bank OTPs?',
     icon: Lock,
-    a: 'No. Perk Orbit only scans SMS that match shopping or loyalty keywords like "₹ off", "voucher", "code", "expires", "points", "loyalty". OTP messages, transaction alerts, and DLT-flagged confidential SMS are filtered out on-device before anything reaches our servers.',
+    a: 'No. PerkWorth only scans SMS that match shopping or loyalty keywords like "₹ off", "voucher", "code", "expires", "points", "loyalty". OTP messages, transaction alerts, and DLT-flagged confidential SMS are filtered out on-device before anything reaches our servers.',
   },
   {
     q: 'Is my data encrypted?',
     icon: ShieldCheck,
-    a: 'Yes. Every API call uses HTTPS / TLS 1.3 in transit. At rest, your wallet is stored in encrypted MongoDB Atlas (AES-256). Passwords are one-way hashed with bcrypt — even Perk Orbit engineers cannot read them.',
+    a: 'Yes. Every API call uses HTTPS / TLS 1.3 in transit. At rest, your wallet is stored in encrypted MongoDB Atlas (AES-256). Passwords are one-way hashed with bcrypt — even PerkWorth engineers cannot read them.',
   },
   {
     q: 'Who has access to my data?',
@@ -41,7 +41,7 @@ const FAQ = [
   {
     q: 'Can I revoke SMS access later?',
     icon: Smartphone,
-    a: 'Yes, anytime. Android Settings → Apps → Perk Orbit → Permissions → SMS → Deny. The app keeps working — you can just paste SMS manually via "Add new → Paste SMS".',
+    a: 'Yes, anytime. Android Settings → Apps → PerkWorth → Permissions → SMS → Deny. The app keeps working — you can just paste SMS manually via "Add new → Paste SMS".',
   },
 ]
 
@@ -82,7 +82,7 @@ export default function SecurityFAQScreen({ onBack, onOpenProtect }) {
             <p className="font-display font-bold text-ink-900">Trust, on your terms</p>
           </div>
           <p className="text-xs text-ink-600 leading-relaxed">
-            We get these questions a lot — here&apos;s exactly how Perk Orbit handles your data. No legalese.
+            We get these questions a lot — here&apos;s exactly how PerkWorth handles your data. No legalese.
           </p>
           <button
             data-testid="faq-open-protect"

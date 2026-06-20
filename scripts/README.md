@@ -1,4 +1,4 @@
-# Perk Orbit — Zero-Break Build Health System
+# PerkWorth — Zero-Break Build Health System
 
 A mandatory automated health check that runs after every code change to enforce
 the **Zero-Break policy**. Validates routes, screens, API endpoints, MongoDB
@@ -14,7 +14,7 @@ python3 /app/scripts/health_check.py
 python3 /app/scripts/health_check.py --json > /app/test_reports/health_$(date +%s).json
 
 # Custom backend URL (e.g., production)
-python3 /app/scripts/health_check.py --api-url https://api.perkorbit.app
+python3 /app/scripts/health_check.py --api-url https://api.perkworth.app
 ```
 
 Exit code is **0** if healthy, **1** if any check fails — safe to chain into

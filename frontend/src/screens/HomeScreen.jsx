@@ -31,7 +31,7 @@ export default function HomeScreen({ pin, onProfileClick, memberStatus, onOpenAd
     <>
       <PtrIndicator pullY={pullY} refreshing={refreshing} />
       <TopBar
-        title="Perk Orbit"
+        title="PerkWorth"
         subtitle="Voucher-first wallet"
         right={
           <>
@@ -73,7 +73,7 @@ export default function HomeScreen({ pin, onProfileClick, memberStatus, onOpenAd
             <div className="absolute -top-10 -right-12 w-44 h-44 rounded-full bg-gold-500/20 blur-2xl" />
             <div className="flex items-center gap-2 mb-2">
               <Star className="w-4 h-4 text-gold-400" />
-              <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-gold-100">Perk Orbit Pro</span>
+              <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-gold-100">PerkWorth Pro</span>
             </div>
             <p className="font-display font-bold text-xl leading-tight">Unlock unlimited vouchers, family sharing & ROI tracking</p>
             <div className="mt-3 flex items-center justify-between">

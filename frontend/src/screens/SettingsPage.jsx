@@ -100,7 +100,7 @@ export default function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpen
 
         <Card className="p-5">
           <p className="font-display font-bold text-ink-900 mb-1">About</p>
-          <p className="text-xs text-ink-500">Perk Orbit · v1.0 · Built for Indian households.</p>
+          <p className="text-xs text-ink-500">PerkWorth · v1.0 · Built for Indian households.</p>
         </Card>
       </main>
 

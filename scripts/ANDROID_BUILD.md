@@ -1,4 +1,4 @@
-# Perk Orbit — Android APK / AAB build playbook
+# PerkWorth — Android APK / AAB build playbook
 
 > **Where to run this:** on YOUR LOCAL machine (Mac / Windows / Linux) with Android Studio installed. The Emergent cloud container has no Android SDK, no JDK, and no Gradle, so it cannot build native APKs.
 
@@ -9,8 +9,8 @@
 Easiest path: use Emergent's "Save to GitHub" button (top-right of the chat composer), then on your Mac:
 
 ```bash
-git clone git@github.com:<you>/<your-repo>.git perk-orbit
-cd perk-orbit
+git clone git@github.com:<you>/<your-repo>.git perk-worth
+cd perk-worth
 ```
 
 Alternatively, download the project ZIP from Emergent and unzip it.
@@ -42,7 +42,7 @@ Reload: `source ~/.zshrc`
 ## 2 · First build (creates the `android/` Gradle project)
 
 ```bash
-cd perk-orbit
+cd perk-worth
 ./scripts/android_build.sh setup
 ```
 
@@ -63,20 +63,20 @@ After this, **commit `frontend/android/`** so future builds are deterministic.
 ```bash
 cd frontend
 keytool -genkey -v \
-  -keystore perk-orbit-release.jks \
+  -keystore perk-worth-release.jks \
   -keyalg RSA -keysize 2048 -validity 10000 \
-  -alias perkorbit
+  -alias perkworth
 ```
 
 You'll be prompted for:
 - **Keystore password** (pick a strong one, e.g. 24-char alphanumeric)
 - **Key password** (use the same as keystore for simplicity)
-- Your name, org unit (Perk Orbit Technologies Pvt. Ltd.), city (Mumbai), state (MH), country code (IN)
+- Your name, org unit (PerkWorth Technologies Pvt. Ltd.), city (Mumbai), state (MH), country code (IN)
 
 Move it into the android project:
 
 ```bash
-mv perk-orbit-release.jks android/app/
+mv perk-worth-release.jks android/app/
 ```
 
 **Back up the .jks file** to 1Password / Google Drive / a USB key — never commit it to git.
@@ -88,9 +88,9 @@ mv perk-orbit-release.jks android/app/
 Create `frontend/android/keystore.properties`:
 
 ```properties
-storeFile=perk-orbit-release.jks
+storeFile=perk-worth-release.jks
 storePassword=YOUR_KEYSTORE_PASSWORD
-keyAlias=perkorbit
+keyAlias=perkworth
 keyPassword=YOUR_KEY_PASSWORD
 ```
 
@@ -108,7 +108,7 @@ android {
     // ... existing config ...
     signingConfigs {
         release {
-            storeFile file("../" + (keystoreProperties['storeFile'] ?: 'perk-orbit-release.jks'))
+            storeFile file("../" + (keystoreProperties['storeFile'] ?: 'perk-worth-release.jks'))
             storePassword keystoreProperties['storePassword']
             keyAlias keystoreProperties['keyAlias']
             keyPassword keystoreProperties['keyPassword']
@@ -129,7 +129,7 @@ android {
 
 ```bash
 echo "frontend/android/keystore.properties" >> .gitignore
-echo "frontend/android/app/perk-orbit-release.jks" >> .gitignore
+echo "frontend/android/app/perk-worth-release.jks" >> .gitignore
 ```
 
 ---
@@ -147,7 +147,7 @@ If they're missing, add them manually inside `<manifest>` and re-run `npx cap sy
 
 > 🛑 **Play Store policy**: READ_SMS apps must submit a Permissions Declaration form explaining why you read SMS. Use this template:
 >
-> > Perk Orbit's voucher-scan feature reads commercial / promotional SMS (Swiggy, Myntra, Tata Neu) to auto-extract coupon codes and save users from manual entry. Bank OTPs, personal chats, and contacts are NEVER read — only messages matching shopping keywords (₹ off, voucher, code, expires, points, loyalty). No SMS content is uploaded to our servers — extraction happens on-device, only the parsed voucher (code + expiry) is sent to our backend after the user taps Save. Verified by independent security audit available on request.
+> > PerkWorth's voucher-scan feature reads commercial / promotional SMS (Swiggy, Myntra, Tata Neu) to auto-extract coupon codes and save users from manual entry. Bank OTPs, personal chats, and contacts are NEVER read — only messages matching shopping keywords (₹ off, voucher, code, expires, points, loyalty). No SMS content is uploaded to our servers — extraction happens on-device, only the parsed voucher (code + expiry) is sent to our backend after the user taps Save. Verified by independent security audit available on request.
 
 ---
 
@@ -179,7 +179,7 @@ Edit `frontend/android/app/build.gradle`:
 ```gradle
 android {
     defaultConfig {
-        applicationId "com.perkorbit.app"
+        applicationId "com.perkworth.app"
         versionCode 2          // ← bump by 1 every Play upload (integer)
         versionName "1.0.1"    // ← user-visible string (semver)
     }
@@ -196,7 +196,7 @@ android {
 | `SDK location not found` | Open Android Studio once → it auto-creates `local.properties` in `android/` |
 | `Execution failed for task ':capacitor-sms-inbox:compileReleaseJavaWithJavac'` | Run `cd frontend/android && ./gradlew clean` then re-build |
 | App opens but can't reach backend | Check `frontend/.env` has the correct `REACT_APP_BACKEND_URL` BEFORE `yarn build` |
-| SMS permission never prompts | Plugin only prompts on first call; clear app data in Settings → Apps → Perk Orbit → Storage → Clear data |
+| SMS permission never prompts | Plugin only prompts on first call; clear app data in Settings → Apps → PerkWorth → Storage → Clear data |
 
 ---
 
@@ -205,8 +205,8 @@ android {
 - [ ] App icon (`android/app/src/main/res/mipmap-*/ic_launcher.png`) — generate with https://icon.kitchen
 - [ ] Splash screen (`android/app/src/main/res/drawable*/splash.png`)
 - [ ] 2 phone screenshots minimum (1080×1920) + 2 tablet (optional)
-- [ ] Privacy policy URL: `https://perk-orbit.netlify.app/#privacy` ✓
-- [ ] Refund / cancellation URL: `https://perk-orbit.netlify.app/#refund` ✓
+- [ ] Privacy policy URL: `https://perk-worth.netlify.app/#privacy` ✓
+- [ ] Refund / cancellation URL: `https://perk-worth.netlify.app/#refund` ✓
 - [ ] Data Safety form (Play Console → Policy) — declare: Email + Voucher data, encrypted in transit, user-deletable
 - [ ] Permissions Declaration form for `READ_SMS` (template in §5 above)
 - [ ] App content rating (IARC questionnaire) — likely "Everyone"

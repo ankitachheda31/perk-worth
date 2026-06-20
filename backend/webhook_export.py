@@ -1,4 +1,4 @@
-"""Perk Orbit — Webhook + GDPR/DPDP Wallet Export module.
+"""PerkWorth — Webhook + GDPR/DPDP Wallet Export module.
 
 Mounted at /api via include_router.
 
@@ -205,12 +205,12 @@ def build_webhook_router(db, get_current_user) -> APIRouter:
             return StreamingResponse(
                 io.BytesIO(body),
                 media_type="application/json",
-                headers={"Content-Disposition": f'attachment; filename="perk-orbit-export-{timestamp}.json"'},
+                headers={"Content-Disposition": f'attachment; filename="perk-worth-export-{timestamp}.json"'},
             )
 
         # CSV: multi-section text file (one section per collection)
         buf = io.StringIO()
-        buf.write("# Perk Orbit · Personal Data Export\n")
+        buf.write("# PerkWorth · Personal Data Export\n")
         buf.write(f"# Exported at: {export['exported_at']}\n")
         buf.write(f"# User: {user.get('email')} ({uid})\n")
         buf.write("# DPDP 2023 §13 & GDPR Art. 15+20 compliant.\n\n")
@@ -229,7 +229,7 @@ def build_webhook_router(db, get_current_user) -> APIRouter:
         return StreamingResponse(
             io.BytesIO(buf.getvalue().encode("utf-8")),
             media_type="text/csv",
-            headers={"Content-Disposition": f'attachment; filename="perk-orbit-export-{timestamp}.csv"'},
+            headers={"Content-Disposition": f'attachment; filename="perk-worth-export-{timestamp}.csv"'},
         )
 
     return router

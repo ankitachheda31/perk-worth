@@ -76,7 +76,7 @@ export default function AuthScreen({ onAuthed, existingPin }) {
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 mb-6">
             <div className="w-9 h-9 rounded-2xl bg-emerald-800 grid place-items-center text-white font-display font-bold">P</div>
-            <span className="font-display text-lg font-bold tracking-tight">Perk Orbit</span>
+            <span className="font-display text-lg font-bold tracking-tight">PerkWorth</span>
           </div>
           <h1 className="font-display text-3xl font-bold text-ink-900">{title}</h1>
           <p className="text-sm text-ink-500 mt-2">{sub}</p>
@@ -129,7 +129,7 @@ export default function AuthScreen({ onAuthed, existingPin }) {
             </button>
           ) : (
             <button data-testid="auth-toggle" onClick={() => switchMode(mode === 'login' ? 'signup' : 'login')} className="text-xs text-ink-500">
-              {mode === 'login' ? "New to Perk Orbit? Create an account →" : 'Already have an account? Sign in →'}
+              {mode === 'login' ? "New to PerkWorth? Create an account →" : 'Already have an account? Sign in →'}
             </button>
           )}
         </div>

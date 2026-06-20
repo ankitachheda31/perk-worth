@@ -1,4 +1,4 @@
-# Perk Orbit — Marketing Landing Site
+# PerkWorth — Marketing Landing Site
 
 Static one-page site + 3 legal pages for the Razorpay Live KYC submission.
 
@@ -23,7 +23,7 @@ vercel --prod
 # Follow prompts. Accept defaults — Vercel auto-detects as a static site.
 ```
 
-Vercel gives you a free `*.vercel.app` URL instantly. Add your custom domain (`perkorbit.app`) under Project Settings → Domains.
+Vercel gives you a free `*.vercel.app` URL instantly. Add your custom domain (`perkworth.app`) under Project Settings → Domains.
 
 ## Deploy to Netlify — 60 seconds
 
@@ -50,12 +50,12 @@ When filling the Razorpay Live Activation form, paste these URLs:
 
 | Razorpay field | Your URL |
 |---|---|
-| Website / App URL | `https://perkorbit.app/` (or your Vercel/Netlify URL) |
-| Privacy Policy | `https://perkorbit.app/privacy.html` |
-| Terms & Conditions | `https://perkorbit.app/terms.html` |
-| Refund Policy | `https://perkorbit.app/refund.html` |
-| Contact Us | `https://perkorbit.app/#contact` |
-| Business address | Perk Orbit Technologies Pvt. Ltd., Mumbai, Maharashtra, India 400001 *(update to your real registered address)* |
+| Website / App URL | `https://perkworth.app/` (or your Vercel/Netlify URL) |
+| Privacy Policy | `https://perkworth.app/privacy.html` |
+| Terms & Conditions | `https://perkworth.app/terms.html` |
+| Refund Policy | `https://perkworth.app/refund.html` |
+| Contact Us | `https://perkworth.app/#contact` |
+| Business address | PerkWorth Technologies Pvt. Ltd., Mumbai, Maharashtra, India 400001 *(update to your real registered address)* |
 
 > **Important:** Razorpay's KYC reviewers manually visit each URL. The above URLs must be publicly accessible (no auth gate) at the time of submission.
 
@@ -64,8 +64,8 @@ When filling the Razorpay Live Activation form, paste these URLs:
 Search-and-replace these placeholders across all 4 HTML files before going live:
 
 - [ ] **Registered office address** — currently `Mumbai, Maharashtra, India 400001`. Update to your actual registered address as filed with MCA.
-- [ ] **Company name** — currently `Perk Orbit Technologies Pvt. Ltd.`. Update to your registered entity name if different.
-- [ ] **Email addresses** — `support@perkorbit.app`, `grievance@perkorbit.app`, `dpo@perkorbit.app`. Set up these mailboxes (Zoho Mail / Google Workspace) before submission.
+- [ ] **Company name** — currently `PerkWorth Technologies Pvt. Ltd.`. Update to your registered entity name if different.
+- [ ] **Email addresses** — `support@perkworth.app`, `grievance@perkworth.app`, `dpo@perkworth.app`. Set up these mailboxes (Zoho Mail / Google Workspace) before submission.
 - [ ] **WhatsApp number** — currently `+91 98202 04866`. Already production-ready per your prior input.
 - [ ] **Pricing** — currently `₹99 / quarter`. Already correct.
 

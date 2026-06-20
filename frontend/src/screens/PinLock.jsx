@@ -44,7 +44,7 @@ export default function PinLock({ mode = 'verify', expected, onSuccess }) {
   const visible = stage === 'confirm' ? confirmPin : pin
 
   const title = stage === 'verify' ? 'Welcome back' : stage === 'create' ? 'Set a 4-digit PIN' : 'Confirm your PIN'
-  const sub = stage === 'verify' ? 'Enter your PIN to unlock Perk Orbit' : stage === 'create' ? 'Used locally on this device only' : 'Re-enter to confirm'
+  const sub = stage === 'verify' ? 'Enter your PIN to unlock PerkWorth' : stage === 'create' ? 'Used locally on this device only' : 'Re-enter to confirm'
 
   return (
     <div className="app-shell flex justify-center" data-testid="pin-screen">
@@ -52,7 +52,7 @@ export default function PinLock({ mode = 'verify', expected, onSuccess }) {
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 mb-6">
             <div className="w-9 h-9 rounded-2xl bg-emerald-800 grid place-items-center text-white font-display font-bold">P</div>
-            <span className="font-display text-lg font-bold tracking-tight">Perk Orbit</span>
+            <span className="font-display text-lg font-bold tracking-tight">PerkWorth</span>
           </div>
           <h1 className="font-display text-3xl font-bold text-ink-900">{title}</h1>
           <p className="text-sm text-ink-500 mt-2">{sub}</p>

@@ -1,8 +1,8 @@
 {
-  "$schema": "perk-orbit-brand-registry@1",
+  "$schema": "perk-worth-brand-registry@1",
   "version": "2026.02.18",
-  "source": "curated by Perk Orbit team — Indian conglomerates & subsidiary brands",
-  "license": "internal — Perk Orbit Technologies Pvt. Ltd.",
+  "source": "curated by PerkWorth team — Indian conglomerates & subsidiary brands",
+  "license": "internal — PerkWorth Technologies Pvt. Ltd.",
   "conglomerates": {
     "Tata Group": {
       "founded": 1868,

@@ -1,4 +1,4 @@
-# Perk Orbit — iOS Build Guide (Xcode → .ipa)
+# PerkWorth — iOS Build Guide (Xcode → .ipa)
 
 > **Hardware required**: macOS Sonoma+ on Apple Silicon (M1/M2/M3) or recent Intel Mac.
 > Builds will NOT run from this preview environment — these steps execute on your local Mac.
@@ -27,7 +27,7 @@ npm i -g yarn
 ### 1.2 Apple Developer enrollment
 - Enroll at https://developer.apple.com/programs/ (₹8,300 / year)
 - Create an **App ID** at https://developer.apple.com/account/resources/identifiers/list
-  - Bundle ID: `com.perkorbit.app`
+  - Bundle ID: `com.perkworth.app`
   - Capabilities: Push Notifications, Associated Domains (for universal links)
 - Create a **Distribution Certificate** + **App Store Provisioning Profile** in Xcode → Settings → Accounts → Manage Certificates
 
@@ -36,8 +36,8 @@ npm i -g yarn
 ## 2. Clone and Build the Web App
 
 ```bash
-git clone <your-repo> perk-orbit
-cd perk-orbit/frontend
+git clone <your-repo> perk-worth
+cd perk-worth/frontend
 
 # Install JS deps
 yarn install
@@ -50,7 +50,7 @@ yarn build
 ## 3. Add the iOS Platform (first time only)
 
 ```bash
-cd /path/to/perk-orbit/frontend
+cd /path/to/perk-worth/frontend
 
 # Generate native iOS project (creates ./ios)
 npx cap add ios
@@ -82,19 +82,19 @@ Open `ios/App/App/Info.plist` and add:
 ```xml
 <!-- Camera (for voucher scan) -->
 <key>NSCameraUsageDescription</key>
-<string>Perk Orbit uses the camera to scan vouchers, coupons and membership cards. Photos are used only for AI extraction and not stored.</string>
+<string>PerkWorth uses the camera to scan vouchers, coupons and membership cards. Photos are used only for AI extraction and not stored.</string>
 
 <!-- Photo library (alternative to camera) -->
 <key>NSPhotoLibraryUsageDescription</key>
-<string>Perk Orbit needs access to import voucher screenshots from your photo library.</string>
+<string>PerkWorth needs access to import voucher screenshots from your photo library.</string>
 
 <!-- Microphone (for voice search) -->
 <key>NSMicrophoneUsageDescription</key>
-<string>Perk Orbit uses the microphone for voice search. Audio is processed on-device and never recorded.</string>
+<string>PerkWorth uses the microphone for voice search. Audio is processed on-device and never recorded.</string>
 
 <!-- Speech recognition (voice search) -->
 <key>NSSpeechRecognitionUsageDescription</key>
-<string>Perk Orbit uses on-device speech recognition to power voice search.</string>
+<string>PerkWorth uses on-device speech recognition to power voice search.</string>
 
 <!-- Status bar style override (avoids white-on-cream) -->
 <key>UIStatusBarStyle</key>
@@ -134,10 +134,10 @@ In Xcode:
 1. **Open** `ios/App/App.xcworkspace` (always the `.xcworkspace`, never the `.xcodeproj`)
 2. Select the **App** target → **Signing & Capabilities** tab
 3. Team: select your **Apple Developer** team
-4. Bundle Identifier: `com.perkorbit.app`
+4. Bundle Identifier: `com.perkworth.app`
 5. Provisioning Profile: select **Automatic** (Xcode-managed) or your manually created profile
 6. Under **General** tab:
-   - Display Name: `Perk Orbit`
+   - Display Name: `PerkWorth`
    - Version: `1.0.0` (semantic, user-visible)
    - Build: `1` (increment for every TestFlight upload)
 
@@ -146,7 +146,7 @@ In Xcode:
 In **Signing & Capabilities** → "+ Capability":
 - **Push Notifications** (for expiry alerts)
 - **Background Modes** → check "Remote notifications"
-- **Associated Domains** → add `applinks:perkorbit.app` (for universal links — optional)
+- **Associated Domains** → add `applinks:perkworth.app` (for universal links — optional)
 
 ## 8. Test on Simulator
 
@@ -182,7 +182,7 @@ When Archive finishes the **Organizer window** opens:
 ### 10.3 (Alternative) Export .ipa file locally
 If you want the .ipa as a file (e.g. for AdHoc / Enterprise distribution):
 - Distribute App → **Ad Hoc** or **Development**
-- Choose where to save → produces `Perk Orbit.ipa`
+- Choose where to save → produces `PerkWorth.ipa`
 
 ## 11. App Store Connect Submission
 
@@ -190,12 +190,12 @@ If you want the .ipa as a file (e.g. for AdHoc / Enterprise distribution):
 2. Click **+** → New App
 3. Fill:
    - Platform: iOS
-   - Name: `Perk Orbit — Voucher Wallet`
+   - Name: `PerkWorth — Voucher Wallet`
    - Primary Language: English (India)
-   - Bundle ID: `com.perkorbit.app`
+   - Bundle ID: `com.perkworth.app`
    - SKU: `PO-IOS-001`
 4. **App Information**:
-   - Privacy Policy URL: `https://perkorbit.app/privacy`
+   - Privacy Policy URL: `https://perkworth.app/privacy`
    - Subtitle: `AI wallet for Indian rewards`
 5. **Pricing**: Free (or your chosen tier)
 6. **Prepare for Submission**:
@@ -233,23 +233,23 @@ npx cap sync ios
 | **Status bar shows white text** | In `Info.plist` set `UIStatusBarStyleDarkContent` (see §4) |
 | **Razorpay checkout doesn't open in WebView** | iOS WKWebView allows external popups by default; confirm `Info.plist` has no restrictive `WKAppBoundDomains` |
 | **Voice search fails** | Add `NSSpeechRecognitionUsageDescription` + `NSMicrophoneUsageDescription` (see §4) |
-| **App rejected for missing privacy URL** | Host `PRIVACY_POLICY.md` at `https://perkorbit.app/privacy` first |
+| **App rejected for missing privacy URL** | Host `PRIVACY_POLICY.md` at `https://perkworth.app/privacy` first |
 | **Notification permission never asked** | Ensure Push Notifications capability is added (§7) and the app calls `Notification.requestPermission()` |
 
 ## 15. Universal Links (deep links → web)
 
-To make `perkorbit.app/invite/<token>` open the app on iPhones with the app installed:
+To make `perkworth.app/invite/<token>` open the app on iPhones with the app installed:
 
-1. **Apple Developer Console**: enable **Associated Domains** capability for `com.perkorbit.app`
-2. **Xcode → Signing & Capabilities**: add `applinks:perkorbit.app`
-3. **Host this JSON** at `https://perkorbit.app/.well-known/apple-app-site-association` (no extension, served as `application/json`):
+1. **Apple Developer Console**: enable **Associated Domains** capability for `com.perkworth.app`
+2. **Xcode → Signing & Capabilities**: add `applinks:perkworth.app`
+3. **Host this JSON** at `https://perkworth.app/.well-known/apple-app-site-association` (no extension, served as `application/json`):
 
 ```json
 {
   "applinks": {
     "details": [
       {
-        "appIDs": ["TEAMID.com.perkorbit.app"],
+        "appIDs": ["TEAMID.com.perkworth.app"],
         "components": [
           { "/": "/invite/*", "comment": "Family circle invites" },
           { "/": "/?ref=*",  "comment": "Referral landing" }
@@ -267,9 +267,9 @@ To make `perkorbit.app/invite/<token>` open the app on iPhones with the app inst
 - [ ] App icons (all 13 sizes) under `AppIcon.appiconset/`
 - [ ] Launch storyboard with logo + cream background
 - [ ] `Info.plist` has all permission usage strings (Camera, Mic, Speech)
-- [ ] Bundle ID `com.perkorbit.app` matches App Store Connect record
+- [ ] Bundle ID `com.perkworth.app` matches App Store Connect record
 - [ ] Distribution signing certificate + provisioning profile installed
-- [ ] Privacy URL hosted at `perkorbit.app/privacy`
+- [ ] Privacy URL hosted at `perkworth.app/privacy`
 - [ ] At least 3 phone screenshots at 1290×2796 px uploaded
 - [ ] Demo PIN `1234` shared in App Review Information
 - [ ] Build version incremented for every upload

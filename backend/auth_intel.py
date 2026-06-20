@@ -264,7 +264,7 @@ def build_auth_router(db) -> APIRouter:
                 "used": False,
                 "created_at": datetime.now(timezone.utc),
             })
-            frontend = os.environ.get("FRONTEND_URL", "https://perkorbit.app").rstrip("/")
+            frontend = os.environ.get("FRONTEND_URL", "https://perkworth.app").rstrip("/")
             reset_url = f"{frontend}/?reset_token={token}"
             # Best-effort send — never break the flow if Resend fails
             try:
@@ -359,7 +359,7 @@ async def seed_programs(db) -> None:
 
 async def fetch_rss(client: httpx.AsyncClient, url: str) -> str:
     try:
-        r = await client.get(url, timeout=15, headers={"User-Agent": "PerkOrbit-Intelligence/1.0"})
+        r = await client.get(url, timeout=15, headers={"User-Agent": "PerkWorth-Intelligence/1.0"})
         if r.status_code == 200:
             return r.text[:80000]
     except Exception as e:

@@ -1,4 +1,4 @@
-# Perk Orbit — OTA (Over-The-Air) Updates Setup
+# PerkWorth — OTA (Over-The-Air) Updates Setup
 
 > Goal: push UI / copy / bug-fix changes to the live Android app **without rebuilding & re-uploading the APK to Play Store**. After this is set up, every `git push` → ~60 s → all your users see the new version on next app open.
 
@@ -10,17 +10,17 @@ Free, no 3rd-party SDK, no MAU limits. The APK becomes a thin shell that loads y
 
 ## Step 1 — Deploy the React PWA to its own Netlify site (one-time)
 
-Right now `perk-orbit.netlify.app` hosts only the marketing landing page. Create a second Netlify site for the React app:
+Right now `perk-worth.netlify.app` hosts only the marketing landing page. Create a second Netlify site for the React app:
 
 ```bash
 # On your local Mac, in the repo root:
 cd frontend
 yarn build                       # produces frontend/dist/
-npx netlify deploy --prod --dir=dist --site=perk-orbit-app
-# (first time only: it'll ask to log in + create site → name it "perk-orbit-app")
+npx netlify deploy --prod --dir=dist --site=perk-worth-app
+# (first time only: it'll ask to log in + create site → name it "perk-worth-app")
 ```
 
-After deploy, Netlify gives you a URL like `https://perk-orbit-app.netlify.app`. (You can later point a custom subdomain like `app.perkorbit.app` to this Netlify site.)
+After deploy, Netlify gives you a URL like `https://perk-worth-app.netlify.app`. (You can later point a custom subdomain like `app.perkworth.app` to this Netlify site.)
 
 ### Set up auto-deploy on push
 
@@ -38,14 +38,14 @@ Edit `frontend/capacitor.config.json` — add the `server.url` block:
 
 ```json
 {
-  "appId": "com.perkorbit.app",
-  "appName": "Perk Orbit",
+  "appId": "com.perkworth.app",
+  "appName": "PerkWorth",
   "webDir": "dist",
   "server": {
-    "url": "https://perk-orbit-app.netlify.app",
+    "url": "https://perk-worth-app.netlify.app",
     "androidScheme": "https",
     "cleartext": false,
-    "hostname": "perk-orbit-app.netlify.app"
+    "hostname": "perk-worth-app.netlify.app"
   },
   "android": { ... },
   "plugins": { ... }
@@ -59,7 +59,7 @@ cd frontend
 npx cap sync android
 ```
 
-This rewrites `android/app/src/main/res/xml/network_security_config.xml` and tells the WebView "load https://perk-orbit-app.netlify.app/ at boot".
+This rewrites `android/app/src/main/res/xml/network_security_config.xml` and tells the WebView "load https://perk-worth-app.netlify.app/ at boot".
 
 ---
 

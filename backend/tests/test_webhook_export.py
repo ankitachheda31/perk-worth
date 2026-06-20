@@ -28,7 +28,7 @@ if not BASE_URL:
                 BASE_URL = line.split("=", 1)[1].strip().rstrip("/")
                 break
 
-WEBHOOK_SECRET = os.environ.get("RAZORPAY_WEBHOOK_SECRET", "perkorbit_test_webhook_secret_2026")
+WEBHOOK_SECRET = os.environ.get("RAZORPAY_WEBHOOK_SECRET", "perkworth_test_webhook_secret_2026")
 
 
 # ---------------------------------------------------------------------------
@@ -53,7 +53,7 @@ def webhook_body(event_id: str, event: str = "payment.captured", *, order_id="or
 def session_user():
     s = requests.Session()
     s.headers.update({"Content-Type": "application/json"})
-    email = f"TEST_export_{int(time.time())}@perkorbit.app"
+    email = f"TEST_export_{int(time.time())}@perkworth.app"
     password = "test1234"
     r = s.post(f"{BASE_URL}/api/auth/signup", json={"email": email, "password": password, "name": "Export Test"})
     assert r.status_code in (200, 201), f"signup failed: {r.status_code} {r.text}"
@@ -171,7 +171,7 @@ class TestExport:
         ctype = r.headers.get("Content-Type", "")
         assert "text/csv" in ctype, f"content-type not csv: {ctype}"
         text = r.text
-        assert text.startswith("# Perk Orbit · Personal Data Export"), f"unexpected CSV header: {text[:80]!r}"
+        assert text.startswith("# PerkWorth · Personal Data Export"), f"unexpected CSV header: {text[:80]!r}"
         assert "## vouchers" in text
         assert "## payments" in text
 

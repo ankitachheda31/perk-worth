@@ -7,7 +7,7 @@ import { Support } from '../lib/api'
 
 export function buildWaHelpUrl(v) {
   const text = encodeURIComponent(
-    `Hi Perk Orbit support — I need help with this voucher:\n\n• Brand: ${v.brand || '—'}\n• Title: ${v.title || '—'}\n• Code: ${v.code || '—'}\n• Issue: This code is not working / I cannot redeem it.\n\nPlease assist.`
+    `Hi PerkWorth support — I need help with this voucher:\n\n• Brand: ${v.brand || '—'}\n• Title: ${v.title || '—'}\n• Code: ${v.code || '—'}\n• Issue: This code is not working / I cannot redeem it.\n\nPlease assist.`
   )
   return `https://wa.me/${WA_SUPPORT_NUMBER}?text=${text}`
 }

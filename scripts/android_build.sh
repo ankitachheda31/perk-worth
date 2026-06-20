@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Perk Orbit — Native Android APK / AAB build helper.
+# PerkWorth — Native Android APK / AAB build helper.
 #
 # Run this ON YOUR LOCAL MACHINE (Mac/Windows/Linux with Android Studio installed),
 # NOT inside the Emergent container. The container has no Android SDK / JDK.
@@ -39,9 +39,9 @@ case "$CMD" in
     echo
     echo "✓ Setup complete."
     echo "  • Generate a release keystore (one-time):"
-    echo "      keytool -genkey -v -keystore perk-orbit-release.jks \\"
-    echo "        -keyalg RSA -keysize 2048 -validity 10000 -alias perkorbit"
-    echo "    Then move it to: frontend/android/app/perk-orbit-release.jks"
+    echo "      keytool -genkey -v -keystore perk-worth-release.jks \\"
+    echo "        -keyalg RSA -keysize 2048 -validity 10000 -alias perkworth"
+    echo "    Then move it to: frontend/android/app/perk-worth-release.jks"
     echo "  • Add the keystore password to frontend/android/keystore.properties (see ANDROID_BUILD.md)"
     echo "  • Open Android Studio:  npx cap open android"
     ;;
@@ -59,11 +59,11 @@ case "$CMD" in
 
   release)
     echo "→ Building SIGNED RELEASE AAB (for Play Store)"
-    if [ ! -f "android/app/perk-orbit-release.jks" ]; then
-      echo "✗ Missing keystore at android/app/perk-orbit-release.jks"
+    if [ ! -f "android/app/perk-worth-release.jks" ]; then
+      echo "✗ Missing keystore at android/app/perk-worth-release.jks"
       echo "  Generate with:"
-      echo "    keytool -genkey -v -keystore perk-orbit-release.jks \\"
-      echo "      -keyalg RSA -keysize 2048 -validity 10000 -alias perkorbit"
+      echo "    keytool -genkey -v -keystore perk-worth-release.jks \\"
+      echo "      -keyalg RSA -keysize 2048 -validity 10000 -alias perkworth"
       exit 1
     fi
     if [ ! -f "android/keystore.properties" ]; then

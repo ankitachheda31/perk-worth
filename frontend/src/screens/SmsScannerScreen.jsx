@@ -61,7 +61,7 @@ export default function SmsScannerScreen({ onBack, pin, toast, onSaved, onOpenPr
               <Smartphone className="w-6 h-6" />
             </div>
             <p className="font-display font-bold text-ink-900">Available on Android app</p>
-            <p className="text-sm text-ink-500 mt-1">Browsers cannot read SMS due to platform security. Install the Perk Orbit Android app from Play Store to enable automatic SMS scanning.</p>
+            <p className="text-sm text-ink-500 mt-1">Browsers cannot read SMS due to platform security. Install the PerkWorth Android app from Play Store to enable automatic SMS scanning.</p>
             <p className="text-xs text-ink-400 mt-3">Meanwhile, use <span className="font-semibold text-emerald-800">Add new → Paste SMS</span> to import multiple SMS at once.</p>
           </Card>
         ) : !perm.granted ? (
@@ -104,7 +104,7 @@ export default function SmsScannerScreen({ onBack, pin, toast, onSaved, onOpenPr
               <label className="flex items-start gap-3 cursor-pointer" data-testid="sms-acknowledge">
                 <input type="checkbox" checked={acknowledged} onChange={(e) => setAcknowledged(e.target.checked)} className="mt-1 w-4 h-4 accent-emerald-700" />
                 <span className="text-xs text-ink-700 leading-relaxed">
-                  I understand Perk Orbit will scan my SMS <span className="font-semibold">only for vouchers and loyalty offers</span>, and that I can revoke this anytime from device Settings.
+                  I understand PerkWorth will scan my SMS <span className="font-semibold">only for vouchers and loyalty offers</span>, and that I can revoke this anytime from device Settings.
                 </span>
               </label>
               <PrimaryButton data-testid="sms-grant" onClick={grant} disabled={!acknowledged} className="mt-4">
@@ -142,7 +142,7 @@ export default function SmsScannerScreen({ onBack, pin, toast, onSaved, onOpenPr
                     {c.extracted.expiry ? <p className="text-[11px] text-ink-500 mt-1">Expires {fmtDate(c.extracted.expiry)}</p> : null}
                     <div className="flex gap-2 mt-3">
                       <PrimaryButton data-testid={`sms-save-${i}`} onClick={() => saveOne(c)} disabled={busyId === c.body} className="w-auto px-4">
-                        {busyId === c.body ? 'Saving…' : 'Save to Perk Orbit'}
+                        {busyId === c.body ? 'Saving…' : 'Save to PerkWorth'}
                       </PrimaryButton>
                       <GhostButton onClick={() => setCandidates(prev => prev.filter(x => x !== c))} className="w-auto px-4">Skip</GhostButton>
                     </div>

@@ -28,7 +28,7 @@ export default function CirclePage({ onBack, pin, toast, onOpenMember, onProfile
   }
   const remove = async (id) => { await Circle.remove(id); load(); toast('Removed') }
   const copyInvite = async (m) => {
-    const link = `https://perkorbit.app/invite/${m.invite_token}`
+    const link = `https://perkworth.app/invite/${m.invite_token}`
     try { await navigator.clipboard.writeText(link); toast('Invite link copied') } catch { toast('Copy failed') }
   }
 

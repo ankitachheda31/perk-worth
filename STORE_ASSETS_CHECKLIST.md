@@ -1,4 +1,4 @@
-# Perk Orbit — Store Assets Checklist
+# PerkWorth — Store Assets Checklist
 
 > Brand colors: Cream `#F4F1EC` · Emerald `#064E3B` · Gold `#B48B36` · Ink `#0F172A`
 > Typography: Cabinet Grotesk (logo / titles) · Manrope (body)
@@ -10,7 +10,7 @@
 | File | Spec | Purpose |
 |---|---|---|
 | `logo-master.svg` | Vector, 1024×1024 viewBox | Single source of truth for icon |
-| `wordmark-master.svg` | Vector, 1024×256 | "Perk Orbit" with display font |
+| `wordmark-master.svg` | Vector, 1024×256 | "PerkWorth" with display font |
 | `splash-master.svg` | Vector, 2732×2732 | Centered logo on cream background |
 | `feature-graphic-master.svg` | Vector, 1024×500 | Hero banner with tagline |
 
@@ -75,7 +75,7 @@
 - Build via Xcode Storyboard at `ios/App/App/Base.lproj/LaunchScreen.storyboard`
 - Background: `#F4F1EC`
 - Logo centered, 120×120 px
-- "Perk Orbit" wordmark below, Cabinet Grotesk 24pt
+- "PerkWorth" wordmark below, Cabinet Grotesk 24pt
 
 ### 3.3 App Store Listing
 | Asset | Size | Required |
@@ -118,23 +118,23 @@ npx cap sync
 ## 5. Store Metadata (other required fields)
 
 ### Google Play
-- **App name** (50 chars): `Perk Orbit — Voucher Wallet`
+- **App name** (50 chars): `PerkWorth — Voucher Wallet`
 - **Short description** (80 chars): `Save every voucher, point & membership in one premium wallet. Made in India.`
 - **Full description**: see `STORE_LISTING.md`
 - **Category**: Finance / Productivity
 - **Tags**: voucher, wallet, cashback, loyalty, coupons, rewards, india
 - **Content rating**: Everyone
-- **Privacy policy URL**: `https://perkorbit.app/privacy` (host the doc from `PRIVACY_POLICY.md`)
+- **Privacy policy URL**: `https://perkworth.app/privacy` (host the doc from `PRIVACY_POLICY.md`)
 - **Data safety form**: declare PIN (local), email/phone (local), payment (Razorpay), SMS (read-only on device)
 
 ### Apple App Store
-- **App name** (30 chars): `Perk Orbit — Voucher Wallet`
+- **App name** (30 chars): `PerkWorth — Voucher Wallet`
 - **Subtitle** (30 chars): `Save, share & redeem rewards`
 - **Promotional text** (170 chars): `Stop losing vouchers in your inbox. AI-powered wallet for Indian households — track ROI, share with family, never miss an expiry.`
 - **Description**: see `STORE_LISTING.md`
 - **Keywords** (100 chars, comma-sep): `voucher,coupon,wallet,cashback,rewards,loyalty,points,offer,deal,membership,family,india`
-- **Support URL**: `https://perkorbit.app/help`
-- **Marketing URL** (optional): `https://perkorbit.app`
+- **Support URL**: `https://perkworth.app/help`
+- **Marketing URL** (optional): `https://perkworth.app`
 - **Primary category**: Finance
 - **Secondary category**: Lifestyle
 
@@ -146,8 +146,8 @@ npx cap sync
 - [ ] All icon sizes generated via `@capacitor/assets`
 - [ ] 6 phone screenshots produced at correct resolutions for Android + iOS
 - [ ] Feature graphic 1024×500 for Play Store
-- [ ] Privacy policy hosted at `perkorbit.app/privacy`
-- [ ] Support page hosted at `perkorbit.app/help`
+- [ ] Privacy policy hosted at `perkworth.app/privacy`
+- [ ] Support page hosted at `perkworth.app/help`
 - [ ] Demo video (30–60 s) showing Family Circle + AI Scan + ROI Tracker
 - [ ] Google Play Sensitive Permissions form filed for SMS
 - [ ] Apple App Privacy questionnaire completed in App Store Connect

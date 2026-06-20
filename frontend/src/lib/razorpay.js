@@ -29,7 +29,7 @@ export async function openRazorpayCheckout({ keyId, orderId, amount, currency, u
     key: keyId,
     amount,
     currency,
-    name: 'Perk Orbit',
+    name: 'PerkWorth',
     description: 'Pro Membership — 6 months',
     order_id: orderId,
     prefill: mergedPrefill,

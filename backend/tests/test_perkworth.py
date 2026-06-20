@@ -1,4 +1,4 @@
-"""Perk Orbit Backend API tests.
+"""PerkWorth Backend API tests.
 Covers: health, voucher CRUD, brand search, SMS extract, image extract,
 ending-soon filter, points summary, memberships ROI, family circle,
 share/unshare, membership activate (mocked Razorpay).
@@ -359,7 +359,7 @@ def test_membership_activate_and_status(session):
     assert r.status_code == 200
     data = r.json()
     assert data["active"] is True
-    assert "Perk Orbit Pro" in data["plan"]
+    assert "PerkWorth Pro" in data["plan"]
     assert data["referral_code"].startswith("PERK-")
 
     r = session.get(f"{API}/membership/status", params={"user_pin": PIN})

@@ -28,7 +28,7 @@ DB_NAME = _read_env("DB_NAME") or "perk_orbit"
 
 
 def _new_email(prefix="forgot-pwd-test"):
-    return f"{prefix}+{secrets.token_hex(4)}@perkorbit.app"
+    return f"{prefix}+{secrets.token_hex(4)}@perkworth.app"
 
 
 @pytest.fixture(scope="module")
@@ -54,7 +54,7 @@ def _db():
 class TestForgotPassword:
     def test_forgot_password_nonexistent_email_returns_200(self, s):
         r = s.post(f"{BASE_URL}/api/auth/forgot-password",
-                   json={"email": f"nobody-{secrets.token_hex(4)}@perkorbit.app"})
+                   json={"email": f"nobody-{secrets.token_hex(4)}@perkworth.app"})
         assert r.status_code == 200, r.text
         body = r.json()
         assert body.get("ok") is True
@@ -216,7 +216,7 @@ class TestCircleInvite:
 class TestRegression:
     def test_seeded_login_works(self, s):
         r = s.post(f"{BASE_URL}/api/auth/login",
-                   json={"email": "test@perkorbit.app", "password": "Perk@1234"})
+                   json={"email": "test@perkworth.app", "password": "Perk@1234"})
         assert r.status_code == 200, r.text
         data = r.json()
         assert data.get("access_token")
@@ -229,7 +229,7 @@ class TestRegression:
         r = s.get(f"{BASE_URL}/api/auth/me",
                   headers={"Authorization": f"Bearer {token}"})
         assert r.status_code == 200
-        assert r.json().get("email") == "test@perkorbit.app"
+        assert r.json().get("email") == "test@perkworth.app"
 
     def test_vouchers_list_works(self, s):
         uid = getattr(TestRegression, "uid", "probe")

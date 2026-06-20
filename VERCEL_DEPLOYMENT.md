@@ -1,4 +1,4 @@
-# Perk Orbit — Vercel Deployment Guide
+# PerkWorth — Vercel Deployment Guide
 
 This repo is a monorepo: **`frontend/`** (Vite + React PWA) deploys to Vercel; **`backend/`** (FastAPI) stays on Emergent / another host.
 
@@ -9,7 +9,7 @@ The root `vercel.json` + `package.json` make Vercel auto-detect the project on i
 ## 1. Import the repo on Vercel
 
 1. Go to https://vercel.com/new
-2. Select your Git provider and pick the **Perk Orbit** repo.
+2. Select your Git provider and pick the **PerkWorth** repo.
 3. Vercel will read `/vercel.json` and auto-fill the settings below.
 
 ---
@@ -49,20 +49,20 @@ After adding env vars, click **Redeploy** on the latest deployment so the new va
 
 ## 4. Domain & HTTPS
 
-1. Vercel → **Settings → Domains** → add `perkorbit.app` and `www.perkorbit.app`.
+1. Vercel → **Settings → Domains** → add `perkworth.app` and `www.perkworth.app`.
 2. At your DNS registrar, point:
-   - `perkorbit.app` → `A 76.76.21.21`
-   - `www.perkorbit.app` → `CNAME cname.vercel-dns.com`
+   - `perkworth.app` → `A 76.76.21.21`
+   - `www.perkworth.app` → `CNAME cname.vercel-dns.com`
 3. Vercel auto-issues SSL certificates within a few minutes.
 
 ---
 
 ## 5. Backend CORS Reminder
 
-Once deployed on `https://perkorbit.app`, ensure your FastAPI backend's `CORS_ORIGINS` env var includes that domain. Update `/app/backend/.env`:
+Once deployed on `https://perkworth.app`, ensure your FastAPI backend's `CORS_ORIGINS` env var includes that domain. Update `/app/backend/.env`:
 
 ```
-CORS_ORIGINS=https://perkorbit.app,https://www.perkorbit.app,https://*.vercel.app,...
+CORS_ORIGINS=https://perkworth.app,https://www.perkworth.app,https://*.vercel.app,...
 ```
 
 Then restart backend: `sudo supervisorctl restart backend`.
@@ -81,7 +81,7 @@ Then restart backend: `sudo supervisorctl restart backend`.
 
 After Vercel reports ✓ Ready:
 1. Visit `https://your-vercel-url.vercel.app/`
-2. Login with `test@perkorbit.app` / `Perk@1234` / PIN `1234`.
+2. Login with `test@perkworth.app` / `Perk@1234` / PIN `1234`.
 3. Open browser DevTools → **Network** tab → confirm API calls go to your `REACT_APP_BACKEND_URL` (not localhost).
 4. Try **Add Voucher** → ensures backend connectivity.
 5. Try **Membership** → confirms Razorpay key loaded.

@@ -8,7 +8,7 @@ const SLIDES = [
     icon: ScanLine,
     eyebrow: 'STEP 01 · आपके कूपन्स',
     title: 'How we track your coupons',
-    body: 'Auto-scan SMS, scan paper vouchers with the camera, or paste promos in bulk. Perk Orbit reads, parses, and saves every brand-loyalty code in one tap.',
+    body: 'Auto-scan SMS, scan paper vouchers with the camera, or paste promos in bulk. PerkWorth reads, parses, and saves every brand-loyalty code in one tap.',
     demo: (
       <div className="bg-white rounded-2xl border border-emerald-200 p-4 space-y-2 shadow-soft">
         <div className="flex items-center justify-between">
@@ -68,7 +68,7 @@ const SLIDES = [
     accent: 'emerald',
     icon: ShieldCheck,
     eyebrow: 'STEP 04 · सुरक्षा का वादा',
-    title: 'Why Perk Orbit is safe',
+    title: 'Why PerkWorth is safe',
     body: 'We never read bank OTPs or personal chats. Your data is encrypted and never sold. You can wipe your account in one tap.',
     demo: (
       <div className="bg-emerald-50 rounded-2xl border border-emerald-200 p-4 space-y-1.5">
@@ -98,7 +98,7 @@ export default function Walkthrough({ onComplete }) {
       <header className="px-5 pt-6 pb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-emerald-800 grid place-items-center text-white font-display font-bold text-sm">P</div>
-          <span className="font-display font-bold text-ink-900">Perk Orbit</span>
+          <span className="font-display font-bold text-ink-900">PerkWorth</span>
         </div>
         <button
           data-testid="walkthrough-skip"

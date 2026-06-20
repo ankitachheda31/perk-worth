@@ -1,4 +1,4 @@
-"""Perk Orbit FastAPI backend.
+"""PerkWorth FastAPI backend.
 
 Provides:
 - OCR voucher extraction (image → structured voucher JSON) via GPT-4o vision
@@ -340,7 +340,7 @@ async def llm_extract_structured(user_text: str, image_base64: Optional[str] = N
 # ---------------------------------------------------------------------------
 # FastAPI App
 # ---------------------------------------------------------------------------
-app = FastAPI(title="Perk Orbit API", version="1.0")
+app = FastAPI(title="PerkWorth API", version="1.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -356,7 +356,7 @@ api = APIRouter(prefix="/api")
 
 @api.get("/")
 async def root():
-    return {"app": "Perk Orbit", "status": "ok"}
+    return {"app": "PerkWorth", "status": "ok"}
 
 
 @api.get("/health")
@@ -814,11 +814,11 @@ async def add_circle_member(payload: FamilyCircleAdd):
         try:
             from mailer import send_circle_invite
 
-            frontend = os.environ.get("FRONTEND_URL", "https://perkorbit.app").rstrip("/")
+            frontend = os.environ.get("FRONTEND_URL", "https://perkworth.app").rstrip("/")
             invite_url = f"{frontend}/invite/{token}"
             ok = await send_circle_invite(
                 to_email=str(payload.email),
-                inviter_name=(payload.inviter_name or "A Perk Orbit member"),
+                inviter_name=(payload.inviter_name or "A PerkWorth member"),
                 invitee_name=payload.name,
                 invite_url=invite_url,
                 relation=payload.relation,
@@ -986,7 +986,7 @@ class RzpVerifyRequest(BaseModel):
 
 REFERRAL_BONUS_DAYS = 90  # 3 months free for both referrer & referee
 PLAN_BASE_DAYS = 92  # 3-month quarterly plan
-PLAN_LABEL = "Perk Orbit Pro ₹99 / 3 months"
+PLAN_LABEL = "PerkWorth Pro ₹99 / 3 months"
 
 
 async def _apply_referral_bonus(user_pin: str, referral_code: str) -> dict:
@@ -1059,7 +1059,7 @@ async def create_payment_order(payload: RzpOrderRequest):
                 "currency": "INR",
                 "receipt": receipt,
                 "payment_capture": 1,
-                "notes": {"user_pin": payload.user_pin, "plan": "perk-orbit-pro-6m"},
+                "notes": {"user_pin": payload.user_pin, "plan": "perk-worth-pro-6m"},
             }
         )
     except Exception as e:
@@ -1153,7 +1153,7 @@ async def verify_payment(payload: RzpVerifyRequest):
         {
             "user_pin": payload.user_pin,
             "kind": "membership_activated",
-            "title": "Welcome to Perk Orbit Pro",
+            "title": "Welcome to PerkWorth Pro",
             "body": welcome_body,
             "ref_screen": "membership",
             "read": False,
@@ -1371,4 +1371,4 @@ async def _on_startup():
 
 @app.get("/")
 async def app_root():
-    return {"service": "Perk Orbit", "status": "running"}
+    return {"service": "PerkWorth", "status": "running"}

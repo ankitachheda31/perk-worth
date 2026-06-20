@@ -3,8 +3,8 @@ import { ShieldCheck, X, Lock, EyeOff, Database, Smartphone } from 'lucide-react
 
 const ITEMS = [
   { icon: Lock, title: 'Encrypted in transit & at rest', body: 'All wallet data travels over HTTPS (TLS 1.3) and is stored in encrypted MongoDB. Your password is one-way hashed with bcrypt — even we can\'t read it.' },
-  { icon: EyeOff, title: 'We never read bank OTPs or personal chats', body: 'When you grant SMS access, Perk Orbit only scans messages matching shopping/loyalty keywords (e.g. "₹", "off", "code", "voucher", "expires"). Bank OTPs, family chats, and DLT-flagged transactional SMS are skipped on-device.' },
-  { icon: Database, title: 'We never sell your data', body: 'Perk Orbit makes money from the ₹99/quarter Pro membership — not from ads or data brokers. Your vouchers, points, and savings are never sold, rented, or shared with advertisers.' },
+  { icon: EyeOff, title: 'We never read bank OTPs or personal chats', body: 'When you grant SMS access, PerkWorth only scans messages matching shopping/loyalty keywords (e.g. "₹", "off", "code", "voucher", "expires"). Bank OTPs, family chats, and DLT-flagged transactional SMS are skipped on-device.' },
+  { icon: Database, title: 'We never sell your data', body: 'PerkWorth makes money from the ₹99/quarter Pro membership — not from ads or data brokers. Your vouchers, points, and savings are never sold, rented, or shared with advertisers.' },
   { icon: ShieldCheck, title: 'You stay in control', body: 'Export, delete, or wipe your entire wallet anytime from Settings → Clear All My Data. We honour your DPDP 2023 (India) and GDPR (EU) rights within 30 days.' },
   { icon: Smartphone, title: 'On-device first', body: 'Your 4-digit unlock PIN never leaves this device. SMS bodies are sent to our backend only for the one voucher you tap "Save" on — never in bulk.' },
 ]
@@ -23,7 +23,7 @@ export default function HowWeProtectYouModal({ open, onClose }) {
         </div>
         <div className="px-5 py-4 space-y-3">
           <p className="text-sm text-ink-600 leading-relaxed">
-            Perk Orbit is built privacy-first. Here&apos;s exactly what that means — in plain English (and हिन्दी).
+            PerkWorth is built privacy-first. Here&apos;s exactly what that means — in plain English (and हिन्दी).
           </p>
           {ITEMS.map((it, i) => (
             <div key={i} className="bg-white border border-ink-200 rounded-2xl p-4 flex gap-3" data-testid={`protect-item-${i}`}>
@@ -38,7 +38,7 @@ export default function HowWeProtectYouModal({ open, onClose }) {
           ))}
           <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 mt-3">
             <p className="text-xs text-emerald-900 leading-relaxed">
-              <span className="font-bold">Questions?</span> Email <span className="font-mono">support@perkorbit.app</span> or message us on WhatsApp +91 98202 04866. We reply within 24 hours.
+              <span className="font-bold">Questions?</span> Email <span className="font-mono">support@perkworth.app</span> or message us on WhatsApp +91 98202 04866. We reply within 24 hours.
             </p>
           </div>
         </div>

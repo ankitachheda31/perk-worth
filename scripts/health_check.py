@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Perk Orbit — Zero-Break Health Check.
+"""PerkWorth — Zero-Break Health Check.
 
 Runs after every build to verify:
   1. Backend connectivity (MongoDB, FastAPI, indexes)
@@ -64,7 +64,7 @@ def read_env(key: str) -> str | None:
 
 def http(method: str, url: str, body: dict | None = None, headers: dict | None = None, timeout: int = 12):
     data = None
-    h = {"User-Agent": "PerkOrbit-HealthCheck/1.0"}
+    h = {"User-Agent": "PerkWorth-HealthCheck/1.0"}
     if headers:
         h.update(headers)
     if body is not None:
@@ -121,7 +121,7 @@ def check_backend(api_url: str, results: list, json_out: dict):
 def check_auth_flow(api_url: str, results: list, json_out: dict):
     print(hdr("2. Auth flow & MongoDB write/read/delete"))
     ts = int(time.time())
-    email = f"healthcheck-{ts}@perkorbit.app"
+    email = f"healthcheck-{ts}@perkworth.app"
     pw = "health1234"
 
     # Signup

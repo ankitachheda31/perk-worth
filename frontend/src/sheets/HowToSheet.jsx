@@ -27,7 +27,7 @@ export default function HowToSheet({ voucher, open, onClose }) {
           {voucher.expiry ? (
             <p className="text-[11px] text-ink-500">Valid until {fmtDate(voucher.expiry)}</p>
           ) : null}
-          <p className="text-[11px] text-ink-500">Tip: All steps happen inside Perk Orbit — no redirects to external browsers.</p>
+          <p className="text-[11px] text-ink-500">Tip: All steps happen inside PerkWorth — no redirects to external browsers.</p>
         </div>
       ) : null}
     </Sheet>

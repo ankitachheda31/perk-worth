@@ -1,4 +1,4 @@
-"""Perk Orbit — Optimizer + Auth wipe tests (Phase A/B/C feature pass).
+"""PerkWorth — Optimizer + Auth wipe tests (Phase A/B/C feature pass).
 
 Tested endpoints:
 - GET  /api/optimizer/tips?user_pin=...&use_llm_fallback=false
@@ -82,7 +82,7 @@ def test_optimizer_expiry_urgent():
 @pytest.fixture
 def signed_up_user():
     ts = int(time.time() * 1000)
-    email = f"e2e-{ts}@perkorbit.app"
+    email = f"e2e-{ts}@perkworth.app"
     password = "test1234"
     s = requests.Session()
     s.headers.update({"Content-Type": "application/json"})
@@ -95,7 +95,7 @@ def signed_up_user():
 
 def test_auth_full_flow_and_logout():
     ts = int(time.time() * 1000)
-    email = f"flow-{ts}@perkorbit.app"
+    email = f"flow-{ts}@perkworth.app"
     password = "test1234"
     s = requests.Session()
     s.headers.update({"Content-Type": "application/json"})

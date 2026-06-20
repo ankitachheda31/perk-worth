@@ -42,7 +42,7 @@ export default function ResetPasswordScreen({ token, onAuthed, onCancel }) {
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 mb-6">
             <div className="w-9 h-9 rounded-2xl bg-emerald-800 grid place-items-center text-white font-display font-bold">P</div>
-            <span className="font-display text-lg font-bold tracking-tight">Perk Orbit</span>
+            <span className="font-display text-lg font-bold tracking-tight">PerkWorth</span>
           </div>
           <h1 className="font-display text-3xl font-bold text-ink-900">Choose a new password</h1>
           <p className="text-sm text-ink-500 mt-2">You'll be signed in automatically once it's saved.</p>

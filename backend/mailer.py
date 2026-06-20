@@ -99,12 +99,12 @@ def _shell(title: str, inner_html: str) -> str:
 <body>
   <div class="wrap">
     <div class="card">
-      <div class="brand"><span class="brand-mark">P</span><span class="brand-name">Perk Orbit</span></div>
+      <div class="brand"><span class="brand-mark">P</span><span class="brand-name">PerkWorth</span></div>
       {inner_html}
     </div>
     <div class="footer">
-      Perk Orbit Technologies Pvt. Ltd. · Mumbai, India<br/>
-      <a href="mailto:support@perkorbit.app">support@perkorbit.app</a> · DPDP 2023 &amp; GDPR compliant
+      PerkWorth Technologies Pvt. Ltd. · Mumbai, India<br/>
+      <a href="mailto:support@perkworth.app">support@perkworth.app</a> · DPDP 2023 &amp; GDPR compliant
     </div>
   </div>
 </body></html>"""
@@ -113,21 +113,21 @@ def _shell(title: str, inner_html: str) -> str:
 async def send_password_reset(email: str, reset_url: str, name: Optional[str] = None) -> bool:
     greeting = f"Hi {name}," if name else "Hi,"
     inner = f"""
-      <h1>Reset your Perk Orbit password</h1>
+      <h1>Reset your PerkWorth password</h1>
       <p>{greeting}</p>
-      <p>We received a request to reset the password for the Perk Orbit account associated with <strong>{email}</strong>. Tap the button below to choose a new one. This link expires in <strong>60 minutes</strong>.</p>
+      <p>We received a request to reset the password for the PerkWorth account associated with <strong>{email}</strong>. Tap the button below to choose a new one. This link expires in <strong>60 minutes</strong>.</p>
       <p style="margin: 24px 0;"><a class="btn" href="{reset_url}">Reset my password →</a></p>
       <p class="meta">Or copy and paste this link into your browser:<br/><span class="code">{reset_url}</span></p>
       <p class="meta" style="margin-top: 20px;">If you didn't request this, you can safely ignore this email — your password won't change unless you click the link above.</p>
     """
     text = (
-        f"Reset your Perk Orbit password\n\n"
+        f"Reset your PerkWorth password\n\n"
         f"{greeting}\n\n"
         f"We received a request to reset the password for {email}. "
         f"Open the link below within 60 minutes to choose a new one:\n\n{reset_url}\n\n"
         f"If you didn't request this, just ignore this email."
     )
-    return await send_email(email, "Reset your Perk Orbit password", _shell("Reset password", inner), text)
+    return await send_email(email, "Reset your PerkWorth password", _shell("Reset password", inner), text)
 
 
 async def send_circle_invite(
@@ -138,20 +138,20 @@ async def send_circle_invite(
     relation: Optional[str] = None,
 ) -> bool:
     rel = f" ({relation})" if relation else ""
-    inviter = inviter_name or "A Perk Orbit member"
+    inviter = inviter_name or "A PerkWorth member"
     inner = f"""
-      <h1>{inviter} added you to their Perk Orbit Family Circle</h1>
+      <h1>{inviter} added you to their PerkWorth Family Circle</h1>
       <p>Hi {invitee_name}{rel},</p>
-      <p><strong>{inviter}</strong> wants to share specific vouchers, coupons and loyalty perks with you on <strong>Perk Orbit</strong> — India's voucher-first wallet.</p>
+      <p><strong>{inviter}</strong> wants to share specific vouchers, coupons and loyalty perks with you on <strong>PerkWorth</strong> — India's voucher-first wallet.</p>
       <p>No screenshots, no group chat. Just the perks they choose to share — privately and securely.</p>
       <p style="margin: 24px 0;"><a class="btn" href="{invite_url}">Accept the invite →</a></p>
       <p class="meta">Or copy this link into your browser:<br/><span class="code">{invite_url}</span></p>
-      <p class="meta" style="margin-top: 20px;">Perk Orbit never shares your data with advertisers and never reads bank OTPs. <a href="https://perkorbit.app/#privacy">Privacy Policy</a>.</p>
+      <p class="meta" style="margin-top: 20px;">PerkWorth never shares your data with advertisers and never reads bank OTPs. <a href="https://perkworth.app/#privacy">Privacy Policy</a>.</p>
     """
     text = (
-        f"{inviter} added you to their Perk Orbit Family Circle\n\n"
+        f"{inviter} added you to their PerkWorth Family Circle\n\n"
         f"Hi {invitee_name}{rel},\n\n"
-        f"{inviter} wants to share vouchers with you on Perk Orbit. "
+        f"{inviter} wants to share vouchers with you on PerkWorth. "
         f"Accept the invite here:\n\n{invite_url}\n"
     )
-    return await send_email(to_email, f"{inviter} shared a voucher with you on Perk Orbit", _shell("Family Circle invite", inner), text)
+    return await send_email(to_email, f"{inviter} shared a voucher with you on PerkWorth", _shell("Family Circle invite", inner), text)

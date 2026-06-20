@@ -18,12 +18,12 @@ Google requires SMS permissions to have a strong product justification. When upl
 2. Select "**Default SMS handler** — No"
 3. Core functionality: "**Read SMS messages to detect and auto-import e-commerce vouchers, loyalty points, and membership renewal alerts so users don't have to type them manually.**"
 4. Provide:
-   - Demo video showing the user (a) granting permission, (b) seeing an SMS auto-detected, (c) it being saved as a Perk Orbit voucher
-   - A link to your **Privacy Policy** (`/app/frontend/src/screens/Privacy.jsx` content — host this at `https://perkorbit.app/privacy`)
+   - Demo video showing the user (a) granting permission, (b) seeing an SMS auto-detected, (c) it being saved as a PerkWorth voucher
+   - A link to your **Privacy Policy** (`/app/frontend/src/screens/Privacy.jsx` content — host this at `https://perkworth.app/privacy`)
 
 ## Privacy Policy excerpt (copy into your hosted page)
 
-> Perk Orbit uses Android's READ_SMS permission **exclusively** to scan incoming promotional SMS for voucher codes, expiry dates, and brand names so users can store them in their personal wallet. SMS contents are NOT stored on Perk Orbit servers — only the extracted voucher fields (brand, code, expiry) are saved to your personal wallet. SMS contents leave your device only when you tap "Save to Perk Orbit" on a detected voucher; we then send just that one message to our backend for GPT-4o extraction. No SMS is uploaded in bulk, used for advertising, or shared with third parties.
+> PerkWorth uses Android's READ_SMS permission **exclusively** to scan incoming promotional SMS for voucher codes, expiry dates, and brand names so users can store them in their personal wallet. SMS contents are NOT stored on PerkWorth servers — only the extracted voucher fields (brand, code, expiry) are saved to your personal wallet. SMS contents leave your device only when you tap "Save to PerkWorth" on a detected voucher; we then send just that one message to our backend for GPT-4o extraction. No SMS is uploaded in bulk, used for advertising, or shared with third parties.
 
 ## Why this is necessary
 - READ_SMS lets the app see all inbox messages → must declare core-use case

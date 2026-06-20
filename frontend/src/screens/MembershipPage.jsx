@@ -33,7 +33,7 @@ export default function MembershipPage({ onBack, pin, status, refresh, toast, on
       openRazorpayCheckout({
         keyId: order.key_id || RAZORPAY_KEY_ID,
         orderId: order.order_id, amount: order.amount, currency: order.currency,
-        prefill: { name: profile.name || 'Perk Orbit Member', email: profile.email || '', contact: profile.phone || '' },
+        prefill: { name: profile.name || 'PerkWorth Member', email: profile.email || '', contact: profile.phone || '' },
         onSuccess: async (resp) => {
           try {
             const result = await Membership.verifyPayment({
@@ -46,7 +46,7 @@ export default function MembershipPage({ onBack, pin, status, refresh, toast, on
             await refresh()
             toast(result.referral?.applied
               ? `Welcome to Pro! +${result.referral.bonus_days} bonus days applied`
-              : 'Welcome to Perk Orbit Pro!')
+              : 'Welcome to PerkWorth Pro!')
           } catch { toast('Payment verification failed') } finally { setBusy(false) }
         },
         onDismiss: () => { setBusy(false); toast('Payment cancelled') },
@@ -79,25 +79,25 @@ export default function MembershipPage({ onBack, pin, status, refresh, toast, on
     try {
       const dataUrl = await toPng(cardRef.current, { cacheBust: true, pixelRatio: 2 })
       const blob = await (await fetch(dataUrl)).blob()
-      const file = new File([blob], 'perk-orbit-savings.png', { type: 'image/png' })
-      const link = `https://perkorbit.app/?ref=${status?.referral_code}`
-      const text = `I'm saving smarter with Perk Orbit 💎\nReferred ${stats.total_referrals} friends · earned +${stats.bonus_days_earned} bonus days\nJoin me with code ${status?.referral_code} — both get 3 months FREE: ${link}`
+      const file = new File([blob], 'perk-worth-savings.png', { type: 'image/png' })
+      const link = `https://perkworth.app/?ref=${status?.referral_code}`
+      const text = `I'm saving smarter with PerkWorth 💎\nReferred ${stats.total_referrals} friends · earned +${stats.bonus_days_earned} bonus days\nJoin me with code ${status?.referral_code} — both get 3 months FREE: ${link}`
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], text, title: 'My Perk Orbit savings' })
+        await navigator.share({ files: [file], text, title: 'My PerkWorth savings' })
       } else if (navigator.share) {
-        await navigator.share({ text, title: 'My Perk Orbit savings' })
+        await navigator.share({ text, title: 'My PerkWorth savings' })
       } else {
-        const a = document.createElement('a'); a.href = dataUrl; a.download = 'perk-orbit-savings.png'; a.click()
+        const a = document.createElement('a'); a.href = dataUrl; a.download = 'perk-worth-savings.png'; a.click()
         toast('Image downloaded')
       }
     } catch { toast('Could not generate report') }
   }
 
   const shareRef = async () => {
-    const link = `https://perkorbit.app/?ref=${status?.referral_code}`
-    const text = `Join me on Perk Orbit — India's voucher-first wallet. Use my code ${status?.referral_code} when you upgrade to Pro and get 3 months FREE on top of your 3-month plan (I get 3 months free too 🎁): ${link}`
+    const link = `https://perkworth.app/?ref=${status?.referral_code}`
+    const text = `Join me on PerkWorth — India's voucher-first wallet. Use my code ${status?.referral_code} when you upgrade to Pro and get 3 months FREE on top of your 3-month plan (I get 3 months free too 🎁): ${link}`
     try {
-      if (navigator.share) { await navigator.share({ title: 'Perk Orbit Pro', text }) }
+      if (navigator.share) { await navigator.share({ title: 'PerkWorth Pro', text }) }
       else { await navigator.clipboard.writeText(text); toast('Referral message copied') }
     } catch { toast('Share cancelled') }
   }
@@ -120,7 +120,7 @@ export default function MembershipPage({ onBack, pin, status, refresh, toast, on
                   <button data-testid="share-referral" onClick={shareRef} className="bg-white/15 hover:bg-white/25 text-xs font-semibold px-3 py-2 rounded-full inline-flex items-center gap-1"><LinkIcon className="w-3.5 h-3.5" /> Share & earn</button>
                 </div>
                 <p className="text-[11px] text-white/85 mt-3 leading-relaxed">
-                  🎁 Refer a friend → both of you get <span className="font-bold">+1 month</span> FREE on Perk Orbit Pro.
+                  🎁 Refer a friend → both of you get <span className="font-bold">+1 month</span> FREE on PerkWorth Pro.
                 </p>
               </div>
             </Card>
@@ -165,7 +165,7 @@ export default function MembershipPage({ onBack, pin, status, refresh, toast, on
                   </div>
                 </div>
                 <div>
-                  <p style={{ fontSize: 26, color: '#E5E7EB' }}>Join me on Perk Orbit · use my code</p>
+                  <p style={{ fontSize: 26, color: '#E5E7EB' }}>Join me on PerkWorth · use my code</p>
                   <p style={{ fontSize: 72, fontWeight: 800, color: '#FCD34D', fontFamily: 'JetBrains Mono, monospace', marginTop: 8 }}>{status?.referral_code}</p>
                   <p style={{ fontSize: 24, color: '#9CA3AF', marginTop: 16 }}>Both of us get 3 months FREE on Pro 🎁</p>
                   <div style={{ marginTop: 32, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -191,7 +191,7 @@ export default function MembershipPage({ onBack, pin, status, refresh, toast, on
           <>
             <Card className="p-6 bg-gradient-to-br from-ink-900 to-emerald-900 text-white border-ink-800 relative overflow-hidden">
               <div className="absolute -top-10 -right-12 w-44 h-44 rounded-full bg-gold-500/20 blur-2xl" />
-              <div className="flex items-center gap-2 mb-2"><Star className="w-4 h-4 text-gold-400" /><span className="text-[10px] uppercase tracking-[0.18em] font-bold text-gold-100">Perk Orbit Pro</span></div>
+              <div className="flex items-center gap-2 mb-2"><Star className="w-4 h-4 text-gold-400" /><span className="text-[10px] uppercase tracking-[0.18em] font-bold text-gold-100">PerkWorth Pro</span></div>
               <p className="font-display text-2xl font-bold leading-tight">₹99 for 3 months</p>
               <ul className="mt-4 space-y-2 text-sm">
                 {['Unlimited voucher storage', 'AI scan & SMS extract', 'Family Circle sharing', 'Membership ROI tracker', 'Smart expiry alerts'].map(t => (

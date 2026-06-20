@@ -1,8 +1,8 @@
 {
-  "name": "perk-orbit-monorepo",
+  "name": "perk-worth-monorepo",
   "private": true,
   "version": "1.0.0",
-  "description": "Perk Orbit — Voucher-First Personal Financial Assistant. Monorepo with React PWA frontend (Vercel) + FastAPI backend (separate host).",
+  "description": "PerkWorth — Voucher-First Personal Financial Assistant. Monorepo with React PWA frontend (Vercel) + FastAPI backend (separate host).",
   "scripts": {
     "install:frontend": "cd frontend && yarn install",
     "build": "cd frontend && yarn install --frozen-lockfile && yarn build",

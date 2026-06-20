@@ -29,7 +29,7 @@ export const Auth = {
     const a = document.createElement('a')
     a.href = url
     const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
-    a.download = `perk-orbit-export-${ts}.${format}`
+    a.download = `perk-worth-export-${ts}.${format}`
     document.body.appendChild(a); a.click(); a.remove()
     URL.revokeObjectURL(url)
   },

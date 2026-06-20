@@ -1,4 +1,4 @@
-# Perk Orbit — Mobile Build Guide
+# PerkWorth — Mobile Build Guide
 
 The web app is **Capacitor-ready**. The web build (`/app/frontend/dist`) is wrapped natively for Android & iOS using Capacitor 6.
 
@@ -58,13 +58,13 @@ npx cap open ios
 4. The signed (debug) APK is at `android/app/build/outputs/apk/debug/app-debug.apk`
 
 For a **release** APK / AAB:
-1. Generate a keystore (one-time): `keytool -genkey -v -keystore perk-orbit-release.jks -alias perkorbit -keyalg RSA -keysize 2048 -validity 10000`
-2. Put it in `/app/frontend/android/app/perk-orbit-release.jks`
+1. Generate a keystore (one-time): `keytool -genkey -v -keystore perk-worth-release.jks -alias perkworth -keyalg RSA -keysize 2048 -validity 10000`
+2. Put it in `/app/frontend/android/app/perk-worth-release.jks`
 3. Add signing config in `android/app/build.gradle` (Android Studio → Build → Generate Signed Bundle / APK guides you through this)
 
 ## App Identity
-- **App ID**: `com.perkorbit.app`
-- **App Name**: `Perk Orbit`
+- **App ID**: `com.perkworth.app`
+- **App Name**: `PerkWorth`
 - **Splash**: Colour `#F4F1EC` (paper cream); 1.2 s
 - **Status bar**: Dark text on cream background
 
@@ -73,7 +73,7 @@ The native shell loads the React app from `dist/index.html`. The web app reads `
 - For local dev → use your laptop's LAN IP (e.g. `http://192.168.1.5:8001`)
 - For staging / production → use the Emergent preview URL (current) or your final domain
 
-> If you want the app to point to different URLs per environment, set `REACT_APP_BACKEND_URL` per build (`REACT_APP_BACKEND_URL=https://api.perkorbit.com yarn build`).
+> If you want the app to point to different URLs per environment, set `REACT_APP_BACKEND_URL` per build (`REACT_APP_BACKEND_URL=https://api.perkworth.com yarn build`).
 
 ## App icons & splash
 - Drop a 1024×1024 PNG at `/app/frontend/resources/icon.png`

@@ -181,3 +181,27 @@
 - `/app/PRD_BIOMETRIC_AUTH.md` — full spec for Face ID/Fingerprint + WebAuthn fallback (6-10 hrs, needs APK device test, 2 sessions)
 - `/app/PRD_BACKEND_REFACTOR.md` — split server.py (1400+ lines) into routes/ models/ services/ (4-6 hrs, post-KYC)
 - `/app/AUDIT_REPORT.md` — comprehensive feature audit for dev-partner review
+
+## 2026-02-20 — Referral Code Embedded in "Share your savings" (P0)
+- HistoryScreen.jsx now fetches `Membership.status` alongside savings stats, embeds the user's `referral_code` into the share message: "Use my code *PERK-XXXXXX* when upgrading to Pro — both of us get 3 months FREE 🎁".
+- Link in share message becomes `https://www.perkworth.com/?ref=<code>` when code exists, else plain landing URL.
+- Graceful fallback for non-Pro users (no code → no refLine, normal share text).
+- Verified end-to-end by testing agent iteration 14 — regression intact.
+
+## 2026-02-20 — Biometric Unlock (WebAuthn, web-only v1)
+- New module `/app/frontend/src/lib/biometric.js`: exports `isBiometricAvailable`, `isBiometricEnrolled`, `enrollBiometric`, `verifyBiometric`, `disableBiometric`. Uses `navigator.credentials.create/get` with platform authenticator.
+- SettingsPage.jsx: new "Biometric unlock" card (data-testid `settings-biometric-card`) with enable/disable toggle — only visible when device supports a platform authenticator.
+- PinLock.jsx: auto-prompts biometric on mount when enrolled; "Unlock with biometric" button (data-testid `biometric-trigger`) above keypad; full PIN fallback always preserved (3-failure → keypad, banking-app pattern).
+- Local-only design: no backend, no cloud auth dependency. WebAuthn credential ID stored in localStorage. PIN remains cloud-recoverable backup.
+- Capacitor native (Android APK) path deferred per PRD_BIOMETRIC_AUTH.md (requires real device testing).
+- Verified iteration 14: graceful degradation in headless Playwright (no platform authenticator → card stays hidden = expected behavior).
+
+## 2026-02-20 — Credit Card Optimizer (P1 · affiliate revenue foundation)
+- **Backend**: New module `/app/backend/cards.py` with curated catalog of 7 high-value India cards (HDFC Millennia, Axis Flipkart, SBI Cashback, Tata Neu Infinity HDFC, Amazon Pay ICICI, IDFC FIRST Select, BPCL SBI Octane) covering 7 spend categories. Endpoints under `/api/cards`:
+  - `GET /api/cards` — full catalog + categories
+  - `GET /api/cards/best?category=X&monthly_spend_inr=N&limit=3` — ranks by **net annual value** (reward − fee), with fee-waiver detection
+  - `POST /api/cards/click` — affiliate click attribution, persists to MongoDB `card_clicks` collection (best-effort, never blocks UX)
+- **Frontend**: New screen `CardOptimizerScreen.jsx` with hero, category chips, live spend slider (₹2K-₹1L), top-3 ranked cards with reward/annual-value stats, full catalog list, "Apply on issuer site" CTA per card (opens issuer URL in new tab, logs click first).
+- **Wired** into Profile menu (`menu-card-optimizer` row with NEW badge) and App.jsx routing (`card-optimizer` screen).
+- Verified iteration 14: backend 100% pass, frontend 100% pass (live slider updates, category switching, affiliate click POST + new-tab open all working).
+- Affiliate-ready: swap `apply_url` for tracked deeplink (Cardz / BankBazaar / direct issuer affiliate codes) — zero frontend change required.

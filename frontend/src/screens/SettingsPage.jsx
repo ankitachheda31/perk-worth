@@ -200,16 +200,16 @@ export default function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpen
         <Card className="p-5 border-terracotta-200 bg-terracotta-50/30" data-testid="settings-danger-zone">
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle className="w-4 h-4 text-terracotta-700" />
-            <p className="font-display font-bold text-terracotta-800">Danger zone</p>
+            <p className="font-display font-bold text-terracotta-800">Delete my account</p>
           </div>
           <p className="text-xs text-ink-700 leading-relaxed mb-3">
-            Permanently delete <span className="font-bold">your account and ALL your data</span> — vouchers, points, family circle, payment history, referrals. This cannot be undone.
+            Permanently delete <span className="font-bold">your account and ALL your data</span> — login, vouchers, points, family circle, Pro membership, payment history, referrals. This cannot be undone. After deletion you can sign up again with the same email and start fresh.
           </p>
           <button data-testid="settings-wipe-open" onClick={() => setConfirmOpen(true)}
             className="w-full bg-terracotta-700 text-white font-semibold py-3 rounded-full active:scale-95 transition inline-flex items-center justify-center gap-2">
-            <Trash2 className="w-4 h-4" /> Clear All My Data
+            <Trash2 className="w-4 h-4" /> Delete my account
           </button>
-          <p className="text-[10px] text-ink-500 text-center mt-2">DPDP 2023 Right to Erasure · GDPR Art. 17</p>
+          <p className="text-[10px] text-ink-500 text-center mt-2">DPDP 2023 §13 Right to Erasure · GDPR Art. 17</p>
         </Card>
 
         <Card className="p-5">

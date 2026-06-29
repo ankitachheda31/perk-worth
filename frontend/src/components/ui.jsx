@@ -1,4 +1,6 @@
 import React from 'react'
+import { AtSign } from 'lucide-react'
+import { getProfile } from '../lib/store'
 
 export function Shell({ children }) {
   return (
@@ -11,6 +13,8 @@ export function Shell({ children }) {
 }
 
 export function TopBar({ title, onBack, right, subtitle }) {
+  const profile = getProfile()
+  const email = profile?.email
   return (
     <header className="sticky top-0 z-30 px-5 pt-6 pb-3 backdrop-blur-xl bg-[rgba(244,241,236,0.78)]" data-testid="top-bar">
       <div className="flex items-center justify-between gap-3">
@@ -28,6 +32,16 @@ export function TopBar({ title, onBack, right, subtitle }) {
         </div>
         <div className="flex items-center gap-2">{right}</div>
       </div>
+      {email ? (
+        <div
+          className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-ink-50/80 border border-ink-200/70 text-[10px] text-ink-500 font-medium max-w-full"
+          data-testid="signed-in-as"
+          title={`Signed in as ${email}`}
+        >
+          <AtSign className="w-3 h-3 shrink-0" />
+          <span className="truncate">Signed in as <span className="text-ink-800 font-semibold">{email}</span></span>
+        </div>
+      ) : null}
     </header>
   )
 }

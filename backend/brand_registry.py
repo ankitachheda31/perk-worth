@@ -108,16 +108,18 @@ def search(query: str, limit: int = 10) -> List[Dict]:
     name or any alias contains the (normalised) query.
 
     Ranking buckets (highest priority first):
-      1. EXACT alias hit (or exact canonical match)   — e.g. `bb` → BigBasket
-      2. Canonical-name starts-with                    — e.g. `big` → BigBasket
-      3. Canonical-name contains                       — e.g. `bb` → FBB
-      4. Alias contains                                — fuzzier matches
+      1. EXACT canonical name match                     — e.g. `Club Mahindra` → Club Mahindra
+      2. EXACT alias match                              — e.g. `bb` → BigBasket
+      3. Canonical-name starts-with                     — e.g. `big` → BigBasket
+      4. Canonical-name contains                        — e.g. `bb` → FBB
+      5. Alias contains                                 — fuzzier matches
     """
     n = _norm(query)
     if not n:
         return []
     idx = _load_index()
-    exact: List[Dict] = []
+    exact_canonical: List[Dict] = []
+    exact_alias: List[Dict] = []
     starts: List[Dict] = []
     contains: List[Dict] = []
     alias_only: List[Dict] = []
@@ -126,20 +128,23 @@ def search(query: str, limit: int = 10) -> List[Dict]:
         if entry["brand"] in seen:
             continue
         brand_n = _norm(entry["brand"])
-        # 1) EXACT alias OR canonical equality
-        if brand_n == n or any(_norm(a) == n for a in entry["aliases"]):
-            exact.append(entry); seen.add(entry["brand"]); continue
-        # 2) Starts-with on canonical name
+        # 1) EXACT canonical match — highest priority
+        if brand_n == n:
+            exact_canonical.append(entry); seen.add(entry["brand"]); continue
+        # 2) EXACT alias match
+        if any(_norm(a) == n for a in entry["aliases"]):
+            exact_alias.append(entry); seen.add(entry["brand"]); continue
+        # 3) Starts-with on canonical name
         if brand_n.startswith(n):
             starts.append(entry); seen.add(entry["brand"]); continue
-        # 3) Contains on canonical name
+        # 4) Contains on canonical name
         if n in brand_n:
             contains.append(entry); seen.add(entry["brand"]); continue
-        # 4) Contains on any alias
+        # 5) Contains on any alias
         for a in entry["aliases"]:
             if n in _norm(a):
                 alias_only.append(entry); seen.add(entry["brand"]); break
-    out = (exact + starts + contains + alias_only)[:limit]
+    out = (exact_canonical + exact_alias + starts + contains + alias_only)[:limit]
     return [{"brand": e["brand"], "parent_company": e["parent_company"], "category": e["category"]} for e in out]
 
 

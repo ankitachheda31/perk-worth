@@ -1,0 +1,37 @@
+{
+  "summary": "Iter 19 — Backend-only regression after auth rate-limit + Body() fix, brand ranking split, and circle invite relaxation. RESULT: 183/183 passed, 2 skipped, 0 failures, 0 errors. Full existing suite (170) is green AND a new targeted regression file (13 tests) verifying every fix in the review request also passes. Auth flows: signup with fresh email → 200 + access_token; login as test@perkorbit.app/Perk@1234 → 200 + access_token; /auth/me with Bearer → 200 (email echoes correctly); /auth/forgot-password → 200 for both known and unknown emails (no leak); /auth/reset-password with invalid token → 400. Brand lookup ranking: 'Club Mahindra' now returns Club Mahindra first (exact_canonical > exact_alias), 'BigBasket' first item has parent_company='Tata Group', alias 'bb' returns BigBasket first. Circle: POST /api/circle/members returns 200 with `invite_email_sent` field present. Rate limiter: DISABLE_RATE_LIMIT=1 confirmed effective — 8 rapid signup calls yielded zero HTTP 429. No regression on vouchers/list (user_pin), logout, or admin surface. Backend restart not required (hot reload); all tests hit the live REACT_APP_BACKEND_URL.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter19_regression.py",
+    "/app/test_reports/pytest/iter19_full.xml",
+    "/app/test_reports/pytest/iter19_regression.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Fix for `from __future__ import annotations` + slowapi decorator + FastAPI body introspection is a well-known FastAPI limitation; using explicit `Body(...)` markers on signup/login/forgot/reset is the correct workaround. Consider adding a short code comment near each endpoint noting this so it isn't accidentally re-introduced.",
+    "DISABLE_RATE_LIMIT=1 in backend/.env is fine for preview/dev, but ensure the production deploy pipeline strips or overrides this flag — otherwise the 5/min brute-force protection is effectively off in prod. A CI check that greps for DISABLE_RATE_LIMIT in prod configs would be a cheap safeguard.",
+    "brand_registry.py ranking split (exact_canonical > exact_alias > starts > contains > alias_contains) is clean and matches user expectations. Suggest also adding an integration test for a pure-alias-only query where the canonical wouldn't match (e.g. 'flipkart plus' vs 'plus') to lock in the ordering intent.",
+    "test_forgot_reset_and_invite.py relaxation to only check `invite_email_sent` field existence (rather than True) is pragmatic given Resend now accepts unverified recipients — the test still catches the field being missing entirely, which is the actual contract."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter19_regression.py (new — 13 targeted regression tests covering every item in the review request)"
+  ],
+  "success_rate": {
+    "backend": "100% (183/183 passing, 2 unrelated skips)",
+    "frontend": "n/a — testing_type=backend only (skip frontend)"
+  },
+  "test_credentials": "Admin/seeded: test@perkorbit.app / Perk@1234. All backend tests hit live REACT_APP_BACKEND_URL=https://orbit-vouchers.preview.emergentagent.com.",
+  "seed_data_creation": "None persistent — test_iter19_regression.py creates TEST_* prefixed circle members with self-cleanup (DELETE at end of each test). Rate-limit stress test creates 8 throwaway TEST_rl_*@example.com signup accounts (no cleanup — safe as they carry the TEST_ prefix and don't touch prod data).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend is fully green (183/183). The auth Body() fix, brand ranking split, and circle invite relaxation are all locked in with regression coverage in /app/backend/tests/test_iter19_regression.py. If future iterations touch auth endpoints, re-running this file (6s) will catch any reintroduction of the slowapi+annotations bug. DISABLE_RATE_LIMIT=1 remains set in backend/.env for pytest — do NOT ship this to prod.",
+  "rca of the issue": "N/A — this iteration verified a completed fix rather than diagnosing a new bug. All 12 features/fixes in the review request are confirmed working against the live backend."
+}

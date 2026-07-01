@@ -34,7 +34,7 @@ def _load_backend_url() -> str:
 BASE_URL = _load_backend_url()
 API = f"{BASE_URL}/api"
 
-TEST_EMAIL = "test@perkworth.com"
+TEST_EMAIL = "test@perkorbit.app"
 TEST_PASSWORD = "Perk@1234"
 PIN = "1234"
 

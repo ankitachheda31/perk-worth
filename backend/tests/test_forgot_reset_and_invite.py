@@ -186,7 +186,10 @@ class TestCircleInvite:
         })
         assert r.status_code == 200, r.text
         body = r.json()
-        assert body.get("invite_email_sent") is False
+        # With a verified Resend sender domain (perkworth.com), sends to arbitrary
+        # recipients succeed. What we're guarding here is that the endpoint
+        # NEVER 5xxs even if Resend fails — return 200 silently either way.
+        assert "invite_email_sent" in body
         s.delete(f"{BASE_URL}/api/circle/members/{body['id']}")
 
     def test_add_member_without_email_backwards_compat(self, s):
@@ -216,7 +219,7 @@ class TestCircleInvite:
 class TestRegression:
     def test_seeded_login_works(self, s):
         r = s.post(f"{BASE_URL}/api/auth/login",
-                   json={"email": "test@perkworth.com", "password": "Perk@1234"})
+                   json={"email": "test@perkorbit.app", "password": "Perk@1234"})
         assert r.status_code == 200, r.text
         data = r.json()
         assert data.get("access_token")
@@ -229,7 +232,7 @@ class TestRegression:
         r = s.get(f"{BASE_URL}/api/auth/me",
                   headers={"Authorization": f"Bearer {token}"})
         assert r.status_code == 200
-        assert r.json().get("email") == "test@perkworth.com"
+        assert r.json().get("email") == "test@perkorbit.app"
 
     def test_vouchers_list_works(self, s):
         uid = getattr(TestRegression, "uid", "probe")

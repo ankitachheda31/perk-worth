@@ -5,8 +5,6 @@ Keeps server.py uncluttered while adding:
   - PIN-binding migration ("claim my old wallet")
   - Daily market intelligence cron (APScheduler)
 """
-from __future__ import annotations
-
 import asyncio
 import logging
 import os
@@ -19,8 +17,10 @@ import httpx
 import jwt
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from bson import ObjectId
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, EmailStr, Field
+
+from services.rate_limit import limiter
 
 log = logging.getLogger("perk_orbit.auth")
 
@@ -155,7 +155,8 @@ def build_auth_router(db) -> APIRouter:
                 await db.referrals.update_many({"referee_pin": pin}, {"$set": {"referee_pin": user_id}})
 
     @router.post("/signup")
-    async def signup(payload: SignupRequest, response: Response):
+    @limiter.limit("5/minute")
+    async def signup(request: Request, response: Response, payload: SignupRequest = Body(...)):
         email = payload.email.lower()
         if await db.users.find_one({"email": email}):
             raise HTTPException(status_code=409, detail="Email already registered")
@@ -178,7 +179,8 @@ def build_auth_router(db) -> APIRouter:
         return {"id": uid, "email": email, "name": doc["name"], "phone": doc["phone"], "role": doc.get("role", "user"), "access_token": access}
 
     @router.post("/login")
-    async def login(payload: LoginRequest, response: Response):
+    @limiter.limit("5/minute")
+    async def login(request: Request, response: Response, payload: LoginRequest = Body(...)):
         email = payload.email.lower()
         user = await db.users.find_one({"email": email})
         if not user or not verify_password(payload.password, user.get("password_hash", "")):
@@ -246,7 +248,8 @@ def build_auth_router(db) -> APIRouter:
         return {"ok": True, "deleted": deleted}
 
     @router.post("/forgot-password")
-    async def forgot_password(payload: ForgotPasswordRequest):
+    @limiter.limit("3/minute")
+    async def forgot_password(request: Request, payload: ForgotPasswordRequest = Body(...)):
         """DPDP-compliant password reset trigger.
 
         Always returns 200 with the same shape regardless of whether the email
@@ -285,7 +288,8 @@ def build_auth_router(db) -> APIRouter:
         return {"ok": True, "message": "If an account exists for this email, a reset link has been sent."}
 
     @router.post("/reset-password")
-    async def reset_password(payload: ResetPasswordRequest, response: Response):
+    @limiter.limit("5/minute")
+    async def reset_password(request: Request, response: Response, payload: ResetPasswordRequest = Body(...)):
         rec = await db.password_resets.find_one({"token": payload.token, "used": False})
         if not rec:
             raise HTTPException(status_code=400, detail="Invalid or already-used reset link")

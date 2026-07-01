@@ -20,6 +20,8 @@ import os
 from dotenv import load_dotenv
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
 
 load_dotenv()
 
@@ -27,11 +29,16 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("perk_orbit")
 
 from services.db import EMERGENT_LLM_KEY, db  # noqa: E402
+from services.rate_limit import limiter  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # FastAPI App
 # ---------------------------------------------------------------------------
 app = FastAPI(title="PerkWorth API", version="2.0")
+
+# Rate limiter (slowapi) — LAUNCH_CHECKLIST §5.6
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,

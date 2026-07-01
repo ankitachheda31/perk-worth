@@ -3,7 +3,7 @@ import { ShieldCheck, KeyRound, ChevronRight, FileText, MessageCircle, Lock, Spa
 import { Card, GhostButton, TopBar } from '../components/ui'
 import { Auth } from '../lib/api'
 import { setStoredPin, setProfile } from '../lib/store'
-import { isBiometricAvailable, isBiometricEnrolled, enrollBiometric, disableBiometric, getBiometricBackend } from '../lib/biometric'
+import { isBiometricAvailable, isBiometricEnrolled, enrollBiometric, disableBiometric, getBiometricBackend, verifyBiometric } from '../lib/biometric'
 import { isNotifOptedIn, setNotifOptIn, requestNotificationPermission } from '../lib/push'
 
 export default function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpenPrivacy, onOpenFAQ, onOpenPrivacyControl, onOpenPerkTips, onReplayTour, onWipe, onLogout, toast }) {
@@ -63,6 +63,20 @@ export default function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpen
     }
   }
   const wipe = async () => {
+    // Biometric step-up: if enrolled, require fingerprint/face before wiping.
+    // Falls through silently if not enrolled — never traps the user.
+    if (isBiometricEnrolled()) {
+      try {
+        const ok = await verifyBiometric()
+        if (!ok) {
+          toast?.('Biometric required to delete account')
+          return
+        }
+      } catch {
+        toast?.('Biometric check failed — try again or turn it off first')
+        return
+      }
+    }
     setBusy(true)
     try {
       await Auth.wipe()
@@ -75,6 +89,20 @@ export default function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpen
       toast?.('Could not delete · try again')
       setBusy(false)
     }
+  }
+
+  // Biometric step-up wrapper for the "Change PIN" button.
+  // If biometric is enrolled, verify first; otherwise proceed directly.
+  const guardedResetPin = async () => {
+    if (isBiometricEnrolled()) {
+      try {
+        const ok = await verifyBiometric()
+        if (!ok) { toast?.('Biometric required to change PIN'); return }
+      } catch {
+        toast?.('Biometric check failed'); return
+      }
+    }
+    onResetPin?.()
   }
   return (
     <>
@@ -96,7 +124,7 @@ export default function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpen
         <Card className="p-5">
           <p className="font-display font-bold text-ink-900 mb-2">App PIN</p>
           <p className="text-xs text-ink-500 mb-3">PIN is stored locally on this device only. Cloud account stays signed in across devices.</p>
-          <GhostButton data-testid="reset-pin" onClick={onResetPin}><KeyRound className="w-4 h-4" /> Change PIN</GhostButton>
+          <GhostButton data-testid="reset-pin" onClick={guardedResetPin}><KeyRound className="w-4 h-4" /> Change PIN</GhostButton>
         </Card>
 
         <Card className="p-5" data-testid="settings-notifications-card">

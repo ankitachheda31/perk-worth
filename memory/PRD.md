@@ -382,3 +382,39 @@
 - **P2** WhatsApp Business API to replace static `wa.me` links (bot routing + templates)
 - **P3** iOS Biometric Auth (deferred — requires Apple Dev account)
 
+
+
+
+## 2026-07-02 — Iteration 25 · "Best Card for THIS voucher" widget + WhatsApp Business API (stub)
+### A · Best Card widget
+- **New component**: `/app/frontend/src/components/BestCardWidget.jsx` — narrow brand-category → card spend-category mapper (grocery→groceries, food-delivery→food_delivery, oil-gas/fuel→fuel, airline/hospitality/ride-hailing→travel, ott/music/media→entertainment, fitness→fitness, ecommerce/fashion/electronics-retail→online_shopping). Fetches top card via `Cards.best(cat, 10000, 1, null)`. Renders nothing if category unmapped or results empty.
+- **Two placements**:
+  - `AddVoucherSheet.jsx` (below parent-brand chip when adding, not editing) — full-size card with tagline + est ₹/yr.
+  - `Cards.jsx VoucherCard` (below action row for active vouchers only, hidden when redeemed) — compact "+X% with <card> · GET CARD" pill.
+- Click-through logs attribution via `POST /api/cards/click` (source: `add_sheet` | `voucher_card`) then opens `apply_url` in a new tab.
+- Testids: `best-card-widget-<id>`, `best-card-compact-<id>`, `best-card-cta-<id>`.
+
+### B · WhatsApp Business API — Meta Cloud direct, feature-flagged
+- **New service**: `/app/backend/services/whatsapp.py` — `send_voucher_expiry_alert`, `send_pro_membership_activated`, `send_family_circle_invite`, `status()`. Env-gated by `WHATSAPP_ENABLED` — when `0` (default) OR missing credentials, every call logs `WhatsApp send skipped (WHATSAPP_ENABLED=0)` and returns `{sent: False, reason: "disabled"}`. When `1` + creds set, POSTs to `https://graph.facebook.com/v21.0/{PHONE_NUMBER_ID}/messages` with a template payload.
+- **Loose E.164 normaliser**: strips non-digits, defaults to +91 country code for 10-digit inputs.
+- **Trigger points wired** (all non-blocking, wrapped in try/except):
+  - `services/notifications_logic.py` — on FIRST insert of an `urgent_expiry` notification (idempotent via `result.upserted_id is not None`), fires voucher-expiry template.
+  - `routes/billing.py` — after Razorpay verify + Pro activation, fires pro-membership-activated template.
+  - `routes/circle.py` — accepts new optional `phone` on `POST /api/circle/members`, fires family-circle-invite template; records `invite_whatsapp_sent` boolean on the member doc.
+- **Admin surface**: `GET /api/admin/whatsapp/status` (admin-only) returns `{enabled, has_access_token, has_phone_number_id, has_business_account_id, mode}` — never exposes the token itself.
+- **Model change**: `FamilyCircleAdd` gains optional `phone: Optional[str]`.
+- **Env additions** (backend/.env): `WHATSAPP_ENABLED=0`, `WHATSAPP_ACCESS_TOKEN=`, `WHATSAPP_PHONE_NUMBER_ID=`, `WHATSAPP_BUSINESS_ACCOUNT_ID=`.
+- **Templates docs**: `/app/WHATSAPP_TEMPLATES.md` — 6 draft templates (3 events × EN/Hindi) in Meta's Utility category. User submits to Meta Business Manager for approval, then flips `WHATSAPP_ENABLED=1` and the same triggers start sending real messages.
+- **Static `wa.me` links** (voucher-card support button + SecurityFAQ + HowWeProtectYou modal) remain UNCHANGED — those are user-initiated 1-to-1 support chats that don't need a business API. This iteration adds automated OUTBOUND alerts as an additive channel.
+
+### Testing (iteration 20)
+- Testing agent: **194/194 backend tests passing** (11 new in `test_iter20_bestcard_whatsapp.py` + 183 existing). Frontend smoke on preview URL verified — parent-brand chip + BestCardWidget both render for BigBasket in AddVoucherSheet; compact widget renders on active vouchers, hidden on redeemed ones.
+
+### Production checklist reminders
+- `DISABLE_RATE_LIMIT=1` and `WHATSAPP_ENABLED=0` in dev/.env MUST NOT ship to prod as-is.
+- Once WABA is approved, populate `WHATSAPP_ACCESS_TOKEN` + `WHATSAPP_PHONE_NUMBER_ID`, set `WHATSAPP_ENABLED=1`, restart backend.
+
+### Prioritized backlog (updated)
+- **P2** Daily auto-updating offers ETL (scheduled scrape of brand offers into an in-app feed)
+- **P3** iOS Biometric Auth (deferred — requires Apple Dev account)
+- **P3** WhatsApp inbound webhook + bot routing (only if user requests two-way support)

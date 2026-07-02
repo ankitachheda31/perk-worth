@@ -4,6 +4,7 @@ import { Tag } from './ui'
 import { daysUntil, fmtDate, fmtINR } from '../lib/format'
 import { WA_SUPPORT_NUMBER } from '../lib/constants'
 import { Support } from '../lib/api'
+import BestCardWidget from './BestCardWidget'
 
 /**
  * Masked membership / FFP / card number display — last 4 visible, eye toggle reveals all.
@@ -141,6 +142,10 @@ export function VoucherCard({ v, onCopy, onHowTo, onDelete, onShare, onUnshare, 
           </>
         )}
       </div>
+
+      {v.status !== 'redeemed' ? (
+        <BestCardWidget brand={v.brand} pin={pin} source="voucher_card" compact />
+      ) : null}
     </div>
   )
 }

@@ -72,7 +72,7 @@ async def generate_dynamic_notifications(db, user_pin: str) -> list[dict]:
     # Upsert (idempotent by user_pin + kind + ref_voucher_id)
     for n in items:
         n["created_at"] = datetime.now(timezone.utc).isoformat()
-        await db.notifications.update_one(
+        result = await db.notifications.update_one(
             {
                 "user_pin": n["user_pin"],
                 "kind": n["kind"],
@@ -81,6 +81,31 @@ async def generate_dynamic_notifications(db, user_pin: str) -> list[dict]:
             {"$setOnInsert": {**n, "read": False}},
             upsert=True,
         )
+        # Fire WhatsApp on FIRST insert of urgent_expiry only — no dupes on re-run
+        if n["kind"] == "urgent_expiry" and result.upserted_id is not None:
+            try:
+                from bson import ObjectId
+                from services.whatsapp import send_voucher_expiry_alert
+                user = None
+                try:
+                    user = await db.users.find_one({"_id": ObjectId(user_pin)})
+                except Exception:
+                    user = None
+                if user and user.get("phone"):
+                    voucher = await db.vouchers.find_one({"_id": ObjectId(n["ref_voucher_id"])})
+                    if voucher:
+                        await send_voucher_expiry_alert(
+                            phone=user.get("phone"),
+                            user_name=user.get("name") or "",
+                            brand=voucher.get("brand") or "voucher",
+                            code=voucher.get("code") or voucher.get("title") or "voucher",
+                            expiry_date=voucher.get("expiry") or "soon",
+                        )
+            except Exception:
+                import logging
+                logging.getLogger("perk_orbit.notifications").exception(
+                    "Voucher-expiry WhatsApp send failed (non-blocking)"
+                )
     # Clean stale ending-soon / urgent_expiry for vouchers that no longer qualify
     keep_voucher_ids = [n["ref_voucher_id"] for n in items
                         if n["kind"] in ("ending_soon", "urgent_expiry")]

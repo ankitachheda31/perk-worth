@@ -164,6 +164,7 @@ class FamilyCircleAdd(BaseModel):
     name: str
     relation: Optional[str] = None
     email: Optional[EmailStr] = None
+    phone: Optional[str] = None  # E.164-ish; for WhatsApp invite (optional)
     inviter_name: Optional[str] = None
 
 

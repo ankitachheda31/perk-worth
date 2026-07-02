@@ -25,18 +25,21 @@ def build_circle_router(db) -> APIRouter:
             "name": payload.name,
             "relation": payload.relation,
             "email": payload.email,
+            "phone": payload.phone,
             "invite_token": token,
             "invite_email_sent": False,
+            "invite_whatsapp_sent": False,
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
         res = await db.circle_members.insert_one(doc)
         saved = await db.circle_members.find_one({"_id": res.inserted_id})
 
+        frontend = os.environ.get("FRONTEND_URL", "https://perkworth.app").rstrip("/")
+        invite_url = f"{frontend}/invite/{token}"
+
         if payload.email:
             try:
                 from mailer import send_circle_invite
-                frontend = os.environ.get("FRONTEND_URL", "https://perkworth.app").rstrip("/")
-                invite_url = f"{frontend}/invite/{token}"
                 ok = await send_circle_invite(
                     to_email=str(payload.email),
                     inviter_name=(payload.inviter_name or "A PerkWorth member"),
@@ -55,6 +58,29 @@ def build_circle_router(db) -> APIRouter:
                     saved = await db.circle_members.find_one({"_id": res.inserted_id})
             except Exception:
                 logging.exception("Circle invite email failed (continuing)")
+
+        # WhatsApp invite (stub-safe — no-op when WHATSAPP_ENABLED=0)
+        if payload.phone:
+            try:
+                from services.whatsapp import send_family_circle_invite
+                wa_result = await send_family_circle_invite(
+                    phone=payload.phone,
+                    invitee_name=payload.name,
+                    inviter_name=(payload.inviter_name or "A PerkWorth member"),
+                    invite_url=invite_url,
+                )
+                if wa_result.get("sent"):
+                    await db.circle_members.update_one(
+                        {"_id": res.inserted_id},
+                        {"$set": {
+                            "invite_whatsapp_sent": True,
+                            "invite_whatsapp_sent_at": datetime.now(timezone.utc).isoformat(),
+                        }},
+                    )
+                    saved = await db.circle_members.find_one({"_id": res.inserted_id})
+            except Exception:
+                logging.exception("Circle invite WhatsApp failed (continuing)")
+
         return serialize(saved)
 
     @r.get("/circle/members")

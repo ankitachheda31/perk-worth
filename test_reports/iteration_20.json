@@ -1,0 +1,31 @@
+{
+  "summary": "Iter 20 — Full-stack validation of (A) BestCard widget + (B) WhatsApp stub-mode triggers. Backend: 194/194 tests passing (183 pre-existing + 11 new in test_iter20_bestcard_whatsapp.py). All new features covered: GET /api/cards/best for groceries/food_delivery/fuel (BPCL SBI Octane @7.25% correctly on top for fuel), POST /api/cards/click 200, GET /api/brands/lookup?q=Swiggy returns category, POST /api/circle/members accepts optional `phone` and returns invite_whatsapp_sent=False in stub mode, backwards compat without phone still works, GET /api/admin/whatsapp/status returns 403 for non-admin / 200 for admin (test@perkorbit.app is auto-promoted via ADMIN_OWNER_EMAILS in registry_service.py) with fields {enabled:false, has_access_token:false, has_phone_number_id:false, has_business_account_id:false, mode:'stub'}, and backend log grep confirms 'WhatsApp send skipped (WHATSAPP_ENABLED=0)' fires on circle add with phone. Frontend smoke on live preview URL: logged in as test@perkorbit.app/Perk@1234 → set PIN 1234 → skipped tour → opened AddVoucherSheet → typed 'BigBasket' → confirmed parent-brand chip 'BigBasket · Tata Group · grocery' AND BestCardWidget rendered with data-testid best-card-widget-* showing 'BEST CARD FOR THIS · SBI Cashback Card +5% · ~₹6,000/yr · Learn more →'. Backend network calls /api/brands/lookup?q=BigBasket and /api/cards/best?category=groceries fired as expected. On My Coupons tab: 3 active Croma vouchers each display a compact best-card-compact-* pill ('+5% with HDFC Millennia · GET CARD'); the one voucher whose status is truly redeemed (TEST_RegB12) does NOT show the compact widget — behavior matches spec. Rate limiter still disabled via DISABLE_RATE_LIMIT=1.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter20_bestcard_whatsapp.py",
+    "/app/test_reports/pytest/iter20_full.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "services/whatsapp.py cleanly separates stub/live paths via a single WHATSAPP_ENABLED gate — good. Consider tagging the log line with a structured extra={'template': ...} so downstream log ingestion can filter on template name once live.",
+    "notifications_logic.py fires WhatsApp only when result.upserted_id is not None — this is idempotency-correct, but if the notifications collection is ever manually wiped in prod, users would re-receive an alert on the next cron. Acceptable but worth documenting.",
+    "routes/billing.py verify_payment resolves the user via ObjectId(payload.user_pin) — this only works when user_pin equals the Mongo _id string. Fine for current implementation but silently no-ops (via except) if user_pin is a hashed PIN; a debug log on the 'no user found' branch would speed future debugging.",
+    "BestCardWidget.jsx CATEGORY_MAP is a narrow allow-list; unmapped categories render nothing. Consider a fallback tier (e.g. treat 'others' → generic 'online_shopping') so more brands surface a recommendation. Not blocking.",
+    "WHATSAPP_ENABLED=0 in backend/.env — production deploy pipeline MUST NOT accidentally ship this repo's .env; the same DISABLE_RATE_LIMIT=1 warning applies."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter20_bestcard_whatsapp.py (new — 11 targeted tests: best-card catalogue, click attribution, brand lookup category, circle add with/without phone, admin WhatsApp status auth matrix, log-skip marker verification)"
+  ],
+  "success_rate": { "backend": "100% (194/194 passing, 2 unrelated skips)", "frontend": "100% (both smoke flows verified end-to-end on preview URL)" },
+  "test_credentials": "test@perkorbit.app / Perk@1234 (auto-promoted to role=admin at startup via ADMIN_OWNER_EMAILS). Device PIN 1234.",
+  "seed_data_creation": "test_iter20_bestcard_whatsapp.py creates TEST_ prefixed circle_members with self-cleanup via DELETE at end of each test. One throwaway TEST_nonadm_<uuid>@perkworth.app signup for the non-admin 403 assertion (no cleanup — safe due to TEST_ prefix).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All 12 items in the review request are verified green. Backend regression file to re-run on future changes: pytest /app/backend/tests/test_iter20_bestcard_whatsapp.py -v (2.8s). For frontend, the best-card widget testids are best-card-widget-<id> (AddVoucherSheet), best-card-compact-<id> (VoucherCard active only), best-card-cta-<id> (both). WHATSAPP_ENABLED remains 0 — do NOT flip on unless WABA is approved. Rate limiter still disabled.",
+  "rca of the issue": "N/A — feature-verification iteration; no bugs found."
+}

@@ -153,6 +153,25 @@ def build_billing_router(db) -> APIRouter:
             "read": False,
             "created_at": datetime.now(timezone.utc).isoformat(),
         })
+        # Best-effort WhatsApp confirmation — stub-safe (no-op if disabled)
+        try:
+            from bson import ObjectId
+            from services.whatsapp import send_pro_membership_activated
+            user = None
+            try:
+                user = await db.users.find_one({"_id": ObjectId(payload.user_pin)})
+            except Exception:
+                user = None
+            if user and user.get("phone"):
+                expires_on = expires[:10]  # YYYY-MM-DD
+                await send_pro_membership_activated(
+                    phone=user.get("phone"),
+                    user_name=user.get("name") or "",
+                    plan_label=doc["plan"],
+                    expires_on=expires_on,
+                )
+        except Exception:
+            log.exception("Pro membership WhatsApp send failed (non-blocking)")
         return {**doc, "referral": referral_outcome}
 
     @r.get("/referrals/preview")

@@ -182,4 +182,11 @@ def build_admin_dashboard_router(db, get_current_user) -> APIRouter:
             },
         }
 
+    @router.get("/whatsapp/status")
+    async def whatsapp_status(_admin=Depends(admin_only)):
+        """Admin-only probe: shows whether outbound WhatsApp is live or stubbed.
+        Never leaks the token itself."""
+        from services.whatsapp import status as _wa_status
+        return _wa_status()
+
     return router

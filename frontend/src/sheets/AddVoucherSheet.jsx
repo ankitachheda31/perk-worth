@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Sparkles, ShieldCheck, Camera, Mic, Square } from 'lucide-react'
 import { Sheet, PrimaryButton } from '../components/ui'
+import BestCardWidget from '../components/BestCardWidget'
 import { Vouchers, Extract, Loyalty } from '../lib/api'
 
 function FormField({ label, value, onChange, placeholder, testid, type = 'text', textarea, mono }) {
@@ -682,6 +683,10 @@ export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast, ed
             <div data-testid="parent-brand-chip" className="inline-flex items-center gap-1.5 text-[11px] font-semibold bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-full px-2.5 py-1 -mt-1">
               🏢 Part of <span className="font-bold">{parentBrand.parent_company}</span> · auto-tagged for ROI tracking
             </div>
+          ) : null}
+
+          {parentBrand?.category && !editing ? (
+            <BestCardWidget brandCategory={parentBrand.category} brand={parentBrand.brand} pin={pin} source="add_sheet" />
           ) : null}
 
           {/* SMART LOYALTY AUTO-DETECT BANNER (with always-visible Custom override) */}

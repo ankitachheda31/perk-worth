@@ -46,7 +46,17 @@ async def send_email(
     html: str,
     text: Optional[str] = None,
 ) -> bool:
-    """Send an email via Resend. Returns True on success, False otherwise."""
+    """Send an email via Resend. Returns True on success, False otherwise.
+
+    Universal kill-switch: setting env EMAIL_SEND_ENABLED=0 short-circuits every
+    outbound email in the app (forgot-password, circle invite, voucher share,
+    membership receipts — everything routing through this helper). Use during
+    incidents when the inbox is flooding OR in dev/CI to prevent test emails.
+    """
+    import os
+    if os.environ.get("EMAIL_SEND_ENABLED", "1") != "1":
+        log.info("EMAIL_SEND_ENABLED=0 — skipping email to=%s subject=%r", to, subject)
+        return False
     if not _configured():
         log.warning("RESEND_API_KEY missing — skipping email to %s (%s)", to, subject)
         return False

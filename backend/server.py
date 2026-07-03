@@ -124,6 +124,8 @@ async def _on_startup():
         await db.vouchers.create_index([("user_pin", 1), ("category", 1)])
         await db.vouchers.create_index([("user_pin", 1), ("shared_with", 1)])
         await db.notifications.create_index([("user_pin", 1), ("created_at", -1)])
+        # Compound index for forgot-password cooldown lookup (iter 25 flood fix)
+        await db.password_resets.create_index([("email", 1), ("created_at", -1)])
         await db.brand_programs.create_index("brand", unique=True)
     except Exception as e:
         log.warning("Index init: %s", e)

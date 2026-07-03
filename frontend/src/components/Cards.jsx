@@ -144,7 +144,7 @@ export function VoucherCard({ v, onCopy, onHowTo, onDelete, onShare, onUnshare, 
       </div>
 
       {v.status !== 'redeemed' ? (
-        <BestCardWidget brand={v.brand} pin={pin} source="voucher_card" compact />
+        <BestCardWidget brand={v.brand} voucherValue={v.value} pin={pin} source="voucher_card" compact />
       ) : null}
     </div>
   )

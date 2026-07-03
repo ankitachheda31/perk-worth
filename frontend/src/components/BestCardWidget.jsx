@@ -49,12 +49,15 @@ function mapCategory(brandCategory) {
 const fmtINR = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`
 
 /**
- * BestCardWidget — inline "Use this card for +X cashback" recommendation.
+ * BestCardWidget — inline "Use this card for +X cashback" recommendation,
+ * with an optional combined-savings stack when a voucher `value` is supplied.
  *
  * Props:
  *   brandCategory  — brand's registry category (e.g. "grocery"). Optional —
  *                    if omitted, the widget resolves it via /api/brands/lookup.
  *   brand          — display brand name (also used to resolve category)
+ *   voucherValue   — voucher discount amount in ₹ (optional). When present +
+ *                    a card is recommended, shows: voucher + card cashback = total.
  *   pin            — user_pin/user_id for click attribution
  *   source         — where the widget is mounted ("voucher_card" | "add_sheet")
  *   compact        — tighter styling for use inside VoucherCard
@@ -62,7 +65,7 @@ const fmtINR = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`
  * Renders nothing if the brand category doesn't map to a card spend category,
  * or if the API returns no cards.
  */
-export default function BestCardWidget({ brandCategory, brand, pin, source = 'voucher_card', compact = false }) {
+export default function BestCardWidget({ brandCategory, brand, voucherValue, pin, source = 'voucher_card', compact = false }) {
   const [resolvedCategory, setResolvedCategory] = useState(brandCategory || null)
   const [best, setBest] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -100,6 +103,13 @@ export default function BestCardWidget({ brandCategory, brand, pin, source = 'vo
 
   if (!cardCategory || loading || !best) return null
 
+  // Combined-savings math — only when a voucher value is supplied.
+  // Card cashback estimate = voucher_value × category_rate_pct%.
+  const vVal = Number(voucherValue) > 0 ? Number(voucherValue) : null
+  const cardCashback = vVal ? Math.round((vVal * (best.category_rate_pct || 0)) / 100) : null
+  const combinedTotal = vVal && cardCashback != null ? vVal + cardCashback : null
+  const hasStack = combinedTotal != null && cardCashback > 0
+
   const onLearnMore = (e) => {
     e.preventDefault()
     e.stopPropagation()
@@ -121,10 +131,28 @@ export default function BestCardWidget({ brandCategory, brand, pin, source = 'vo
       >
         <CreditCard className="w-3.5 h-3.5 text-emerald-800 shrink-0" />
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold text-ink-900 truncate">
-            <span className="text-emerald-800">+{best.category_rate_pct}%</span> with {best.name}
-          </p>
-          <p className="text-[10px] text-ink-500 truncate">on {brand || 'this brand'} · ~{fmtINR(best.estimated_annual_reward_inr)}/yr</p>
+          {hasStack ? (
+            <>
+              <p
+                data-testid={`best-card-stack-${best.id}`}
+                className="text-[11px] font-semibold text-ink-900 truncate"
+              >
+                {fmtINR(vVal)} <span className="text-ink-400">voucher</span>
+                {' + '}
+                <span className="text-emerald-800">{fmtINR(cardCashback)} cashback</span>
+                {' = '}
+                <span className="font-bold text-emerald-900">{fmtINR(combinedTotal)}</span>
+              </p>
+              <p className="text-[10px] text-ink-500 truncate">Stack with {best.name} (+{best.category_rate_pct}%)</p>
+            </>
+          ) : (
+            <>
+              <p className="text-[11px] font-semibold text-ink-900 truncate">
+                <span className="text-emerald-800">+{best.category_rate_pct}%</span> with {best.name}
+              </p>
+              <p className="text-[10px] text-ink-500 truncate">on {brand || 'this brand'} · ~{fmtINR(best.estimated_annual_reward_inr)}/yr</p>
+            </>
+          )}
         </div>
         <button
           onClick={onLearnMore}
@@ -157,6 +185,21 @@ export default function BestCardWidget({ brandCategory, brand, pin, source = 'vo
           </p>
         </div>
       </div>
+      {hasStack ? (
+        <div
+          data-testid={`best-card-stack-full-${best.id}`}
+          className="mt-3 bg-white/70 border border-emerald-200 rounded-xl px-3 py-2.5"
+        >
+          <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-800">Combined savings on this order</p>
+          <p className="text-sm font-semibold text-ink-900 mt-1 leading-snug">
+            {fmtINR(vVal)} <span className="text-ink-400">voucher</span>
+            {' + '}
+            <span className="text-emerald-800">{fmtINR(cardCashback)} cashback</span>
+            {' = '}
+            <span className="font-display font-bold text-emerald-900">{fmtINR(combinedTotal)}</span>
+          </p>
+        </div>
+      ) : null}
       <div className="flex justify-end mt-2">
         <button
           onClick={onLearnMore}

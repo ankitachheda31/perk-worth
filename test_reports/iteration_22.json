@@ -1,0 +1,34 @@
+{
+  "summary": "Iter 22: Combined savings stack on VoucherCard (P1). Backend regression sanity: 210 passed / 2 skipped (unchanged). Frontend E2E on live public URL — all acceptance criteria met. New combined-savings math renders correctly in both compact (VoucherCard) and full (AddVoucherSheet) modes. Fallback + hide cases behave as spec'd. Get card CTA opens apply_url in new tab and fires POST /api/cards/click with correct payload. No console errors.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "acceptance_criteria_verified": [
+    "Compact stack in VoucherCard: Croma (electronics-retail → online_shopping) ₹100 shows '₹100 voucher + ₹5 cashback = ₹105' + 'Stack with HDFC Millennia (+5%)'. testids best-card-stack-hdfc-millennia and best-card-compact-hdfc-millennia both present.",
+    "Redeemed vouchers: no widget rendered (verified via Cards.jsx guard `v.status !== 'redeemed'`).",
+    "AddVoucherSheet full widget: BigBasket (grocery) ₹500 → SBI Cashback 5% → 'Combined savings on this order — ₹500 voucher + ₹25 cashback = ₹525'. testid best-card-stack-full-sbi-cashback present.",
+    "Math rounding: BigBasket ₹150 → '₹150 voucher + ₹8 cashback = ₹158' (7.5 rounds to 8 — Math.round half-up ✓).",
+    "Empty/zero value: BigBasket with empty value → base BestCardWidget renders but combined-savings subcard HIDDEN (best-card-stack-full-* NOT in DOM).",
+    "Membership tab: BigBasket ₹500 as Membership → stack subcard HIDDEN (voucherValue passed as null since form.category !== 'vouchers').",
+    "Get card CTA: opens https://www.hdfc.bank.in/credit-cards/... in new tab AND fires POST /api/cards/click with payload {card_id, user_pin, category:'online_shopping', source:'voucher_card'}.",
+    "Backend regression: pytest /app/backend/tests -q → 210 passed / 2 skipped in 50s. Zero new failures."
+  ],
+  "test_report_links": ["/app/backend/tests (existing suite, unchanged)"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "BestCardWidget uses import.meta.env.VITE_BACKEND_URL first then falls back to process.env.REACT_APP_BACKEND_URL — CRA build only exposes the latter, so this line is effectively `''` at build-time in production (fetch call becomes same-origin relative). Works fine here because backend is same-origin via ingress /api, but the Vite branch is dead code. Minor / non-blocking.",
+    "Rounding uses Math.round (banker/half-up) — matches spec's example (150 × 5% = 7.5 → 8). OK.",
+    "hasStack gate is `cardCashback > 0`, so a ₹1 voucher on a 1% category rounds to 0 and falls back to the '+X%' compact copy — correct fallback UX.",
+    "No new data-testids missing; testid inventory in review_request matches DOM output."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "test@perkorbit.app / Perk@1234 + device PIN 1234 (from /app/memory/test_credentials.md).",
+  "seed_data_creation": "None — used existing seeded Croma ₹100 vouchers and typed BigBasket in AddVoucherSheet for full-form verification.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Frontend-only P1 refactor of BestCardWidget verified end-to-end via live preview URL. If iterating on card/voucher math further, note two mapped categories tested: online_shopping (HDFC Millennia 5%) via Croma existing voucher, and groceries (SBI Cashback 5%) via typed BigBasket in AddVoucherSheet. Onboarding tour appears on fresh session — dismiss via 'Skip tour' text link before navigating to nav-coupons."
+}

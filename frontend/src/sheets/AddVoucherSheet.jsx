@@ -686,7 +686,13 @@ export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast, ed
           ) : null}
 
           {parentBrand?.category && !editing ? (
-            <BestCardWidget brandCategory={parentBrand.category} brand={parentBrand.brand} pin={pin} source="add_sheet" />
+            <BestCardWidget
+              brandCategory={parentBrand.category}
+              brand={parentBrand.brand}
+              voucherValue={form.category === 'vouchers' ? form.value : null}
+              pin={pin}
+              source="add_sheet"
+            />
           ) : null}
 
           {/* SMART LOYALTY AUTO-DETECT BANNER (with always-visible Custom override) */}

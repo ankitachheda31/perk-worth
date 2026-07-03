@@ -454,3 +454,30 @@
 - **P3** Encrypted local backup (.zip w/ PIN — DPDP Article 20)
 - **P3** Session activity log + per-device revocation UI
 - **P3** iOS Biometric Auth (requires Apple Dev account)
+
+
+
+## 2026-07-02 — Iteration 27 · Combined savings stack on VoucherCard (frontend-only)
+- **BestCardWidget** gains a `voucherValue` prop. When provided AND a card is recommended AND the computed cashback rounds to ≥₹1, the widget swaps the generic "+X% with <card>" copy for a **combined-savings stack**:
+  - **Compact (VoucherCard)**: `₹100 voucher + ₹5 cashback = ₹105 · Stack with HDFC Millennia (+5%)`. Testid `best-card-stack-<card_id>`.
+  - **Full (AddVoucherSheet)**: extra "Combined savings on this order" white-inset subcard *below* the base card recommendation. Testid `best-card-stack-full-<card_id>`.
+- **Math**: `cashback = round(voucher_value × category_rate_pct / 100)`. Uses `Math.round` half-up (₹7.5 → ₹8).
+- **Fallback behavior** preserved:
+  - Voucher without `value` → shows base "+X% with <card>" copy (no stack).
+  - Voucher `.status === 'redeemed'` → widget hidden entirely (unchanged).
+  - Membership form (`category !== 'vouchers'`) → stack subcard hidden (only base widget renders).
+- **Files touched**: `frontend/src/components/BestCardWidget.jsx`, `frontend/src/components/Cards.jsx` (passes `v.value`), `frontend/src/sheets/AddVoucherSheet.jsx` (passes `form.value` only when vouchers, not memberships). Zero backend changes.
+- **Testing (iter 22)**: 210/210 backend still pass; frontend E2E verified on live preview — Croma ₹100 shows compact stack, BigBasket ₹500 (typed) shows full-form stack `₹500 + ₹25 = ₹525`, empty value falls back correctly, membership hides subcard, `Get card` CTA opens apply_url + logs click.
+
+### Prioritized backlog (updated — P1 slot cleared)
+- **P1** Weekly Savings Digest via WhatsApp + Email (Sunday 9am IST)
+- **P1** Public voucher pack share links (`/pack/<token>` — Family Circle → signup funnel)
+- **P2** Referral tiers + leaderboard (3/5/10 referrals unlock progressive rewards)
+- **P2** Daily auto-updating offers ETL (scheduled brand-offer scrape)
+- **P2** Bank SMS spend profiler → card-swap recommendation module
+- **P3** Chrome extension for auto-coupon-detect at checkout
+- **P3** Voucher marketplace (P2P swap via Razorpay Route escrow)
+- **P3** Encrypted local backup (.zip w/ PIN — DPDP Article 20)
+- **P3** Session activity log + per-device revocation UI
+- **P3** iOS Biometric Auth (requires Apple Dev account)
+- **P3** Pro-active WhatsApp nudges (send urgent_expiry as free session-text when user has active wa_session within 24hr, save ₹0.35/conversation)

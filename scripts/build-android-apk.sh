@@ -13,6 +13,11 @@
 #   7. Prints the APK path when done
 #
 # Idempotent — safe to re-run. Every step checks its own preconditions.
+#
+# Backend URL selection order (Step 3 preflight validates it):
+#   1. VITE_BACKEND_URL             — explicit override (recommended for CI)
+#   2. REACT_APP_BACKEND_URL        — value from frontend/.env
+#   3. (no fallback)                — preflight will fail and tell you to set one
 
 set -euo pipefail
 
@@ -90,7 +95,19 @@ step 3 "Building web bundle (vite build)"
 
 # Preflight the backend URL — refuse to build against a dead endpoint.
 # This catches the #1 support ticket: "app shows Network error on my phone"
-BACKEND_URL="${VITE_BACKEND_URL:-${REACT_APP_BACKEND_URL:-https://perkworth.app}}"
+BACKEND_URL="${VITE_BACKEND_URL:-${REACT_APP_BACKEND_URL:-}}"
+if [[ -z "$BACKEND_URL" ]]; then
+  # Try to source from frontend/.env if the shell doesn't have it
+  if [[ -f "$FRONTEND_DIR/.env" ]]; then
+    BACKEND_URL=$(grep -E '^REACT_APP_BACKEND_URL=' "$FRONTEND_DIR/.env" | head -1 | cut -d '=' -f2- | tr -d '"' | tr -d "'" | tr -d '\r')
+  fi
+fi
+if [[ -z "$BACKEND_URL" ]]; then
+  warn "No backend URL configured. Set one of:"
+  warn "  • export VITE_BACKEND_URL=https://your-backend"
+  warn "  • REACT_APP_BACKEND_URL=... in frontend/.env"
+  die "Cannot proceed without a backend URL."
+fi
 info "Backend URL that will be baked into the APK: $BACKEND_URL"
 
 HEALTH_CODE=$(curl -sL -o /tmp/perkworth-health.txt -w "%{http_code}" --max-time 10 "$BACKEND_URL/api/health" || echo "000")
@@ -100,11 +117,7 @@ if [[ "$HEALTH_CODE" != "200" ]]; then
   warn "Building the APK against this URL will produce a 'Network error' on your phone."
   warn ""
   warn "Fix: set VITE_BACKEND_URL to a URL where /api/health returns 200. Example:"
-  warn "    export VITE_BACKEND_URL=https://your-backend.example.com"
-  warn "    bash scripts/build-android-apk.sh"
-  warn ""
-  warn "If you don't have a production backend yet, use the current dev preview URL:"
-  warn "    export VITE_BACKEND_URL=https://orbit-vouchers.preview.emergentagent.com"
+  warn "    export VITE_BACKEND_URL=\$REACT_APP_BACKEND_URL   # use value from frontend/.env"
   warn "    bash scripts/build-android-apk.sh"
   die "Aborting so you don't ship a broken APK."
 fi

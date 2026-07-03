@@ -12,7 +12,7 @@ import requests
 from bson import ObjectId
 from pymongo import MongoClient
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://orbit-vouchers.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8001").rstrip("/")
 # Read backend env directly for Mongo introspection
 def _read_env(key):
     try:

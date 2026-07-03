@@ -7,7 +7,7 @@ import time
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://orbit-vouchers.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8001").rstrip("/")
 TEST_EMAIL = "test@perkorbit.app"
 TEST_PASSWORD = "Perk@1234"
 TEST_PIN = "1234"

@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 
 // Hard fallback so production never inlines the literal string "undefined"
 // when the Vercel env var is missing. Update only if backend host changes.
-const DEFAULT_BACKEND_URL = 'https://orbit-vouchers.preview.emergentagent.com'
+const DEFAULT_BACKEND_URL = 'http://localhost:8001'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')

@@ -3,7 +3,7 @@
 **Build version**: post-iteration-12 (edit-voucher fix verified)
 **Production URL**: https://www.perkworth.com
 **Mirror**: https://perkworth.app
-**Backend URL**: https://orbit-vouchers.preview.emergentagent.com (Emergent preview — production deployment pending)
+**Backend URL**: Emergent-provisioned preview URL (see `backend/.env` → `REACT_APP_BACKEND_URL`) — production deployment pending
 **Health**: 14/14 endpoints HEALTHY ✅
 
 ---

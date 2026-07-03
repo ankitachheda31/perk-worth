@@ -37,7 +37,7 @@ In the Vercel project → **Settings → Environment Variables**, add:
 
 | Name | Value | Environments |
 |---|---|---|
-| `REACT_APP_BACKEND_URL` | `https://orbit-vouchers.preview.emergentagent.com` | Production, Preview, Development |
+| `REACT_APP_BACKEND_URL` | *(Emergent-provisioned preview URL — copy the exact value from `backend/.env`)* | Production, Preview, Development |
 | `VITE_RAZORPAY_KEY_ID` | `rzp_test_T2eKeMQSIX0Vlq` | Production, Preview, Development |
 
 > Replace `REACT_APP_BACKEND_URL` with your final backend URL once you migrate the FastAPI backend off Emergent (e.g. Railway / Render / Fly).

@@ -12,6 +12,8 @@ export default function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpen
   const [confirmText, setConfirmText] = useState('')
   const [busy, setBusy] = useState(false)
   const [bioSupported, setBioSupported] = useState(false)
+  const [bioCheckDone, setBioCheckDone] = useState(false)  // has async availability check finished?
+  const [bioReason, setBioReason] = useState('')            // human-readable reason if unavailable
   const [bioEnabled, setBioEnabled] = useState(isBiometricEnrolled())
   const [bioBusy, setBioBusy] = useState(false)
   const [bioBackend, setBioBackend] = useState(getBiometricBackend())
@@ -19,7 +21,30 @@ export default function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpen
   const [notifBusy, setNotifBusy] = useState(false)
 
   useEffect(() => {
-    isBiometricAvailable().then(setBioSupported)
+    // Async detection with diagnostic. We ALWAYS render the card so the user
+    // can see WHY biometric isn't working, instead of the card silently
+    // disappearing (which drove users to Support with "where is biometrics?").
+    let alive = true
+    ;(async () => {
+      let ok = false
+      let reason = ''
+      try {
+        ok = await isBiometricAvailable()
+        if (!ok) {
+          const be = getBiometricBackend()
+          if (be === 'none') reason = 'This device does not report any biometric hardware or platform authenticator.'
+          else if (be === 'native') reason = 'Your device has biometric hardware, but no fingerprint or face is enrolled at the Android system level. Open Android Settings → Security → Fingerprint / Face unlock, enroll one, then reopen PerkWorth.'
+          else if (be === 'web') reason = 'This browser does not expose a platform authenticator. Try Chrome or Safari with the device unlock set up.'
+        }
+      } catch (e) {
+        reason = `Detection failed: ${e?.message || e?.name || 'unknown error'}`
+      }
+      if (!alive) return
+      setBioSupported(ok)
+      setBioReason(reason)
+      setBioCheckDone(true)
+    })()
+    return () => { alive = false }
   }, [])
 
   const toggleNotifs = async () => {
@@ -158,37 +183,50 @@ export default function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpen
           </div>
         </Card>
 
-        {bioSupported && (
-          <Card className="p-5" data-testid="settings-biometric-card">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-50 grid place-items-center shrink-0">
-                <Fingerprint className="w-5 h-5 text-emerald-800" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="font-display font-bold text-ink-900">Biometric unlock</p>
-                <p className="text-xs text-ink-500 mt-0.5 leading-relaxed">
-                  Unlock with Face ID / Fingerprint. PIN stays as backup — your cloud account is always recoverable.
-                </p>
-                <p className="text-[10px] text-ink-400 mt-1.5 font-mono" data-testid="biometric-backend-tag">
-                  Mode: {bioBackend === 'native' ? 'Native (Android/iOS BiometricPrompt)' : bioBackend === 'web' ? 'Web (WebAuthn)' : 'Unavailable'}
-                </p>
-                <button
-                  data-testid="biometric-toggle"
-                  onClick={toggleBiometric}
-                  disabled={bioBusy}
-                  className={`mt-3 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wide px-4 py-2.5 rounded-full active:scale-95 transition disabled:opacity-60 ${
-                    bioEnabled
-                      ? 'bg-ink-100 text-ink-800 border border-ink-200'
-                      : 'bg-emerald-800 text-white'
-                  }`}
-                >
-                  <Fingerprint className="w-3.5 h-3.5" />
-                  {bioBusy ? 'Working…' : (bioEnabled ? 'Disable biometric' : 'Enable biometric')}
-                </button>
-              </div>
+        {/* Biometric — ALWAYS visible so users can see setup status even when
+            unavailable. Previously this card was hidden when the plugin returned
+            isAvailable=false, which made users think the feature was missing. */}
+        <Card className="p-5" data-testid="settings-biometric-card">
+          <div className="flex items-start gap-3">
+            <div className={`w-10 h-10 rounded-2xl grid place-items-center shrink-0 ${bioSupported ? 'bg-emerald-50' : 'bg-ink-100'}`}>
+              <Fingerprint className={`w-5 h-5 ${bioSupported ? 'text-emerald-800' : 'text-ink-400'}`} />
             </div>
-          </Card>
-        )}
+            <div className="min-w-0 flex-1">
+              <p className="font-display font-bold text-ink-900">Biometric unlock</p>
+              <p className="text-xs text-ink-500 mt-0.5 leading-relaxed">
+                Unlock with Face ID / Fingerprint. PIN stays as backup — your cloud account is always recoverable.
+              </p>
+              <p className="text-[10px] text-ink-400 mt-1.5 font-mono" data-testid="biometric-backend-tag">
+                Mode: {bioBackend === 'native' ? 'Native (Android/iOS BiometricPrompt)' : bioBackend === 'web' ? 'Web (WebAuthn)' : 'Unavailable'}
+                {bioCheckDone && (bioSupported ? ' · Ready' : ' · Not available')}
+              </p>
+              {bioCheckDone && !bioSupported && bioReason && (
+                <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2 mt-2 leading-relaxed" data-testid="biometric-unavailable-reason">
+                  {bioReason}
+                </p>
+              )}
+              <button
+                data-testid="biometric-toggle"
+                onClick={toggleBiometric}
+                disabled={bioBusy || !bioCheckDone || !bioSupported}
+                className={`mt-3 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wide px-4 py-2.5 rounded-full active:scale-95 transition disabled:opacity-40 disabled:cursor-not-allowed ${
+                  bioEnabled
+                    ? 'bg-ink-100 text-ink-800 border border-ink-200'
+                    : 'bg-emerald-800 text-white'
+                }`}
+              >
+                <Fingerprint className="w-3.5 h-3.5" />
+                {!bioCheckDone
+                  ? 'Checking…'
+                  : bioBusy
+                    ? 'Working…'
+                    : !bioSupported
+                      ? 'Unavailable on this device'
+                      : (bioEnabled ? 'Disable biometric' : 'Enable biometric')}
+              </button>
+            </div>
+          </div>
+        </Card>
 
         <Card className="p-5">
           <p className="font-display font-bold text-ink-900 mb-2">Privacy & legal</p>

@@ -33,8 +33,21 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'yarn'
-          cache-dependency-path: frontend/yarn.lock
+
+      # Optional yarn cache — silently no-ops if no lockfile is found.
+      # setup-node's built-in `cache: 'yarn'` FAILS hard when the lockfile
+      # is missing (that's the bug we're fixing), so we use actions/cache
+      # directly with hashFiles() guarding the key.
+      - name: Cache yarn dependencies
+        if: ${{ hashFiles('frontend/yarn.lock', 'yarn.lock') != '' }}
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/yarn
+            frontend/node_modules
+          key: ${{ runner.os }}-yarn-${{ hashFiles('frontend/yarn.lock', 'yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
@@ -43,7 +56,14 @@ jobs:
 
       - name: Install frontend dependencies
         working-directory: frontend
-        run: yarn install --frozen-lockfile
+        run: |
+          if [ -f yarn.lock ]; then
+            echo "yarn.lock found — using --frozen-lockfile"
+            yarn install --frozen-lockfile
+          else
+            echo "::warning::yarn.lock not found in frontend/ — running plain 'yarn install' (this may update the lockfile). Commit yarn.lock next time for reproducible builds."
+            yarn install
+          fi
 
       - name: Preflight — verify backend is reachable
         env:

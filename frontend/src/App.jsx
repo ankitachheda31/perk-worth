@@ -10,6 +10,7 @@ import PinLock from './screens/PinLock'
 import AuthScreen from './screens/AuthScreen'
 import ResetPasswordScreen from './screens/ResetPasswordScreen'
 import Walkthrough from './screens/Walkthrough'
+import BiometricPromptScreen from './screens/BiometricPromptScreen'
 import SmartDiscoveryScreen from './screens/SmartDiscoveryScreen'
 import PerkTipsScreen from './screens/PerkTipsScreen'
 import SecurityFAQScreen from './screens/SecurityFAQScreen'
@@ -36,6 +37,7 @@ import NotificationSheet from './sheets/NotificationSheet'
 
 import { Auth, Membership, Notifications } from './lib/api'
 import { getStoredPin, setStoredPin } from './lib/store'
+import { isBiometricAvailable, isBiometricEnrolled, getBiometricBackend } from './lib/biometric'
 import { ensureServiceWorker, requestNotificationPermission, maybeFireBrowserNotifications } from './lib/push'
 
 export default function App() {
@@ -67,6 +69,19 @@ export default function App() {
   const [protectOpen, setProtectOpen] = useState(false)
   const [tourDone, setTourDone] = useState(() => localStorage.getItem('perk_orbit_tour_done') === '1')
   const [discoveryDone, setDiscoveryDone] = useState(() => localStorage.getItem('perk_orbit_discovery_done') === '1')
+  // Biometric first-run prompt state — shown ONCE right after PIN setup,
+  // before the walkthrough. Modeled on PhonePe / GPay onboarding.
+  //   - `bioPromptDismissed`: user tapped "Not now" or already enrolled elsewhere → skip
+  //   - `bioCanPrompt`: device reports biometric hardware available (async check)
+  const [bioPromptDismissed, setBioPromptDismissed] = useState(
+    () => localStorage.getItem('perk_biometric_prompt_shown') === '1' || isBiometricEnrolled()
+  )
+  const [bioCanPrompt, setBioCanPrompt] = useState(false)
+  useEffect(() => {
+    let alive = true
+    isBiometricAvailable().then(ok => { if (alive) setBioCanPrompt(!!ok) })
+    return () => { alive = false }
+  }, [])
 
   // Online / offline detection
   useEffect(() => {
@@ -228,6 +243,21 @@ export default function App() {
   }
   if (locked) {
     return <PinLock mode="verify" expected={pin} onSuccess={() => setLocked(false)} />
+  }
+  // First-run biometric prompt — appears once, right after PIN setup, before
+  // the walkthrough. Dismissible ("Not now") — user can enable later in Settings.
+  if (bioCanPrompt && !bioPromptDismissed) {
+    const dismiss = () => {
+      localStorage.setItem('perk_biometric_prompt_shown', '1')
+      setBioPromptDismissed(true)
+    }
+    return (
+      <BiometricPromptScreen
+        backend={getBiometricBackend()}
+        onEnrolled={() => { toast('Biometric unlock enabled'); dismiss() }}
+        onSkip={dismiss}
+      />
+    )
   }
   if (!tourDone) {
     return <Walkthrough onComplete={() => {

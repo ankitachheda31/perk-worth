@@ -2,6 +2,15 @@
 
 > Voucher-First Personal Financial Assistant for Indian households. Cloud-synced. Auto-updating. Launch-ready.
 
+## 2026-02 · First-Run Biometric Prompt (PhonePe/GPay Pattern)
+- **New screen**: `frontend/src/screens/BiometricPromptScreen.jsx` — appears ONCE per user, right after PIN setup, before the walkthrough.
+- **Gates in `App.jsx`**: shown only when device reports biometric hardware (`isBiometricAvailable()` returns true) AND user hasn't already enrolled AND hasn't dismissed the prompt (persisted via `perk_biometric_prompt_shown` in localStorage).
+- **Actions**: "Enable biometric unlock" (calls `enrollBiometric()`) or "Not now, use PIN" (dismisses forever — user can still enable later in Settings).
+- **Copy highlights**: 3 benefit cards (faster access · stays on device · PIN backup), backend mode diagnostic tag, and a footer nudge pointing to Settings for later.
+- **Failure handling**: if enrollment throws (user cancels OS prompt), inline error shows, dismiss remains available; hard errors also let the user proceed.
+
+
+
 ## 2026-02 · Android Hardware Back Button + Biometric Discoverability
 - **Problem**: Android hardware back button exited the app instead of navigating back one screen; users had to tap the top-left back button every time.
 - **Fix**: Added a Capacitor `App.addListener('backButton', ...)` handler in `App.jsx` (replaces the old popstate-only listener). Priority order: closes open sheets/modals first (notifications, profile, add-voucher, how-to, share, protect), then pops the navigation stack, and only exits the app when at root. Works on both APK (via `@capacitor/app`) and web (via popstate).

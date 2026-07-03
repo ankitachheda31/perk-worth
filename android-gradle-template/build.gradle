@@ -21,6 +21,45 @@ allprojects {
     }
 }
 
+// -------------------------------------------------------------------
+// FORCE JAVA 17 across ALL subprojects (including Capacitor plugins).
+//
+// Why: some third-party Capacitor plugins (e.g. `capacitor-sms-inbox`)
+// declare `sourceCompatibility = JavaVersion.VERSION_21` in their own
+// build.gradle. When the build runs on JDK 17 (our target — AGP 8.5
+// doesn't officially support 21 yet), the plugin fails with
+//   > error: invalid source release: 21
+//
+// This block overrides every subproject's compileOptions AND every
+// JavaCompile task at the ROOT level, so no per-plugin patching is
+// needed. `afterEvaluate` ensures we run AFTER each subproject's own
+// android {} closure has been configured.
+// -------------------------------------------------------------------
+subprojects {
+    afterEvaluate { project ->
+        if (project.hasProperty('android')) {
+            project.android {
+                compileOptions {
+                    sourceCompatibility JavaVersion.VERSION_17
+                    targetCompatibility JavaVersion.VERSION_17
+                }
+            }
+        }
+        // Belt + suspenders — some plugins configure JavaCompile
+        // directly at the project level, bypassing the android {} block
+        tasks.withType(JavaCompile).configureEach {
+            sourceCompatibility = JavaVersion.VERSION_17.toString()
+            targetCompatibility = JavaVersion.VERSION_17.toString()
+        }
+        // Kotlin subprojects too — jvmTarget must match
+        tasks.matching { it.name.startsWith('compile') && it.name.endsWith('Kotlin') }.configureEach {
+            if (it.hasProperty('kotlinOptions')) {
+                it.kotlinOptions.jvmTarget = '17'
+            }
+        }
+    }
+}
+
 tasks.register('clean', Delete) {
     delete rootProject.buildDir
 }

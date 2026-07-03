@@ -1,0 +1,44 @@
+{
+  "summary": "Iter 23: Verified Monthly Savings Rollup on Settings page (frontend-only additive feature). All 10 acceptance criteria pass end-to-end on live public URL. Backend regression: pytest /app/backend/tests -q → 210 passed / 2 skipped (unchanged). Android Gradle template files present at /app/android-gradle-template/ (5 files) — not executed per instructions.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Settings › Monthly Savings Rollup", "issues": ["Minor grammar bug in COPY text: onCopy() hard-codes plural 'vouchers' — copied line reads 'Saved ₹515 across 1 vouchers (...)'. The onShare() text correctly singularizes ('1 voucher'). Suggest applying the same `count === 1 ? 'voucher' : 'vouchers'` conditional in onCopy. Non-blocking, cosmetic."]}
+    ]
+  },
+  "acceptance_criteria_verified": [
+    "Login test@perkorbit.app + PIN 1234 → Settings opened via profile-avatar → menu-settings.",
+    "Populated state (seeded 1 redeemed voucher value=500 savings_realized=500 this month via POST /api/vouchers + POST /api/vouchers/{id}/redeem): First child of <main> is data-testid='monthly-rollup' ✓ (verified with querySelector('main').firstElementChild).",
+    "monthly-rollup-total='₹515', monthly-rollup-count='1 voucher', monthly-rollup-codes shows ₹500, monthly-rollup-cashback shows ₹15 — math correct (500 × 3% = 15; total 515).",
+    "Footnote reads '*Cashback is a 3% estimate. Redemption codes are actuals from your wallet.' ✓ contains '3% estimate'.",
+    "COPY button → navigator.clipboard.writeText('PerkWorth · July 2026 · Saved ₹515 across 1 vouchers (₹500 codes + ₹15 est. cashback)') + toast 'Copied to clipboard' visible.",
+    "SHARE button (navigator.share stubbed undefined to force fallback) → window.open called with 'https://wa.me/?text=<encoded>' — decoded text contains: '💰 PerkWorth · July 2026', '₹515', '1 voucher', '₹500 from codes', '₹15 estimated card cashback', 'https://perkworth.app'. ALL required elements present.",
+    "Empty state (unredeemed voucher via /api/vouchers/{id}/unredeem, reloaded): monthly-rollup-empty rendered with 'No savings yet' + 'Redeem a voucher this month and it'll show up here.'. NO crash. monthly-rollup-total/count/share/copy correctly NOT present in DOM.",
+    "Loading skeleton: data-testid='monthly-rollup-loading' observed briefly on Settings mount before real card renders (confirmed via wait_for_selector with 2s timeout — hit).",
+    "Regression: settings-trust-card, settings-notifications-card, reset-pin all still present and visible after rollup insertion.",
+    "Backend pytest /app/backend/tests -q → 210 passed / 2 skipped in 63s. Zero new failures.",
+    "No JS console errors related to the rollup on Settings page. (Two pre-existing 401 errors observed on initial page load, unrelated to this feature — from /api/auth/me probe before login.)"
+  ],
+  "test_report_links": ["/app/backend/tests (existing suite, unchanged)"],
+  "action_items": [
+    "OPTIONAL / cosmetic: Fix pluralization in MonthlySavingsRollup.jsx onCopy() — change `across ${rollup.count} vouchers` to `across ${rollup.count} voucher${rollup.count === 1 ? '' : 's'}` to match the onShare() text."
+  ],
+  "critical_code_review_comments": [
+    "Cashback estimate: intentional flat 3% per product spec — labeled 'estimate' in UI, NOT flagged as a bug.",
+    "Loading state uses `vouchers === null` sentinel — clean.",
+    "onShare correctly falls through from navigator.share user-cancel (empty catch) but does NOT fall through to wa.me on cancel — this is by design (user cancel = user chose not to share). OK.",
+    "onCopy has graceful fallback on clipboard permission denial ('Could not copy — try Share instead').",
+    "Component gates on getStoredPin() — if no PIN, sets vouchers=[] which safely renders empty state instead of throwing. Good defensive coding.",
+    "Android template files (/app/android-gradle-template/) are read-only reference docs per instructions — not tested with gradle build."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "test@perkorbit.app / Perk@1234 + device PIN 1234.",
+  "seed_data_creation": "Created + redeemed 1 TEST_Amazon voucher (id=6a47b41b067d82909a0f38b2, value=500, savings_realized=500) for populated-state test, then unredeemed for empty-state test, then DELETE'd for cleanup. DB state restored.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iter 23 verified the Monthly Savings Rollup component end-to-end. Settings page is reached via top-right profile-avatar → menu-settings. All rollup testids (monthly-rollup, monthly-rollup-loading, monthly-rollup-total, monthly-rollup-count, monthly-rollup-codes, monthly-rollup-cashback, monthly-rollup-empty, monthly-rollup-share, monthly-rollup-copy) work as specified. Only cosmetic follow-up is the 'across 1 vouchers' plural in onCopy text.",
+  "rca of the issue": "N/A — no functional issues found. Only one cosmetic pluralization asymmetry in onCopy() vs onShare()."
+}

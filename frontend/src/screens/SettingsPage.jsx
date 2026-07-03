@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { ShieldCheck, KeyRound, ChevronRight, FileText, MessageCircle, Lock, Sparkles, LogOut, Trash2, AlertTriangle, Fingerprint, Bell } from 'lucide-react'
 import { Card, GhostButton, TopBar } from '../components/ui'
+import MonthlySavingsRollup from '../components/MonthlySavingsRollup'
 import { Auth } from '../lib/api'
 import { setStoredPin, setProfile } from '../lib/store'
 import { isBiometricAvailable, isBiometricEnrolled, enrollBiometric, disableBiometric, getBiometricBackend, verifyBiometric } from '../lib/biometric'
@@ -108,6 +109,8 @@ export default function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpen
     <>
       <TopBar title="Settings" onBack={onBack} />
       <main className="px-5 space-y-3 pb-10">
+        <MonthlySavingsRollup onToast={toast} />
+
         <Card className="p-5 bg-emerald-50/40 border-emerald-200" data-testid="settings-trust-card">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-full bg-emerald-100 grid place-items-center"><ShieldCheck className="w-5 h-5 text-emerald-800" /></div>

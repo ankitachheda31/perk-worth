@@ -4,7 +4,7 @@ import { Card, GhostButton, TopBar } from '../components/ui'
 import MonthlySavingsRollup from '../components/MonthlySavingsRollup'
 import { Auth } from '../lib/api'
 import { setStoredPin, setProfile } from '../lib/store'
-import { isBiometricAvailable, isBiometricEnrolled, enrollBiometric, disableBiometric, getBiometricBackend, verifyBiometric } from '../lib/biometric'
+import { isBiometricAvailable, isBiometricEnrolled, enrollBiometric, disableBiometric, getBiometricBackend, verifyBiometric, getBiometricDiagnostic } from '../lib/biometric'
 import { isNotifOptedIn, setNotifOptIn, requestNotificationPermission } from '../lib/push'
 
 export default function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpenPrivacy, onOpenFAQ, onOpenPrivacyControl, onOpenPerkTips, onReplayTour, onWipe, onLogout, toast }) {
@@ -14,6 +14,7 @@ export default function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpen
   const [bioSupported, setBioSupported] = useState(false)
   const [bioCheckDone, setBioCheckDone] = useState(false)  // has async availability check finished?
   const [bioReason, setBioReason] = useState('')            // human-readable reason if unavailable
+  const [bioDiag, setBioDiag] = useState(null)              // full raw plugin response for on-screen debugging
   const [bioEnabled, setBioEnabled] = useState(isBiometricEnrolled())
   const [bioBusy, setBioBusy] = useState(false)
   const [bioBackend, setBioBackend] = useState(getBiometricBackend())
@@ -21,20 +22,35 @@ export default function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpen
   const [notifBusy, setNotifBusy] = useState(false)
 
   useEffect(() => {
-    // Async detection with diagnostic. We ALWAYS render the card so the user
-    // can see WHY biometric isn't working, instead of the card silently
-    // disappearing (which drove users to Support with "where is biometrics?").
+    // Async detection with rich diagnostic. We ALWAYS render the card + show
+    // the raw plugin response so the user can screenshot it if it fails,
+    // instead of the card silently disappearing or hanging on "Checking…".
     let alive = true
     ;(async () => {
       let ok = false
       let reason = ''
+      let diag = null
       try {
-        ok = await isBiometricAvailable()
+        diag = await getBiometricDiagnostic({ timeoutMs: 5000 })
+        ok = !!diag.isAvailable
         if (!ok) {
-          const be = getBiometricBackend()
-          if (be === 'none') reason = 'This device does not report any biometric hardware or platform authenticator.'
-          else if (be === 'native') reason = 'Your device has biometric hardware, but no fingerprint or face is enrolled at the Android system level. Open Android Settings → Security → Fingerprint / Face unlock, enroll one, then reopen PerkWorth.'
-          else if (be === 'web') reason = 'This browser does not expose a platform authenticator. Try Chrome or Safari with the device unlock set up.'
+          if (diag.backend === 'none') {
+            reason = 'This device does not report any biometric hardware or platform authenticator.'
+          } else if (diag.backend === 'native') {
+            if (/timed out|did not respond/i.test(diag.diagnostic)) {
+              reason = 'The native biometric plugin did not respond within 5 seconds. This usually means the plugin was not synced into the APK (npx cap sync android was skipped) or the app process needs a full restart. Try force-stopping PerkWorth in Android Settings and reopening.'
+            } else if (diag.code === 'biometryNotEnrolled' || /not enrolled|no fingerprint|not been set up/i.test(diag.reason || '')) {
+              reason = 'Your device has biometric hardware, but no fingerprint or face is enrolled at the Android system level. Open Android Settings → Security → Fingerprint / Face unlock, enroll one, then reopen PerkWorth.'
+            } else if (diag.code === 'biometryNotAvailable' || diag.deviceIsSecure === false) {
+              reason = diag.deviceIsSecure === false
+                ? 'Your device lock (PIN / pattern / password) is not set at the Android system level. Enable device lock in Android Settings first, then biometric unlock will become available.'
+                : 'Biometric hardware is not available on this device.'
+            } else {
+              reason = `${diag.diagnostic || 'Biometric unavailable'} (code=${diag.code || 'unknown'})`
+            }
+          } else if (diag.backend === 'web') {
+            reason = 'This browser does not expose a platform authenticator. Try Chrome or Safari with the device unlock set up.'
+          }
         }
       } catch (e) {
         reason = `Detection failed: ${e?.message || e?.name || 'unknown error'}`
@@ -42,6 +58,7 @@ export default function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpen
       if (!alive) return
       setBioSupported(ok)
       setBioReason(reason)
+      setBioDiag(diag)
       setBioCheckDone(true)
     })()
     return () => { alive = false }
@@ -204,6 +221,17 @@ export default function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpen
                 <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2 mt-2 leading-relaxed" data-testid="biometric-unavailable-reason">
                   {bioReason}
                 </p>
+              )}
+              {bioCheckDone && bioDiag && (
+                <details className="mt-2" data-testid="biometric-diagnostic-details">
+                  <summary className="text-[10px] text-ink-500 font-bold uppercase tracking-wide cursor-pointer select-none">
+                    Show technical details
+                  </summary>
+                  <pre className="text-[10px] font-mono bg-ink-900 text-emerald-300 rounded-lg p-2.5 mt-1.5 overflow-x-auto whitespace-pre-wrap break-all" data-testid="biometric-diagnostic-raw">
+{JSON.stringify(bioDiag, null, 2)}
+                  </pre>
+                  <p className="text-[10px] text-ink-400 mt-1">Screenshot this and share it if biometric still won't enable.</p>
+                </details>
               )}
               <button
                 data-testid="biometric-toggle"

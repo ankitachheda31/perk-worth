@@ -88,26 +88,78 @@ export function getBiometricBackend() {
 
 /** Does this device support any biometric? */
 export async function isBiometricAvailable() {
-  if (typeof window === 'undefined') return false
+  const d = await getBiometricDiagnostic()
+  return !!d.isAvailable
+}
+
+/**
+ * Rich diagnostic — returns everything the plugin knows, plus a timeout guard
+ * so a hung native bridge doesn't leave the UI on "Checking…" forever.
+ * Also console.logs the full payload so you can inspect it via Chrome remote
+ * debugging (chrome://inspect) even in a released APK.
+ */
+export async function getBiometricDiagnostic({ timeoutMs = 5000 } = {}) {
+  const t0 = Date.now()
+  const backend = getBiometricBackend()
+  const base = { backend, isAvailable: false, biometryType: null, reason: '', code: '', deviceIsSecure: null, elapsedMs: 0, diagnostic: '' }
+
+  if (typeof window === 'undefined') {
+    const out = { ...base, diagnostic: 'window is undefined (SSR context)' }
+    console.log('[biometric] diagnostic', out)
+    return out
+  }
 
   if (isCapacitorNative()) {
     try {
-      const BiometricAuth = await loadNativePlugin()
-      const info = await BiometricAuth.checkBiometry()
-      // Plugin returns `{ isAvailable, biometryType, reason }`
-      return !!info?.isAvailable
+      // Race the plugin call against a timeout so a broken bridge can't hang UI.
+      const info = await Promise.race([
+        (async () => {
+          const BiometricAuth = await loadNativePlugin()
+          return await BiometricAuth.checkBiometry()
+        })(),
+        new Promise((_, rej) => setTimeout(() => rej(new Error(`Native checkBiometry() did not respond within ${timeoutMs}ms — plugin may not be registered / cap sync missed`)), timeoutMs)),
+      ])
+      const out = {
+        ...base,
+        isAvailable: !!info?.isAvailable,
+        biometryType: info?.biometryType ?? null,
+        biometryTypes: info?.biometryTypes ?? [],
+        strongBiometryIsAvailable: info?.strongBiometryIsAvailable ?? null,
+        reason: info?.reason || '',
+        code: info?.code || '',
+        strongReason: info?.strongReason || '',
+        strongCode: info?.strongCode || '',
+        deviceIsSecure: info?.deviceIsSecure ?? null,
+        elapsedMs: Date.now() - t0,
+        diagnostic: info?.isAvailable
+          ? 'Ready'
+          : `Native check returned isAvailable=false · code="${info?.code || '(empty)'}" · reason="${info?.reason || '(empty)'}"`,
+      }
+      console.log('[biometric] native diagnostic', out)
+      return out
     } catch (e) {
-      console.warn('[biometric] native check failed', e)
-      return false
+      const msg = e?.message || e?.name || String(e)
+      const out = { ...base, elapsedMs: Date.now() - t0, diagnostic: `Native check threw: ${msg}` }
+      console.error('[biometric] native check FAILED', msg, e)
+      return out
     }
   }
 
   // Web fallback
-  if (!window.PublicKeyCredential) return false
+  if (!window.PublicKeyCredential) {
+    const out = { ...base, elapsedMs: Date.now() - t0, diagnostic: 'WebAuthn not exposed (no window.PublicKeyCredential)' }
+    console.log('[biometric] web diagnostic', out)
+    return out
+  }
   try {
-    return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
-  } catch {
-    return false
+    const ok = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+    const out = { ...base, isAvailable: !!ok, elapsedMs: Date.now() - t0, diagnostic: ok ? 'Ready (WebAuthn)' : 'No platform authenticator (no OS-level biometric enrolled in the browser)' }
+    console.log('[biometric] web diagnostic', out)
+    return out
+  } catch (e) {
+    const out = { ...base, elapsedMs: Date.now() - t0, diagnostic: `WebAuthn probe threw: ${e?.message || e}` }
+    console.error('[biometric] web check FAILED', e)
+    return out
   }
 }
 

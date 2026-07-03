@@ -1,0 +1,56 @@
+{
+  "appId": "com.perkworth.app",
+  "appName": "PerkWorth",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https",
+    "iosScheme": "https",
+    "cleartext": false,
+    "errorPath": "/"
+  },
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false,
+    "minWebViewVersion": 60,
+    "buildOptions": {
+      "keystorePath": "perk-worth-release.jks",
+      "keystoreAlias": "perkworth",
+      "releaseType": "AAB"
+    }
+  },
+  "ios": {
+    "scheme": "PerkWorth",
+    "contentInset": "automatic",
+    "limitsNavigationsToAppBoundDomains": false,
+    "scrollEnabled": true,
+    "preferredContentMode": "mobile",
+    "backgroundColor": "#F4F1EC"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "launchAutoHide": true,
+      "backgroundColor": "#F4F1EC",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false,
+      "splashFullScreen": true,
+      "splashImmersive": true,
+      "iosSpinnerStyle": "small",
+      "spinnerColor": "#064E3B"
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#F4F1EC",
+      "overlaysWebView": false
+    },
+    "SMSInboxReader": {
+      "permissions": ["android.permission.READ_SMS", "android.permission.RECEIVE_SMS"]
+    },
+    "App": {
+      "launchUrl": "https://perkworth.app"
+    }
+  }
+}

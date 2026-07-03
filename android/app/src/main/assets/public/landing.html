@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>PerkWorth — India's voucher-first wallet</title>
+  <meta name="description" content="Track every coupon, loyalty point and membership in one wallet. ₹99/quarter. ROI tracker, smart family sharing, and bilingual SMS auto-scan. DPDP + GDPR compliant." />
+  <meta name="theme-color" content="#0F172A" />
+  <!-- Open Graph for social sharing -->
+  <meta property="og:title" content="PerkWorth — Voucher-first wallet for Indian households" />
+  <meta property="og:description" content="One app for every coupon, loyalty point and membership. Built privacy-first. ₹99/quarter." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://perkworth.app/" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23065F46'/%3E%3Ctext x='16' y='22' font-family='ui-sans-serif,system-ui' font-size='18' font-weight='800' fill='%23FCD34D' text-anchor='middle'%3EP%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['"Cabinet Grotesk"', 'ui-sans-serif', 'system-ui'],
+            sans: ['Inter', 'ui-sans-serif', 'system-ui'],
+          },
+          colors: {
+            ink: { 50:'#F7F8FA', 100:'#EFF1F5', 200:'#DDE2EA', 300:'#B6BFCE', 400:'#7C8AA0', 500:'#56647B', 600:'#3D4A60', 700:'#2B3648', 800:'#1B2333', 900:'#0F172A' },
+            emerald: { 700:'#057A55', 800:'#065F46', 900:'#064E3B' },
+            gold: { 50:'#FFFBEB', 100:'#FEF3C7', 200:'#FDE68A', 400:'#FBBF24', 500:'#F59E0B', 600:'#D97706' },
+            cream: '#FBFAF6',
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    html, body { background: #FBFAF6; }
+    .grain {
+      background-image: radial-gradient(rgba(0,0,0,0.04) 1px, transparent 1px);
+      background-size: 4px 4px;
+    }
+    .ring-glow { box-shadow: 0 0 0 1px rgba(6, 95, 70, 0.12), 0 12px 40px -12px rgba(6, 95, 70, 0.25); }
+  </style>
+</head>
+<body class="font-sans text-ink-800 antialiased">
+  <!-- Header -->
+  <header class="sticky top-0 z-30 bg-cream/85 backdrop-blur border-b border-ink-200/60">
+    <div class="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
+      <a href="#" class="flex items-center gap-2 group" data-testid="brand-home">
+        <div class="w-9 h-9 rounded-xl bg-emerald-800 text-white grid place-items-center font-display font-extrabold shadow-sm group-hover:scale-105 transition">P</div>
+        <span class="font-display font-bold text-ink-900 text-lg tracking-tight">PerkWorth</span>
+      </a>
+      <nav class="hidden md:flex items-center gap-7 text-sm font-medium text-ink-700">
+        <a href="#features" class="hover:text-emerald-800">Features</a>
+        <a href="#trust" class="hover:text-emerald-800">Trust &amp; Privacy</a>
+        <a href="#pricing" class="hover:text-emerald-800">Pricing</a>
+        <a href="#contact" class="hover:text-emerald-800">Contact</a>
+      </nav>
+      <a href="#pricing" class="inline-flex items-center gap-2 bg-emerald-800 text-white text-xs font-semibold px-4 py-2.5 rounded-full hover:bg-emerald-900 active:scale-95 transition" data-testid="header-cta">
+        Get the app →
+      </a>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="relative overflow-hidden">
+    <div class="absolute inset-0 grain opacity-60 pointer-events-none"></div>
+    <div class="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-gold-400/15 blur-3xl"></div>
+    <div class="max-w-6xl mx-auto px-5 sm:px-8 pt-16 pb-20 sm:pt-24 sm:pb-28 grid md:grid-cols-2 gap-10 items-center relative">
+      <div>
+        <p class="text-[10px] uppercase tracking-[0.22em] font-bold text-emerald-800 mb-4">India's voucher-first wallet</p>
+        <h1 class="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold text-ink-900 leading-[1.05] tracking-tight">
+          Every coupon, point &amp; membership — <span class="text-emerald-800">worth tracking, in one wallet.</span>
+        </h1>
+        <p class="mt-5 text-base sm:text-lg text-ink-600 max-w-xl leading-relaxed">
+          PerkWorth auto-scans your SMS for vouchers, tracks ROI on your memberships (Amazon Prime, Croma Plus…) and lets you share with family — privately. Built for Indian households.
+        </p>
+        <div class="mt-7 flex flex-wrap items-center gap-3">
+          <a href="#pricing" class="inline-flex items-center gap-2 bg-emerald-800 text-white text-sm font-semibold px-6 py-3.5 rounded-full shadow-lg shadow-emerald-800/20 hover:bg-emerald-900 active:scale-95 transition" data-testid="hero-cta">
+            Start saving for ₹99/quarter
+          </a>
+          <a href="#trust" class="inline-flex items-center gap-2 text-sm font-semibold text-ink-800 hover:text-emerald-800 underline underline-offset-4 decoration-ink-300">
+            How we protect your data →
+          </a>
+        </div>
+        <div class="mt-7 flex items-center gap-5 text-[11px] text-ink-500">
+          <span class="inline-flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-emerald-700"></span> DPDP 2023 compliant</span>
+          <span class="inline-flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-emerald-700"></span> GDPR ready</span>
+          <span class="inline-flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-emerald-700"></span> Razorpay secured</span>
+        </div>
+      </div>
+      <div class="relative">
+        <div class="absolute -inset-4 bg-gradient-to-br from-emerald-100 to-gold-100 rounded-[2rem] blur-2xl opacity-50"></div>
+        <div class="relative bg-white border border-ink-200 rounded-[2rem] p-6 ring-glow">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <p class="text-[10px] uppercase tracking-wider font-bold text-ink-500">Wallet balance</p>
+              <p class="font-display text-3xl font-extrabold text-ink-900 mt-1">₹4,820 <span class="text-base font-semibold text-emerald-700">saved</span></p>
+            </div>
+            <div class="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-1">🔒 Encrypted</div>
+          </div>
+          <div class="space-y-2.5">
+            <div class="flex items-center justify-between p-3 bg-ink-50 rounded-2xl">
+              <div>
+                <p class="font-display font-bold text-ink-900 text-sm">Swiggy · Flat ₹150 off</p>
+                <p class="text-[11px] text-ink-500">Expires in 3 days</p>
+              </div>
+              <code class="text-[10px] font-mono bg-white border border-ink-200 rounded px-2 py-1">SWIGGY150</code>
+            </div>
+            <div class="flex items-center justify-between p-3 bg-gradient-to-r from-gold-50 to-amber-50 border border-gold-200 rounded-2xl">
+              <div>
+                <p class="font-display font-bold text-ink-900 text-sm">Tata Neu · 1,200 NeuCoins</p>
+                <p class="text-[11px] text-amber-700 font-semibold">💡 Tip: redeem on BigBasket for 1.2x value</p>
+              </div>
+            </div>
+            <div class="flex items-center justify-between p-3 bg-ink-50 rounded-2xl">
+              <div>
+                <p class="font-display font-bold text-ink-900 text-sm">Amazon Prime · ROI 124%</p>
+                <p class="text-[11px] text-emerald-700">Already paid back · keep it</p>
+              </div>
+              <span class="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">PAYING OFF</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features (value props) -->
+  <section id="features" class="bg-white border-y border-ink-200 py-20">
+    <div class="max-w-6xl mx-auto px-5 sm:px-8">
+      <div class="max-w-2xl">
+        <p class="text-[10px] uppercase tracking-[0.22em] font-bold text-emerald-800">Built for Indian wallets</p>
+        <h2 class="font-display text-3xl sm:text-4xl font-extrabold text-ink-900 mt-3 tracking-tight">Stop losing ₹3,000 a year to forgotten coupons.</h2>
+        <p class="mt-3 text-ink-600 leading-relaxed">Three things every Indian household needs — none of them exist together. Until now.</p>
+      </div>
+      <div class="grid md:grid-cols-3 gap-5 mt-12">
+        <!-- Feature 1 -->
+        <article class="p-7 bg-cream border border-ink-200 rounded-3xl">
+          <div class="w-12 h-12 rounded-2xl bg-emerald-50 grid place-items-center text-emerald-800 mb-5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+          </div>
+          <h3 class="font-display text-xl font-bold text-ink-900 leading-tight">ROI Tracker</h3>
+          <p class="mt-2 text-sm text-ink-600 leading-relaxed">Membership smart-tracking. We tell you when Amazon Prime, Croma Plus or BigBasket Super has paid for itself — and when it hasn't.</p>
+        </article>
+        <!-- Feature 2 -->
+        <article class="p-7 bg-cream border border-ink-200 rounded-3xl">
+          <div class="w-12 h-12 rounded-2xl bg-emerald-50 grid place-items-center text-emerald-800 mb-5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18"></path><path d="M3 6h18"></path><path d="M3 18h18"></path></svg>
+          </div>
+          <h3 class="font-display text-xl font-bold text-ink-900 leading-tight">Voucher Auto-Scan</h3>
+          <p class="mt-2 text-sm text-ink-600 leading-relaxed">Bilingual SMS scanner reads Swiggy, Myntra, Tata Neu, Amazon Pay promos automatically. Bank OTPs are <strong>never</strong> read.</p>
+        </article>
+        <!-- Feature 3 -->
+        <article class="p-7 bg-cream border border-ink-200 rounded-3xl">
+          <div class="w-12 h-12 rounded-2xl bg-emerald-50 grid place-items-center text-emerald-800 mb-5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"></circle><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path></svg>
+          </div>
+          <h3 class="font-display text-xl font-bold text-ink-900 leading-tight">Family Circle</h3>
+          <p class="mt-2 text-sm text-ink-600 leading-relaxed">Share specific vouchers with specific family members. No group chats, no screenshots, no accidental leaks.</p>
+        </article>
+      </div>
+
+      <!-- Bonus row -->
+      <div class="grid md:grid-cols-2 gap-5 mt-5">
+        <article class="p-7 bg-gradient-to-br from-ink-900 to-emerald-900 text-white rounded-3xl relative overflow-hidden">
+          <div class="absolute -top-10 -right-12 w-44 h-44 rounded-full bg-gold-500/20 blur-2xl"></div>
+          <div class="text-[10px] font-bold uppercase tracking-wider text-gold-200">Perk Tips · Masterclass</div>
+          <h3 class="font-display text-2xl font-bold mt-2 leading-tight">Loyalty optimizer<br/>powered by AI.</h3>
+          <p class="mt-3 text-sm text-white/80 leading-relaxed">"You have 1,200 NeuCoins — redeem on BigBasket for 1.2x value vs ₹1 elsewhere. +₹240 unlocked." That's the kind of nudge Pro members get every week.</p>
+        </article>
+        <article class="p-7 bg-emerald-50 border border-emerald-200 rounded-3xl">
+          <div class="text-[10px] font-bold uppercase tracking-wider text-emerald-800">Trust by design</div>
+          <h3 class="font-display text-2xl font-bold mt-2 leading-tight text-ink-900">DPDP 2023 + GDPR ready.</h3>
+          <ul class="mt-3 space-y-1.5 text-sm text-ink-700">
+            <li>✓ Encrypted in transit (TLS 1.3) &amp; at rest (AES-256)</li>
+            <li>✓ One-tap wipe (Clear All My Data)</li>
+            <li>✓ JSON/CSV self-service export</li>
+            <li>✓ Bank OTPs &amp; private chats are never read</li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Trust strip -->
+  <section id="trust" class="py-20 bg-cream">
+    <div class="max-w-4xl mx-auto px-5 sm:px-8 text-center">
+      <p class="text-[10px] uppercase tracking-[0.22em] font-bold text-emerald-800">Trust, on your terms</p>
+      <h2 class="font-display text-3xl sm:text-4xl font-extrabold text-ink-900 mt-3 tracking-tight">We sell memberships — not your data.</h2>
+      <p class="mt-4 text-ink-600 leading-relaxed max-w-2xl mx-auto">
+        PerkWorth's <strong>only</strong> revenue is the ₹99 quarterly Pro subscription. We don't run ads. We don't profile you. We don't share your wallet with brokers or advertisers. Engineering access to production is logged and auditable.
+      </p>
+      <div class="mt-8 inline-flex flex-wrap items-center justify-center gap-3 text-xs">
+        <span class="px-3 py-1.5 rounded-full bg-white border border-ink-200 font-semibold text-ink-700">🔒 bcrypt password hashing</span>
+        <span class="px-3 py-1.5 rounded-full bg-white border border-ink-200 font-semibold text-ink-700">🛡️ HTTPS / TLS 1.3</span>
+        <span class="px-3 py-1.5 rounded-full bg-white border border-ink-200 font-semibold text-ink-700">📜 DPDP 2023 §13</span>
+        <span class="px-3 py-1.5 rounded-full bg-white border border-ink-200 font-semibold text-ink-700">🇪🇺 GDPR Art. 15 + 17 + 20</span>
+        <span class="px-3 py-1.5 rounded-full bg-white border border-ink-200 font-semibold text-ink-700">💳 PCI-DSS via Razorpay</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section id="pricing" class="bg-white border-y border-ink-200 py-20">
+    <div class="max-w-5xl mx-auto px-5 sm:px-8 grid md:grid-cols-2 gap-8 items-center">
+      <div>
+        <p class="text-[10px] uppercase tracking-[0.22em] font-bold text-emerald-800">Simple pricing</p>
+        <h2 class="font-display text-3xl sm:text-4xl font-extrabold text-ink-900 mt-3 tracking-tight">One plan. ₹99 / quarter.</h2>
+        <p class="mt-4 text-ink-600 leading-relaxed">No ads. No data harvesting. No 7-day free-then-they-charge-you-forever trap. Cancel auto-renewal anytime in-app — your wallet stays.</p>
+        <ul class="mt-6 space-y-2.5 text-sm text-ink-800">
+          <li class="flex items-start gap-2"><span class="text-emerald-700 font-bold mt-0.5">✓</span> Unlimited voucher &amp; loyalty storage</li>
+          <li class="flex items-start gap-2"><span class="text-emerald-700 font-bold mt-0.5">✓</span> AI image scan + bulk SMS extraction</li>
+          <li class="flex items-start gap-2"><span class="text-emerald-700 font-bold mt-0.5">✓</span> Unlimited Family Circle members</li>
+          <li class="flex items-start gap-2"><span class="text-emerald-700 font-bold mt-0.5">✓</span> Membership ROI tracker</li>
+          <li class="flex items-start gap-2"><span class="text-emerald-700 font-bold mt-0.5">✓</span> Perk Tips Masterclass (AI optimizer)</li>
+          <li class="flex items-start gap-2"><span class="text-emerald-700 font-bold mt-0.5">✓</span> Background Android SMS auto-scan</li>
+          <li class="flex items-start gap-2"><span class="text-emerald-700 font-bold mt-0.5">✓</span> Priority WhatsApp support</li>
+        </ul>
+      </div>
+      <div class="relative">
+        <div class="absolute -inset-3 bg-gradient-to-br from-emerald-200 to-gold-200 rounded-[2rem] blur-2xl opacity-50"></div>
+        <div class="relative bg-gradient-to-br from-ink-900 to-emerald-900 text-white p-8 rounded-[2rem] ring-glow">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="text-[10px] uppercase tracking-[0.22em] font-bold text-gold-200">PerkWorth Pro</span>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="font-display text-6xl font-extrabold">₹99</span>
+            <span class="text-white/70 text-sm">/ quarter</span>
+          </div>
+          <p class="text-sm text-white/70 mt-1">≈ ₹33/month · billed every 3 months</p>
+          <a href="/" class="mt-7 block text-center bg-gold-500 hover:bg-gold-600 text-ink-900 font-bold text-sm py-4 rounded-full active:scale-95 transition" data-testid="pricing-cta">Open the app →</a>
+          <p class="mt-3 text-center text-[10px] text-white/60">Razorpay · UPI / Card / NetBanking · 100% secure</p>
+          <div class="mt-6 pt-6 border-t border-white/15 text-center">
+            <p class="text-[10px] text-white/60 uppercase tracking-wider font-bold">Refer a friend</p>
+            <p class="text-sm text-gold-200 font-semibold mt-1">Both get +3 months FREE 🎁</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact -->
+  <section id="contact" class="py-20 bg-cream">
+    <div class="max-w-3xl mx-auto px-5 sm:px-8 text-center">
+      <p class="text-[10px] uppercase tracking-[0.22em] font-bold text-emerald-800">Get in touch</p>
+      <h2 class="font-display text-3xl sm:text-4xl font-extrabold text-ink-900 mt-3 tracking-tight">Real humans. 24-hour reply.</h2>
+      <p class="mt-4 text-ink-600 leading-relaxed">
+        Questions about PerkWorth, your subscription, or your data? Drop us a line — we read every email and respond within 24 business hours.
+      </p>
+      <div class="mt-8 grid sm:grid-cols-3 gap-3">
+        <a href="mailto:support@perkworth.com" class="block p-5 bg-white border border-ink-200 rounded-2xl hover:border-emerald-700 hover:shadow-lg active:scale-95 transition" data-testid="contact-support">
+          <div class="text-[10px] uppercase font-bold tracking-wider text-ink-500">Support</div>
+          <div class="font-mono text-sm text-emerald-800 font-semibold mt-1">support@perkworth.com</div>
+        </a>
+        <a href="mailto:grievance@perkworth.com" class="block p-5 bg-white border border-ink-200 rounded-2xl hover:border-emerald-700 hover:shadow-lg active:scale-95 transition" data-testid="contact-grievance">
+          <div class="text-[10px] uppercase font-bold tracking-wider text-ink-500">DPDP Grievance</div>
+          <div class="font-mono text-sm text-emerald-800 font-semibold mt-1">grievance@perkworth.com</div>
+        </a>
+        <a href="https://wa.me/919820204866" target="_blank" rel="noopener" class="block p-5 bg-white border border-ink-200 rounded-2xl hover:border-emerald-700 hover:shadow-lg active:scale-95 transition" data-testid="contact-whatsapp">
+          <div class="text-[10px] uppercase font-bold tracking-wider text-ink-500">WhatsApp</div>
+          <div class="font-mono text-sm text-emerald-800 font-semibold mt-1">+91 98202 04866</div>
+        </a>
+      </div>
+      <p class="text-[11px] text-ink-500 mt-6">
+        Registered office (placeholder for Razorpay KYC) · <span class="font-semibold">PerkWorth Technologies Pvt. Ltd.</span> · Mumbai, Maharashtra, India 400001
+      </p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-ink-900 text-white">
+    <div class="max-w-6xl mx-auto px-5 sm:px-8 py-12 grid md:grid-cols-4 gap-10">
+      <div class="md:col-span-2">
+        <div class="flex items-center gap-2 mb-3">
+          <div class="w-9 h-9 rounded-xl bg-gold-500 text-ink-900 grid place-items-center font-display font-extrabold">P</div>
+          <span class="font-display font-bold text-lg">PerkWorth</span>
+        </div>
+        <p class="text-sm text-white/60 max-w-md leading-relaxed">India's voucher-first wallet. Track every coupon, loyalty point and membership in one place — built privacy-first.</p>
+      </div>
+      <div>
+        <p class="text-[10px] uppercase tracking-wider font-bold text-white/50 mb-3">Legal</p>
+        <ul class="space-y-2 text-sm">
+          <li><a href="./privacy.html" class="hover:text-gold-300 transition" data-testid="footer-privacy">Privacy Policy</a></li>
+          <li><a href="./terms.html" class="hover:text-gold-300 transition" data-testid="footer-terms">Terms of Service</a></li>
+          <li><a href="./refund.html" class="hover:text-gold-300 transition" data-testid="footer-refund">Refund &amp; Cancellation</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="text-[10px] uppercase tracking-wider font-bold text-white/50 mb-3">Reach us</p>
+        <ul class="space-y-2 text-sm">
+          <li><a href="mailto:support@perkworth.com" class="hover:text-gold-300 transition">support@perkworth.com</a></li>
+          <li><a href="mailto:grievance@perkworth.com" class="hover:text-gold-300 transition">grievance@perkworth.com</a></li>
+          <li><a href="https://wa.me/919820204866" target="_blank" rel="noopener" class="hover:text-gold-300 transition">+91 98202 04866</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="border-t border-white/10">
+      <div class="max-w-6xl mx-auto px-5 sm:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-white/40">
+        <span>© <span id="yr"></span> PerkWorth Technologies Pvt. Ltd. · All rights reserved.</span>
+        <span>Made for Indian households · DPDP 2023 &amp; GDPR compliant</span>
+      </div>
+    </div>
+  </footer>
+  <script>document.getElementById('yr').textContent = new Date().getFullYear()</script>
+</body>
+</html>

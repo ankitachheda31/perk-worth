@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import secrets
 from datetime import datetime, timedelta, timezone
 
@@ -36,7 +37,15 @@ def build_billing_router(db) -> APIRouter:
 
     @r.post("/membership/activate")
     async def activate_membership(user_pin: str = Query(...)):
-        """MOCKED Razorpay activation — issues a 3-month ₹99 plan."""
+        """DEV-ONLY bypass — issues a 3-month ₹99 plan WITHOUT payment.
+
+        Gated by env `ALLOW_DEV_MEMBERSHIP_BYPASS`. When unset or != "1",
+        returns 403 so this endpoint cannot be abused in production. Frontend
+        also hides the button unless import.meta.env.DEV, but we defend in
+        depth here because an attacker with curl doesn't care about the UI.
+        """
+        if os.environ.get("ALLOW_DEV_MEMBERSHIP_BYPASS") != "1":
+            raise HTTPException(status_code=403, detail="Endpoint disabled in production. Use POST /api/payments/order + /api/payments/verify to activate Pro via Razorpay.")
         expires = (datetime.now(timezone.utc) + timedelta(days=PLAN_BASE_DAYS)).isoformat()
         ref = f"PERK-{secrets.token_hex(3).upper()}"
         doc = {
@@ -50,6 +59,7 @@ def build_billing_router(db) -> APIRouter:
         await db.app_membership.update_one(
             {"user_pin": user_pin}, {"$set": doc}, upsert=True
         )
+        log.warning("DEV BYPASS: Pro activated for %s without payment (ALLOW_DEV_MEMBERSHIP_BYPASS=1)", user_pin)
         return doc
 
     @r.post("/payments/order")

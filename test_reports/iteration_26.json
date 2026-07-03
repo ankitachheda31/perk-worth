@@ -1,0 +1,41 @@
+{
+  "summary": "Verified P0 security gate on POST /api/membership/activate. Both branches of the ALLOW_DEV_MEMBERSHIP_BYPASS env flag work as designed: flag=1 (dev) → 200 + Pro activated + WARN audit log; flag unset OR '0' → 403 with detail pointing at /api/payments/order + /api/payments/verify Razorpay flow. /api/payments/order is NOT affected by the gate. Full regression 221 passed / 2 skipped (216 baseline + 5 new gate tests, zero regressions). .env restored to ALLOW_DEV_MEMBERSHIP_BYPASS=1 after all env-mutating tests.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/payments/order", "issue": "Razorpay test keys in dev .env return 'Authentication failed' → endpoint responds 502. Pre-existing, unrelated to this iteration's fix. Gate tests still validate that /api/payments/order is REACHABLE (not 403). Recommend rotating rzp_test_* keys in /app/backend/.env before real Razorpay flow testing."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_membership_bypass_gate.py",
+    "/app/test_reports/pytest/iter26_full.xml"
+  ],
+  "action_items": [
+    "Before Play Store publish: ensure production .env does NOT contain ALLOW_DEV_MEMBERSHIP_BYPASS (or set to '0'). Add a CI/deploy assertion.",
+    "Rotate Razorpay test keys — current keys fail auth (unrelated to this fix, but blocks e2e payment demo).",
+    "Consider hoisting the gate into a shared dependency so future dev-only endpoints inherit the same behavior."
+  ],
+  "critical_code_review_comments": [
+    "Gate is correct — checks `!= '1'` so any tampering (unset, empty, '0', 'true', 'yes') safely denies. Good.",
+    "WARN log emits user_pin only (no PII, no flag secret) — audit-safe.",
+    "403 detail message includes route hints for the caller — helpful for API consumers, no info leak.",
+    "Frontend bypass button in MembershipPage.jsx correctly hidden outside `import.meta.env.DEV || hostname.includes('preview.emergent')` — defense-in-depth."
+  ],
+  "updated_files": ["/app/backend/tests/test_membership_bypass_gate.py (new)"],
+  "success_rate": {"backend": "100% (221/221 non-skipped passed)", "frontend": "not tested (backend-only per request)"},
+  "test_credentials": "Not required for this test — endpoint is unauthenticated by design (which is exactly why the gate is P0).",
+  "seed_data_creation": "Created 1 app_membership doc for user_pin=TEST_bypass_pin_9999 during gate-ON test; deleted post-test via mongosh.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": ".env verified restored to ALLOW_DEV_MEMBERSHIP_BYPASS=1 at end of run. Tests toggle .env + restart backend via supervisor — each test has a finally-block restore. If a future iteration edits /app/backend/.env, be aware this test file also mutates it. Razorpay test keys are broken (Auth failed) — pre-existing, do not chase.",
+  "verification_evidence": {
+    "gate_on_activate_returns_200": true,
+    "gate_off_returns_403_with_razorpay_hint": true,
+    "gate_zero_returns_403": true,
+    "warn_log_line_present": "WARNING:perk_orbit.billing:DEV BYPASS: Pro activated for TEST_bypass_pin_9999 without payment (ALLOW_DEV_MEMBERSHIP_BYPASS=1)",
+    "payments_order_not_403_from_gate": true,
+    "env_restored_after_run": "ALLOW_DEV_MEMBERSHIP_BYPASS=1",
+    "regression": "221 passed, 2 skipped (baseline 216 + 5 new)"
+  }
+}

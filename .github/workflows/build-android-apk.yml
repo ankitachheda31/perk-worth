@@ -99,22 +99,53 @@ jobs:
 
       - name: Preflight — backend health check
         env:
-          BACKEND_URL: ${{ secrets.VITE_BACKEND_URL || 'https://orbit-vouchers.preview.emergentagent.com' }}
+          # HARDCODED to prevent build-time misconfiguration from a stale
+          # `VITE_BACKEND_URL` repo secret. If you need to change the
+          # backend URL, edit the two occurrences below in this file —
+          # NOT the repo secret (secrets are now ignored).
+          BACKEND_URL: 'https://orbit-vouchers.preview.emergentagent.com'
         run: |
-          echo "Backend URL that will be baked into APK: $BACKEND_URL"
+          echo "════════════════════════════════════════════════════════"
+          echo "  Backend URL being baked into APK: $BACKEND_URL"
+          echo "════════════════════════════════════════════════════════"
           CODE=$(curl -sL -o /tmp/h -w "%{http_code}" --max-time 10 "$BACKEND_URL/api/health" || echo "000")
-          echo "HTTP $CODE"
+          echo "Preflight $BACKEND_URL/api/health → HTTP $CODE"
+          BODY=$(head -c 200 /tmp/h)
+          echo "Response body: $BODY"
           if [ "$CODE" != "200" ]; then
-            echo "::error::Backend at $BACKEND_URL/api/health returned $CODE"
-            echo "::error::Set VITE_BACKEND_URL secret to a URL where /api/health returns 200."
+            echo "::error::Backend at $BACKEND_URL/api/health returned $CODE (expected 200)."
             exit 1
           fi
+          # Also assert the body actually looks like our API (not a Vercel
+          # 404 or redirect page). Catches the case where the URL returns
+          # 200 but from the wrong service (e.g. a Vercel static site).
+          if ! echo "$BODY" | grep -q '"status"'; then
+            echo "::error::Backend responded 200 but body doesn't look like the FastAPI /api/health response. Got: $BODY"
+            exit 1
+          fi
+          echo "✓ Backend health confirmed"
 
       - name: Build web bundle (vite)
         working-directory: frontend
         env:
-          VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL || 'https://orbit-vouchers.preview.emergentagent.com' }}
+          # SAME hardcoded URL as preflight — never fall back to a secret
+          # so we can't ship an APK pointing at a broken URL.
+          VITE_BACKEND_URL: 'https://orbit-vouchers.preview.emergentagent.com'
         run: yarn build
+
+      - name: Verify baked-in URL matches expectation
+        working-directory: frontend
+        run: |
+          EXPECTED='orbit-vouchers.preview.emergentagent.com'
+          FOUND=$(grep -oE '"https?://[^"]+"' dist/assets/index-*.js | grep -i preview | head -1 || echo "")
+          echo "Expected substring: $EXPECTED"
+          echo "Found in bundle:    $FOUND"
+          if ! echo "$FOUND" | grep -q "$EXPECTED"; then
+            echo "::error::Baked-in URL doesn't contain expected substring. This means vite didn't pick up VITE_BACKEND_URL."
+            grep -oE '"https?://[^"]+"' dist/assets/index-*.js | head -20 || true
+            exit 1
+          fi
+          echo "✓ Correct backend URL is baked into the JS bundle"
 
       # -----------------------------------------------------------------
       # Android platform + Gradle 8.x templates

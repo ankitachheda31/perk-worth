@@ -58,12 +58,16 @@ export default function MonthlySavingsRollup({ onToast }) {
 
   const onShare = async () => {
     if (!rollup) return
+    const backendBase =
+      (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_BACKEND_URL) ||
+      (typeof process !== 'undefined' && process.env && process.env.REACT_APP_BACKEND_URL) ||
+      ''
     const text =
       `💰 PerkWorth · ${rollup.monthLabel}\n` +
       `I saved ${fmtINR(rollup.total)} this month across ${rollup.count} voucher${rollup.count === 1 ? '' : 's'}!\n` +
       `• ${fmtINR(rollup.codes)} from codes\n` +
       `• ${fmtINR(rollup.cashback)} estimated card cashback\n\n` +
-      `Track yours: https://perkworth.app`
+      `Track yours: ${backendBase || 'https://perkworth.app'}`
     // Prefer Web Share API on mobile; fall back to WhatsApp share URL
     if (navigator.share) {
       try {

@@ -1,0 +1,29 @@
+{
+  "summary": "Static verification of Network-Error final fix (workflow hardcode + baked URL verify step + MonthlySavingsRollup env fix + rebuilt Android bundle) + backend regression. All 10 verification checks PASS. Backend regression: 221 passed, 2 skipped — identical to iter 29 baseline.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "verification_checks": {
+    "1_no_secrets_backend_url_ref": "PASS — grep count = 0",
+    "2_orbit_vouchers_in_workflow": "PASS — grep count = 3 (>=2 required, present in preflight + vite build + verify step)",
+    "3_verify_baked_url_step": "PASS — line 136 'Verify baked-in URL matches expectation'",
+    "4_preflight_status_body_assert": "PASS — line 122 contains grep -q '\"status\"'",
+    "5_monthly_savings_rollup_env": "PASS — lines 61-70: const backendBase = import.meta.env.VITE_BACKEND_URL || ... with 'https://perkworth.app' only as final fallback",
+    "6_staged_bundle_orbit_vouchers": "PASS — main bundle index-Dy4u0f1u.js (referenced by index.html) contains 4 orbit-vouchers.preview.emergentagent.com refs",
+    "7_staged_bundle_perkworth_intentional": "PASS — main bundle has 3 perkworth.app refs (referral share text — intentional). Stale code-split chunks contain 0 perkworth refs",
+    "8_yaml_valid": "PASS — python yaml.safe_load succeeded",
+    "9_backend_regression": "PASS — 221 passed, 2 skipped (matches iter 29 baseline)",
+    "10_gradle_java17_intact": "PASS — /app/android-gradle-template/build.gradle lines 38-54: subprojects { afterEvaluate ... VERSION_17 override preserved"
+  },
+  "test_report_links": ["/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Note: Only main bundle index-Dy4u0f1u.js (532KB) is entry-loaded by index.html. Smaller code-split chunks (DIi04rGO/DjC3rGpM/DtFElFuO) do not contain backend URL — this is expected Vite behavior (URL lives in main chunk). Not an issue.",
+    "Recommend user delete stale VITE_BACKEND_URL GH repo secret (UI action) — workflow now bypasses it but keeping repo clean is best practice."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "N/A (skipped per request)"},
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iter 30: all 10 static verification checks pass; backend 221/221 (+2 skipped) identical to iter 29. Workflow hardcodes backend URL (no more secrets.VITE_BACKEND_URL), new verify-baked-URL step guards the build, preflight now asserts body contains \"status\", MonthlySavingsRollup uses env var. Android bundle staged with correct URL. Gradle Java 17 override from iter 29 preserved. This iteration is fully green."
+}

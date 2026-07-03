@@ -78,7 +78,7 @@ export default function MonthlySavingsRollup({ onToast }) {
   const onCopy = async () => {
     if (!rollup) return
     const text =
-      `PerkWorth · ${rollup.monthLabel} · Saved ${fmtINR(rollup.total)} across ${rollup.count} vouchers ` +
+      `PerkWorth · ${rollup.monthLabel} · Saved ${fmtINR(rollup.total)} across ${rollup.count} voucher${rollup.count === 1 ? '' : 's'} ` +
       `(${fmtINR(rollup.codes)} codes + ${fmtINR(rollup.cashback)} est. cashback)`
     try {
       await navigator.clipboard.writeText(text)

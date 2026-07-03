@@ -418,3 +418,39 @@
 - **P2** Daily auto-updating offers ETL (scheduled scrape of brand offers into an in-app feed)
 - **P3** iOS Biometric Auth (deferred — requires Apple Dev account)
 - **P3** WhatsApp inbound webhook + bot routing (only if user requests two-way support)
+
+
+
+## 2026-07-02 — Iteration 26 · WhatsApp inbound webhook + hybrid bot routing
+- **Two new endpoints** (always mounted, feature-flagged):
+  - `GET /api/whatsapp/webhook` — Meta verification handshake. Compares `hub.verify_token` against env `WHATSAPP_VERIFY_TOKEN`; echoes back `hub.challenge` on match, 403 on mismatch. Always live so the URL can be registered in Meta Business Manager before flipping the feature on.
+  - `POST /api/whatsapp/webhook` — receives inbound messages. HMAC-SHA256 signature check against `WHATSAPP_APP_SECRET` (dev passthrough when empty). Returns `{ok:true, processed:false, reason:"disabled"}` when `WHATSAPP_ENABLED=0` — no bot logic runs.
+- **New bot engine** `services/whatsapp_bot.py` — hybrid:
+  - **FAQ keyword paths** (regex, zero LLM cost): `hi/hello/namaste/help/menu`, `expiring/ending`, `points/balance`, `pro/premium`, `human/agent/support`, `stop/unsubscribe`.
+  - **LLM fallback** (GPT-4o via Emergent LLM key) for open-ended questions — injects the user's own voucher + membership context as system prompt so it never hallucinates.
+  - **Human handoff** — `human` keyword OR LLM-failure → logs a ticket to `support_history` with `channel:"whatsapp"`, `pending_admin_reply:true`, `wa_id`, `message`. Visible in the existing Admin Dashboard.
+- **User identification** — matches inbound `wa_id` (E.164-without-plus, e.g. `919812345678`) against `users.phone` with tolerance for stored variants (`+91…`, `91-…`, bare 10-digit). Unregistered numbers get a one-line "sign up first" reply. No PIN prompt over WhatsApp (security posture).
+- **24-hr session tracker** — every inbound upserts `wa_sessions.{wa_id, last_user_msg_at, last_message_id}`. Replies use `type:text` (plain), routed via new `send_session_text_message()` in `services/whatsapp.py`.
+- **Opt-out flow** — `stop` inserts a row into `wa_opt_outs`; subsequent inbound from the same wa_id is silently skipped until `start` clears it.
+- **New env vars**: `WHATSAPP_VERIFY_TOKEN=perkworth_wa_verify_2026`, `WHATSAPP_APP_SECRET=` (empty in dev; paste from Meta App → Settings → Basic in prod).
+- **Docs updated**: `/app/WHATSAPP_TEMPLATES.md` now includes Meta webhook setup steps + bot behaviour matrix + feature-flag flow.
+
+### Testing (iteration 21)
+- Testing agent: **210/210 backend tests passing** (194 prior + 16 new in `test_iter21_whatsapp_webhook.py`). All happy + sad paths covered: verify handshake, HMAC signature (all 4 branches), every FAQ regex, non-registered flow, session-upsert on inbound, opt-out + opt-in, no secret leakage in responses. LLM fallback branch intentionally NOT exercised to preserve Emergent credits — the terminal human-handoff path (which is where LLM failures land) is fully tested.
+
+### Production checklist reminders (unchanged)
+- `WHATSAPP_ENABLED=0` and `DISABLE_RATE_LIMIT=1` must be stripped/overridden in prod.
+- When flipping live: set `WHATSAPP_ACCESS_TOKEN` + `WHATSAPP_PHONE_NUMBER_ID` + `WHATSAPP_APP_SECRET` before setting `WHATSAPP_ENABLED=1`. Register webhook URL in Meta Business Manager (verify token = value of `WHATSAPP_VERIFY_TOKEN`).
+
+### Prioritized backlog
+- **P1** Combined savings stack on VoucherCard (voucher discount + best-card cashback = total ₹)
+- **P1** Weekly Savings Digest via WhatsApp + Email (Sunday 9am IST)
+- **P1** Public voucher pack share links (`/pack/<token>` — Family Circle → signup funnel)
+- **P2** Referral tiers + leaderboard (3/5/10 referrals unlock progressive rewards)
+- **P2** Daily auto-updating offers ETL (scheduled brand-offer scrape)
+- **P2** Bank SMS spend profiler → card-swap recommendation module
+- **P3** Chrome extension for auto-coupon-detect at checkout
+- **P3** Voucher marketplace (P2P swap via Razorpay Route escrow)
+- **P3** Encrypted local backup (.zip w/ PIN — DPDP Article 20)
+- **P3** Session activity log + per-device revocation UI
+- **P3** iOS Biometric Auth (requires Apple Dev account)

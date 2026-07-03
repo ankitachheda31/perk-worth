@@ -129,12 +129,53 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pin, locked, refreshKey])
 
-  // Hardware back button
+  // Hardware back button — handles BOTH the browser popstate event AND the
+  // Android hardware back button (Capacitor App plugin). Priority order for
+  // "back" presses:
+  //   1. Close notification sheet if open
+  //   2. Close profile menu if open
+  //   3. Close add-voucher sheet if open
+  //   4. Close how-to sheet if open
+  //   5. Close share sheet if open
+  //   6. Close "How we protect you" modal if open
+  //   7. Pop navigation stack if > 1 screen deep
+  //   8. Otherwise let the OS handle it (exits the app on Android root screen)
   useEffect(() => {
-    const onPop = () => { if (stack.length > 1) pop() }
+    const goBack = () => {
+      if (notifsOpen) { setNotifsOpen(false); return true }
+      if (profileOpen) { setProfileOpen(false); return true }
+      if (addOpen) { setAddOpen(false); setEditingVoucher(null); return true }
+      if (howToFor) { setHowToFor(null); return true }
+      if (shareFor) { setShareFor(null); return true }
+      if (protectOpen) { setProtectOpen(false); return true }
+      if (stack.length > 1) { pop(); return true }
+      return false
+    }
+    const onPop = () => { goBack() }
     window.addEventListener('popstate', onPop)
-    return () => window.removeEventListener('popstate', onPop)
-  }, [stack.length])
+
+    // Capacitor Android hardware back button. Dynamic import so the web
+    // build doesn't fail when the native plugin isn't available.
+    let removeHandle = null
+    ;(async () => {
+      try {
+        const isNative = typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.()
+        if (!isNative) return
+        const { App: CapApp } = await import('@capacitor/app')
+        const handle = await CapApp.addListener('backButton', () => {
+          const handled = goBack()
+          if (!handled) CapApp.exitApp()
+        })
+        removeHandle = () => { try { handle.remove() } catch { /* noop */ } }
+      } catch { /* plugin missing on web — safe to ignore */ }
+    })()
+
+    return () => {
+      window.removeEventListener('popstate', onPop)
+      if (removeHandle) removeHandle()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stack.length, notifsOpen, profileOpen, addOpen, howToFor, shareFor, protectOpen])
 
   // Verify cloud session on cold start
   useEffect(() => {

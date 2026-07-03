@@ -2,6 +2,13 @@
 
 > Voucher-First Personal Financial Assistant for Indian households. Cloud-synced. Auto-updating. Launch-ready.
 
+## 2026-02 · Android Hardware Back Button + Biometric Discoverability
+- **Problem**: Android hardware back button exited the app instead of navigating back one screen; users had to tap the top-left back button every time.
+- **Fix**: Added a Capacitor `App.addListener('backButton', ...)` handler in `App.jsx` (replaces the old popstate-only listener). Priority order: closes open sheets/modals first (notifications, profile, add-voucher, how-to, share, protect), then pops the navigation stack, and only exits the app when at root. Works on both APK (via `@capacitor/app`) and web (via popstate).
+- **Biometric feature location** (already implemented): Profile menu (top-right avatar) → **Settings** → **Biometric unlock** card. Card is only visible if the device reports biometric hardware is available (Android BiometricPrompt / iOS Face ID / WebAuthn on web).
+
+
+
 ## 2026-02 · APK Network Error — Definitive Root-Cause Fix
 - **Symptom**: Every login attempt from Android APK returned "Network error — check your connection and try again". Web preview worked fine.
 - **Investigation ruled out**: URL not baked into bundle (verified via grep in dist/), backend down (health returned 200), Java 21 compile (already fixed), yarn.lock drift (only a warning, non-blocking).

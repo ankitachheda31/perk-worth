@@ -249,19 +249,48 @@ def build_auth_router(db) -> APIRouter:
 
     @router.post("/forgot-password")
     @limiter.limit("3/minute")
-    async def forgot_password(request: Request, payload: ForgotPasswordRequest = Body(...)):
+    async def forgot_password(request: Request, response: Response, payload: ForgotPasswordRequest = Body(...)):
         """DPDP-compliant password reset trigger.
 
         Always returns 200 with the same shape regardless of whether the email
         exists — this prevents account enumeration attacks. If the email DOES
         match a user, a one-time reset token (TTL 60 min) is generated and an
         email is sent via Resend.
+
+        Anti-abuse layers (independent, all must pass to send):
+          1. slowapi 3/min per IP (may be disabled via DISABLE_RATE_LIMIT env)
+          2. Per-email cooldown of 15 minutes — hard MongoDB check that
+             ALWAYS runs regardless of the rate-limit env flag. Prevents
+             inbox flooding when the same email is requested repeatedly.
+          3. EMAIL_SEND_ENABLED env kill-switch — set to 0 to short-circuit
+             all real Resend sends (tests + incident response).
         """
         from mailer import send_password_reset  # local import to avoid hard dep on startup
 
         email = payload.email.lower()
         user = await db.users.find_one({"email": email})
         if user:
+            # LAYER 2 · Per-email cooldown — 15-minute floor between real sends
+            # for the same email address, independent of source IP.
+            cooldown_min = int(os.environ.get("FORGOT_PASSWORD_COOLDOWN_MIN", "15"))
+            recent = await db.password_resets.find_one(
+                {
+                    "email": email,
+                    "created_at": {
+                        "$gte": datetime.now(timezone.utc) - timedelta(minutes=cooldown_min),
+                    },
+                },
+                sort=[("created_at", -1)],
+            )
+            if recent:
+                log.info("forgot_password cooldown hit for %s (last sent %s min ago)",
+                         email,
+                         int((datetime.now(timezone.utc) - recent["created_at"].replace(tzinfo=timezone.utc)).total_seconds() // 60)
+                         if isinstance(recent.get("created_at"), datetime) else "?")
+                # Return the SAME shape as a success — enumeration-safe AND
+                # invisible to the abuser (they can't tell we skipped).
+                return {"ok": True, "message": "If an account exists for this email, a reset link has been sent."}
+
             # Invalidate any prior unused tokens for this user (one active reset at a time)
             await db.password_resets.update_many(
                 {"user_id": str(user["_id"]), "used": False},
@@ -279,11 +308,16 @@ def build_auth_router(db) -> APIRouter:
             })
             frontend = os.environ.get("FRONTEND_URL", "https://perkworth.app").rstrip("/")
             reset_url = f"{frontend}/?reset_token={token}"
-            # Best-effort send — never break the flow if Resend fails
-            try:
-                await send_password_reset(email, reset_url, name=user.get("name") or None)
-            except Exception as e:
-                log.error("Password reset email failed: %s", e)
+
+            # LAYER 3 · Kill-switch: skip real Resend send when EMAIL_SEND_ENABLED=0
+            if os.environ.get("EMAIL_SEND_ENABLED", "1") != "1":
+                log.info("EMAIL_SEND_ENABLED=0 — reset link generated for %s but NOT emailed", email)
+            else:
+                # Best-effort send — never break the flow if Resend fails
+                try:
+                    await send_password_reset(email, reset_url, name=user.get("name") or None)
+                except Exception as e:
+                    log.error("Password reset email failed: %s", e)
         # Always return the same response (no enumeration)
         return {"ok": True, "message": "If an account exists for this email, a reset link has been sent."}
 

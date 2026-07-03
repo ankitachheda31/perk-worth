@@ -1,0 +1,29 @@
+{
+  "summary": "Verified 3-layer email-flood fix on /api/auth/forgot-password. All 6 targeted tests pass and full regression 216/218 (2 skipped, +6 new vs 210 baseline) passes with zero new failures. EMAIL_SEND_ENABLED=0 kill-switch prevents any Resend HTTP call, per-email 15-min cooldown blocks repeat sends for the same address, and response body is identical across all 3 paths (enumeration-safe).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_email_flood_fix.py",
+    "/app/test_reports/pytest/iter25_full.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Kill-switch scope: EMAIL_SEND_ENABLED currently gates ONLY forgot-password. mailer.send_voucher_share_email path still calls Resend directly (verified by recent Resend rate-limit errors for voucher-share). If the intent is a global dev/incident kill-switch, gate should live inside mailer.py or every send_* helper. Recommend hoisting the env check into a single Resend client wrapper.",
+    "Cooldown row lookup uses email as the shard/index key — no index defined on password_resets.email + created_at. Under load this is a full-collection scan every forgot-password call. Add a compound index {email:1, created_at:-1}."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_email_flood_fix.py (new)"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "not tested (backend-only per request)"},
+  "test_credentials": "Admin: test@perkorbit.app / Perk@1234 (present in DB, used for cooldown+kill-switch verification)",
+  "seed_data_creation": "None — cleaned up all password_resets rows created for test@perkorbit.app before and after each test",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Layer 1 slowapi rate-limit is DISABLED in dev (DISABLE_RATE_LIMIT=1). Do not stress-test forgot-password even with kill-switch on. Cleanup password_resets rows for test@perkorbit.app after every test to avoid cooldown pollution. No Resend calls fired for forgot-password during this iteration — verified via log inspection.",
+  "verification_evidence": {
+    "kill_switch_log_hits_for_test_email": 6,
+    "cooldown_log_hits": 3,
+    "resend_calls_for_forgot_password_during_run": 0,
+    "regression": "216 passed, 2 skipped (was 210+ baseline; +6 new tests)"
+  }
+}

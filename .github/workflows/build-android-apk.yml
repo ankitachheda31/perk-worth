@@ -7,21 +7,40 @@ on:
   workflow_dispatch:
     inputs:
       build_type:
-        description: 'Build type (debug or release)'
+        description: 'Build type'
         required: false
         default: 'debug'
         type: choice
         options: [debug, release]
+      clean_cache:
+        description: 'Wipe all caches (Gradle, Yarn, node_modules) before building'
+        required: false
+        default: 'true'
+        type: choice
+        options: ['true', 'false']
 
 jobs:
   build:
-    name: Build APK on Ubuntu (cloud, no local machine required)
+    name: Clean-build APK (cloud, no local machine required)
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
 
     steps:
+      # -----------------------------------------------------------------
+      # Preflight — print every version we depend on so failures are self-diagnosing
+      # -----------------------------------------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Print environment matrix (for support attachments)
+        run: |
+          echo "=== Runner ==="
+          uname -a
+          echo ""
+          echo "=== Disk before build ==="
+          df -h / || true
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -29,52 +48,65 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
+      - name: Verify JDK 17
+        run: |
+          java -version
+          javac -version
+          echo "JAVA_HOME=$JAVA_HOME"
+
       - name: Set up Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      # Optional yarn cache — silently no-ops if no lockfile is found.
-      # setup-node's built-in `cache: 'yarn'` FAILS hard when the lockfile
-      # is missing (that's the bug we're fixing), so we use actions/cache
-      # directly with hashFiles() guarding the key.
-      - name: Cache yarn dependencies
-        if: ${{ hashFiles('frontend/yarn.lock', 'yarn.lock') != '' }}
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/yarn
-            frontend/node_modules
-          key: ${{ runner.os }}-yarn-${{ hashFiles('frontend/yarn.lock', 'yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
+      - name: Verify Node + Yarn
+        run: |
+          node -v
+          yarn -v
+          npx -v
 
-      - name: Set up Android SDK
+      - name: Set up Android SDK (API 34 + build-tools 34.0.0)
         uses: android-actions/setup-android@v3
         with:
           packages: 'platforms;android-34 build-tools;34.0.0 platform-tools'
 
+      # -----------------------------------------------------------------
+      # Clean slate — nuke every cache that might taint a build
+      # -----------------------------------------------------------------
+      - name: Wipe caches for a truly clean build
+        if: ${{ github.event.inputs.clean_cache != 'false' }}
+        run: |
+          echo "Nuking node_modules, dist, frontend/android/build, ~/.gradle/caches"
+          rm -rf frontend/node_modules frontend/dist
+          rm -rf frontend/android/app/build frontend/android/build frontend/android/.gradle
+          rm -rf ~/.gradle/caches ~/.gradle/daemon
+          rm -rf ~/.cache/yarn
+          echo "✓ Cache wipe complete"
+
+      # -----------------------------------------------------------------
+      # Frontend
+      # -----------------------------------------------------------------
       - name: Install frontend dependencies
         working-directory: frontend
         run: |
           if [ -f yarn.lock ]; then
-            echo "yarn.lock found — using --frozen-lockfile"
-            yarn install --frozen-lockfile
+            echo "yarn.lock found → --frozen-lockfile"
+            yarn install --frozen-lockfile --network-timeout 100000
           else
-            echo "::warning::yarn.lock not found in frontend/ — running plain 'yarn install' (this may update the lockfile). Commit yarn.lock next time for reproducible builds."
-            yarn install
+            echo "::warning::yarn.lock missing — plain yarn install (lockfile may drift)"
+            yarn install --network-timeout 100000
           fi
 
-      - name: Preflight — verify backend is reachable
+      - name: Preflight — backend health check
         env:
           BACKEND_URL: ${{ secrets.VITE_BACKEND_URL || 'https://orbit-vouchers.preview.emergentagent.com' }}
         run: |
-          echo "Testing backend at $BACKEND_URL/api/health"
+          echo "Backend URL that will be baked into APK: $BACKEND_URL"
           CODE=$(curl -sL -o /tmp/h -w "%{http_code}" --max-time 10 "$BACKEND_URL/api/health" || echo "000")
           echo "HTTP $CODE"
           if [ "$CODE" != "200" ]; then
-            echo "::error::Backend at $BACKEND_URL/api/health returned $CODE — refusing to build a broken APK."
-            echo "::error::Set the VITE_BACKEND_URL secret in Settings → Secrets → Actions to a working backend."
+            echo "::error::Backend at $BACKEND_URL/api/health returned $CODE"
+            echo "::error::Set VITE_BACKEND_URL secret to a URL where /api/health returns 200."
             exit 1
           fi
 
@@ -84,52 +116,117 @@ jobs:
           VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL || 'https://orbit-vouchers.preview.emergentagent.com' }}
         run: yarn build
 
-      - name: Add Android platform if not committed
+      # -----------------------------------------------------------------
+      # Android platform + Gradle 8.x templates
+      # -----------------------------------------------------------------
+      - name: Add Android platform if missing
         working-directory: frontend
         run: |
           if [ ! -d android ]; then
-            echo "android/ folder not tracked in repo — generating fresh via 'npx cap add android'"
+            echo "android/ not tracked in repo — generating via 'npx cap add android'"
             npx cap add android
           else
-            echo "android/ folder exists in repo — using it"
+            echo "android/ tracked in repo — reusing"
           fi
 
       - name: Apply Gradle 8.x + AGP 8.5 template files
         run: |
-          if [ -d android-gradle-template ]; then
-            mkdir -p frontend/android/gradle/wrapper
-            cp android-gradle-template/gradle-wrapper.properties frontend/android/gradle/wrapper/gradle-wrapper.properties
-            cp android-gradle-template/variables.gradle          frontend/android/variables.gradle
-            cp android-gradle-template/build.gradle              frontend/android/build.gradle
-            cp android-gradle-template/gradle.properties         frontend/android/gradle.properties
-            echo "Gradle 8.x templates applied"
-          else
-            echo "::warning::android-gradle-template/ not found — using whatever Gradle version is in the repo"
+          if [ ! -d android-gradle-template ]; then
+            echo "::warning::android-gradle-template/ missing — using whatever Gradle version is committed"
+            exit 0
           fi
+          mkdir -p frontend/android/gradle/wrapper
+          cp android-gradle-template/gradle-wrapper.properties frontend/android/gradle/wrapper/gradle-wrapper.properties
+          cp android-gradle-template/variables.gradle          frontend/android/variables.gradle
+          cp android-gradle-template/build.gradle              frontend/android/build.gradle
+          cp android-gradle-template/gradle.properties         frontend/android/gradle.properties
+          echo "✓ Gradle 8.x templates applied"
 
       - name: Sync Capacitor plugins into Android
         working-directory: frontend
         run: npx cap sync android
 
-      - name: Build APK
+      # -----------------------------------------------------------------
+      # THE ACTUAL BUILD — verbose, no daemon, no cache reuse, stacktrace on
+      # -----------------------------------------------------------------
+      - name: Print Gradle wrapper version
         working-directory: frontend/android
         run: |
           chmod +x gradlew
-          BUILD_TYPE="${{ github.event.inputs.build_type || 'debug' }}"
-          echo "Building $BUILD_TYPE APK"
-          if [ "$BUILD_TYPE" = "release" ]; then
-            ./gradlew :app:assembleRelease --no-daemon --stacktrace
-          else
-            ./gradlew :app:assembleDebug --no-daemon --stacktrace
-          fi
+          ./gradlew --version || true
 
+      - name: Assemble APK (clean, verbose, no cache)
+        id: assemble
+        working-directory: frontend/android
+        run: |
+          BUILD_TYPE="${{ github.event.inputs.build_type || 'debug' }}"
+          TASK=$([[ "$BUILD_TYPE" == "release" ]] && echo "assembleRelease" || echo "assembleDebug")
+
+          echo "▸ Running: ./gradlew clean :app:$TASK --no-daemon --no-build-cache --refresh-dependencies --info --stacktrace --warning-mode=all"
+
+          # Save full log to a file so we can upload it as an artifact on failure
+          mkdir -p ../../build-logs
+          set -o pipefail
+          ./gradlew clean :app:$TASK \
+            --no-daemon \
+            --no-build-cache \
+            --refresh-dependencies \
+            --info \
+            --stacktrace \
+            --warning-mode=all \
+            2>&1 | tee ../../build-logs/gradle-full.log
+
+      # -----------------------------------------------------------------
+      # Failure diagnostics — always runs after the build step
+      # -----------------------------------------------------------------
+      - name: Diagnose Gradle log on failure
+        if: failure()
+        run: |
+          LOG=build-logs/gradle-full.log
+          if [ ! -f "$LOG" ]; then
+            echo "::warning::No gradle log to diagnose (build failed before log was written)"
+            exit 0
+          fi
+          echo "════════════════════════════════════════════════════════"
+          echo "  GRADLE FAILURE DIAGNOSTICS (auto-extracted)"
+          echo "════════════════════════════════════════════════════════"
+          echo ""
+          echo "── Last 100 lines of gradle log ──"
+          tail -100 "$LOG"
+          echo ""
+          echo "── ALL lines containing FAILED/ERROR/Exception ──"
+          grep -nE 'FAILURE:|FAILED|ERROR|Exception|error:|>' "$LOG" | tail -50 || echo "(none found)"
+          echo ""
+          echo "── What went wrong section ──"
+          awk '/What went wrong:/,/BUILD FAILED/' "$LOG" | head -80 || true
+          echo ""
+          echo "── Deprecation/lint issues ──"
+          grep -inE 'deprecat|incompatible|manifest merger|resource not found' "$LOG" | head -20 || echo "(none)"
+          echo ""
+          echo "════════════════════════════════════════════════════════"
+          echo "  Full log is uploaded as artifact 'gradle-build-log'"
+          echo "════════════════════════════════════════════════════════"
+
+      - name: Upload Gradle log artifact (always — success or failure)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-build-log-${{ github.run_number }}
+          path: build-logs/
+          retention-days: 14
+          if-no-files-found: warn
+
+      # -----------------------------------------------------------------
+      # Success path — locate + upload the APK
+      # -----------------------------------------------------------------
       - name: Locate produced APK
+        if: success()
         id: locate
         working-directory: frontend/android
         run: |
           APK=$(find app/build/outputs/apk -name "*.apk" | head -1)
           if [ -z "$APK" ]; then
-            echo "::error::No APK was produced."
+            echo "::error::Gradle reported success but no APK was produced. Check outputs directory."
             ls -R app/build/outputs || true
             exit 1
           fi
@@ -137,7 +234,8 @@ jobs:
           echo "Built: frontend/android/$APK"
           ls -lh "$APK"
 
-      - name: Upload APK as artifact
+      - name: Upload APK artifact
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: PerkWorth-APK-${{ github.sha }}
@@ -145,13 +243,24 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
-      - name: Success summary
+      - name: Job summary
+        if: always()
         run: |
-          echo "## 🎉 APK build complete" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Download the APK**: scroll down to the **Artifacts** section of this workflow run and click **PerkWorth-APK-${{ github.sha }}**." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Sideload on your phone**:" >> $GITHUB_STEP_SUMMARY
-          echo "1. Extract the downloaded .zip → you get an .apk file" >> $GITHUB_STEP_SUMMARY
-          echo "2. Send the .apk to your phone (Google Drive, email, WhatsApp Web → yourself)" >> $GITHUB_STEP_SUMMARY
-          echo "3. Tap it to install (enable 'Install from unknown sources' when prompted)" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ job.status }}" = "success" ]; then
+            {
+              echo "## 🎉 APK build complete"
+              echo ""
+              echo "**Download**: scroll down to the **Artifacts** section of this run and click **PerkWorth-APK-${{ github.sha }}**."
+              echo ""
+              echo "**Sideload**: Send the .apk to your phone (Google Drive / WhatsApp Web / email), tap to install."
+            } >> $GITHUB_STEP_SUMMARY
+          else
+            {
+              echo "## ❌ Build failed"
+              echo ""
+              echo "**Diagnostics** are in the **'Diagnose Gradle log on failure'** step above."
+              echo "**Full log** is attached as artifact **gradle-build-log-${{ github.run_number }}** — download it and share with support."
+              echo ""
+              echo "**Fastest next step**: click the Actions tab → this run → download the log artifact → paste the last ~50 lines back in the Emergent chat."
+            } >> $GITHUB_STEP_SUMMARY
+          fi

@@ -77,3 +77,64 @@ Restart backend. Existing triggers (`services/notifications_logic.py` for expiry
 
 ## Cost note (Feb 2026)
 Utility conversations in India are **~₹0.35 per conversation** on Meta's Cloud API (business-initiated). All three templates fall under Utility, not Marketing, so pricing stays low.
+
+---
+
+# Inbound Webhook + Bot Routing (v2)
+
+The backend now also handles INCOMING WhatsApp messages via a bot that answers FAQs, escalates to GPT-4o for open-ended questions, and logs tickets to `support_history` for admin follow-up.
+
+## Endpoints (always mounted, feature-flagged)
+
+- `GET  /api/whatsapp/webhook` — Meta's one-time verification handshake. Compares `hub.verify_token` against env `WHATSAPP_VERIFY_TOKEN` and echoes back `hub.challenge` on match. Always live so you can register the URL in Meta before flipping `WHATSAPP_ENABLED=1`.
+- `POST /api/whatsapp/webhook` — receives inbound message payloads. Validates HMAC-SHA256 signature via `X-Hub-Signature-256` against env `WHATSAPP_APP_SECRET`. No-ops (returns 200) when `WHATSAPP_ENABLED=0`.
+
+## New env vars
+
+```
+WHATSAPP_VERIFY_TOKEN=perkworth_wa_verify_2026   # any random string; paste into Meta's "verify token" field
+WHATSAPP_APP_SECRET=                             # Meta App → Settings → Basic → App Secret (long hex)
+```
+
+## Meta setup steps (once WABA is approved)
+
+1. **Meta Business Manager** → WhatsApp → Configuration → **Webhook**
+2. Callback URL: `https://<your-domain>/api/whatsapp/webhook`
+3. Verify token: paste the value of `WHATSAPP_VERIFY_TOKEN` from your `.env`
+4. Click **Verify and Save** → Meta issues a `GET` to your webhook; the endpoint echoes the challenge and Meta records the URL.
+5. **Webhook fields**: subscribe to `messages` at minimum. `message_status` if you want delivery receipts later.
+6. **App Dashboard → Settings → Basic → App Secret** → copy into `WHATSAPP_APP_SECRET` so signature verification passes on every incoming POST.
+
+## Bot behaviour (hybrid — FAQ + LLM)
+
+Zero-cost keyword paths handle 90% of expected traffic:
+
+| Keyword pattern | Reply |
+|---|---|
+| `hi` / `hello` / `namaste` / `help` / `menu` | Personalized welcome + menu |
+| `expiring` / `ending` | List up to 10 vouchers expiring in ≤7 days with brand + code + days-left |
+| `points` / `balance` / `membership status` | Per-membership ROI summary (₹ saved / ₹ fee, %) |
+| `pro` / `premium` / `subscription` | Pro plan expiry + referral code |
+| `human` / `agent` / `support` / `talk to` | Logs ticket to `support_history` with `pending_admin_reply=True`, replies "team will reply within 24h" |
+| `stop` / `unsubscribe` / `opt out` | Adds row to `wa_opt_outs`, bot stays silent until `start` is sent |
+
+Anything else → GPT-4o via Emergent LLM key with the user's own voucher/membership context injected as system prompt. If LLM errors or returns empty, we fall back to human handoff.
+
+## User identification
+
+We match the incoming `wa_id` (Meta's E.164-without-plus format, e.g. `919812345678`) against `users.phone`. Users without a matching phone get a one-line "sign up first" reply — we never ask for their PIN over WhatsApp.
+
+## 24-hour session window
+
+Every inbound message upserts `wa_sessions.{wa_id, last_user_msg_at}`. Since replies happen INSIDE the 24hr window Meta grants after any user-initiated message, we send plain text (`type: text`) not templates. `send_session_text_message()` in `services/whatsapp.py` handles this — never call it cold.
+
+## Admin visibility
+
+Every human-handoff ticket lands in `support_history` with `channel="whatsapp"` and `pending_admin_reply=True`. You can filter for these in your existing Admin Dashboard's support tab to reply from the app.
+
+## Feature-flag flow
+
+Until you set `WHATSAPP_ENABLED=1`:
+- `GET /webhook` still verifies (so you can complete Meta's URL registration ahead of time)
+- `POST /webhook` returns `{ok: true, processed: false, reason: "disabled"}` — no bot logic runs, no messages get sent, no LLM cost.
+

@@ -159,3 +159,43 @@ async def send_family_circle_invite(
     payload = _build("family_circle_invite", to, language,
                      [invitee_name or "there", inviter_name or "A PerkWorth member", invite_url or ""])
     return await _post_template(payload)
+
+
+async def send_session_text_message(to_wa_id: str, body: str) -> Dict[str, Any]:
+    """Send a plain-text reply INSIDE an active 24hr session window.
+    Called by the inbound webhook bot — never call this cold, use a template.
+    Meta rejects `type:text` sends outside the 24hr window with error 131047.
+    """
+    c = _cfg()
+    if not c["enabled"]:
+        log.info("WhatsApp session reply skipped (WHATSAPP_ENABLED=0). to=%s body=%.60s", to_wa_id, body)
+        return {"sent": False, "reason": "disabled"}
+    if not c["access_token"] or not c["phone_number_id"]:
+        return {"sent": False, "reason": "disabled"}
+    to = _normalize_e164(to_wa_id)
+    if not to:
+        return {"sent": False, "reason": "no_phone"}
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": to,
+        "type": "text",
+        "text": {"body": body[:4096]},  # WhatsApp text-message hard cap
+    }
+    url = f"https://graph.facebook.com/{GRAPH_API_VERSION}/{c['phone_number_id']}/messages"
+    headers = {
+        "Authorization": f"Bearer {c['access_token']}",
+        "Content-Type": "application/json",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(url, headers=headers, json=payload)
+    except Exception as e:
+        log.exception("WhatsApp session-text HTTP error: %s", e)
+        return {"sent": False, "reason": "http_error", "error": str(e)}
+    try:
+        data = response.json()
+    except Exception:
+        data = {"raw": response.text}
+    if response.status_code == 200:
+        return {"sent": True, "message_id": (data.get("messages") or [{}])[0].get("id")}
+    return {"sent": False, "reason": "api_error", "status": response.status_code, "response": data}

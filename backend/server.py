@@ -78,12 +78,14 @@ from routes.extraction import build_extraction_router  # noqa: E402
 from routes.circle import build_circle_router  # noqa: E402
 from routes.billing import build_billing_router  # noqa: E402
 from routes.notifications import build_notifications_router  # noqa: E402
+from routes.whatsapp_webhook import build_whatsapp_webhook_router  # noqa: E402
 
 app.include_router(build_vouchers_router(db))
 app.include_router(build_extraction_router())
 app.include_router(build_circle_router(db))
 app.include_router(build_billing_router(db))
 app.include_router(build_notifications_router(db))
+app.include_router(build_whatsapp_webhook_router(db))
 
 
 # Auth + Market Intelligence (cloud sync + daily program-change cron)

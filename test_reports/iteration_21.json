@@ -1,0 +1,29 @@
+{
+  "summary": "Iter 21 — WhatsApp inbound webhook + hybrid bot routing verified. Backend regression: 210 passed / 2 skipped (194 prior + 16 new in test_iter21_whatsapp_webhook.py). All review-request items pass: GET verify (happy=200 echoes challenge, wrong-token=403, missing-mode=403); POST feature-flag gate returns {ok:true, processed:false, reason:'disabled'} with WHATSAPP_ENABLED=0 (no wa_sessions/support_history writes because handler short-circuits before DB); HMAC-SHA256 signature verification unit-tested (empty secret => dev passthrough, secret set + no header => False, bad hex => False, correct sha256=<hex> => True); bot FAQ paths hi/help/expiring/points/pro all reply correctly; 'human' logs support_history row {channel:'whatsapp', pending_admin_reply:true, wa_id, message}; unknown wa_id (no matching users.phone) returns NOT_REGISTERED text; matched user 919812345678 gets personalized 'Namaste WA Test' greeting; wa_sessions upsert verified end-to-end via in-process ASGITransport call with WHATSAPP_ENABLED=1 (record has last_user_msg_at + last_message_id, no real Meta HTTP because access_token blank); opt-out flow: 'stop' inserts wa_opt_outs + empty-string skip on subsequent messages + 'start' clears the opt-out doc. No secret leakage in webhook JSON responses (asserted absence of EMERGENT_LLM_KEY and WHATSAPP_VERIFY_TOKEN). LLM fallback branch NOT invoked (per instruction to limit Emergent credit spend) — human-handoff terminal branch is exercised instead which is the same failure-mode path _llm_reply falls into on None return.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": { "ui_bugs": [], "integration_issues": [], "design_issues": [] },
+  "test_report_links": [
+    "/app/backend/tests/test_iter21_whatsapp_webhook.py",
+    "/app/test_reports/pytest/iter21_full.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "routes/whatsapp_webhook.py: signature check runs BEFORE feature-flag gate — correct order (defends against replay even when feature is off). Good.",
+    "routes/whatsapp_webhook.py line 82-84: raises HTTPException(403) on bad signature — Meta docs suggest silently returning 200 to avoid signaling that endpoint is scanning; a bad-actor could probe. Not blocking but worth revisiting. Current behavior does log the failure which is defensible.",
+    "services/whatsapp_bot.py OPT_OUT_RE matches 'stop' before user lookup — that's correct behavior; even non-registered numbers should be able to opt-out. Verified in tests.",
+    "services/whatsapp_bot.py _find_user_by_wa_id builds a candidate list of phone formats — good tolerance for stored variations. Consider indexing users.phone if you haven't already; a $in scan across all users at scale will hurt.",
+    "services/whatsapp_bot.py: 'help|menu|options|what can you|start' regex includes 'start' which means opt-in re-entry (line 203) AND help menu match (line 218) both fire — order in code (opt-out check first) makes it work, but a comment noting the ordering-dependency would prevent future refactor breakage.",
+    "routes/whatsapp_webhook.py: on JSON parse failure we return {ok:true} with 200 — sensible for Meta retries, but the exception is only logged, no dead-letter store. Fine for MVP.",
+    "services/whatsapp.py send_session_text_message: cap of 4096 chars matches Meta's hard limit — good. However bot LLM replies are capped at 4096 in whatsapp_bot._llm_reply while FAQ replies are unbounded; if any FAQ path grew (e.g. many expiring vouchers) it should also be truncated. Currently voucher list is sliced to :10 so safe."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter21_whatsapp_webhook.py (new — 16 tests covering verify handshake, feature-flag, HMAC signature, all bot FAQ branches, non-registered flow, session tracking, opt-out/opt-in, no-leak)"
+  ],
+  "success_rate": { "backend": "100% (210/210 passing, 2 unrelated skips)", "frontend": "n/a (backend-only scope)" },
+  "test_credentials": "test@perkorbit.app / Perk@1234 (not needed for these tests — bot tests use a TEST_wa_ throwaway user with phone=919812345678, created + cleaned up per-test-module).",
+  "seed_data_creation": "test_iter21_whatsapp_webhook.py creates one TEST_wa_<uuid>@perkworth.app user with phone=919812345678 via module-scoped fixture; teardown deletes the user + all wa_sessions/wa_opt_outs/support_history rows for that wa_id. No production data touched.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend regression command: pytest /app/backend/tests/ -q (48s, 210 passing). WhatsApp feature remains flag-off (WHATSAPP_ENABLED=0). To exercise the bot end-to-end without hitting Meta, use httpx.AsyncClient + ASGITransport pattern shown in TestSessionTracking. Do NOT enable WHATSAPP_ENABLED=1 permanently — send_session_text_message will still stub-out with empty access_token but the bot will run + LLM fallback will consume Emergent credits on unmatched queries.",
+  "rca of the issue": "N/A — feature-verification iteration; no bugs found."
+}

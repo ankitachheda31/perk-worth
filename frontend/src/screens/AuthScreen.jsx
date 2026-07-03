@@ -55,8 +55,18 @@ export default function AuthScreen({ onAuthed, existingPin }) {
       } else if (e.response?.status === 409) {
         msg = 'This email is already registered. Try signing in instead.'
       } else {
-        msg = `Could not ${mode === 'login' ? 'sign in' : mode === 'signup' ? 'create account' : 'send reset link'}. Please try again.`
+        // Diagnostic: surface the actual HTTP status / axios error so we can
+        // debug in-APK failures instead of showing a generic "try again".
+        const st = e.response?.status
+        const raw = e.message || e.code || 'unknown'
+        const action = mode === 'login' ? 'sign in' : mode === 'signup' ? 'create account' : 'send reset link'
+        msg = st
+          ? `Could not ${action} (HTTP ${st}). ${raw}`
+          : `Could not ${action}. ${raw}`
       }
+      // Persist last error for on-device inspection (Chrome DevTools remote
+      // debugging or the "About" screen readout). Cleared on next attempt.
+      try { window.__perk_last_auth_error__ = { status: e.response?.status, code: e.code, message: e.message, data: e.response?.data } } catch { /* noop */ }
       setErr(msg)
     } finally { setBusy(false) }
   }

@@ -88,7 +88,29 @@ ok "Frontend deps installed"
 # --- STEP 3 · Build web bundle ----------------------------------------------
 step 3 "Building web bundle (vite build)"
 
-VITE_BACKEND_URL="${VITE_BACKEND_URL:-${REACT_APP_BACKEND_URL:-https://perkworth.app}}" yarn build
+# Preflight the backend URL — refuse to build against a dead endpoint.
+# This catches the #1 support ticket: "app shows Network error on my phone"
+BACKEND_URL="${VITE_BACKEND_URL:-${REACT_APP_BACKEND_URL:-https://perkworth.app}}"
+info "Backend URL that will be baked into the APK: $BACKEND_URL"
+
+HEALTH_CODE=$(curl -sL -o /tmp/perkworth-health.txt -w "%{http_code}" --max-time 10 "$BACKEND_URL/api/health" || echo "000")
+if [[ "$HEALTH_CODE" != "200" ]]; then
+  echo ""
+  warn "Preflight FAILED — $BACKEND_URL/api/health returned HTTP $HEALTH_CODE"
+  warn "Building the APK against this URL will produce a 'Network error' on your phone."
+  warn ""
+  warn "Fix: set VITE_BACKEND_URL to a URL where /api/health returns 200. Example:"
+  warn "    export VITE_BACKEND_URL=https://your-backend.example.com"
+  warn "    bash scripts/build-android-apk.sh"
+  warn ""
+  warn "If you don't have a production backend yet, use the current dev preview URL:"
+  warn "    export VITE_BACKEND_URL=https://orbit-vouchers.preview.emergentagent.com"
+  warn "    bash scripts/build-android-apk.sh"
+  die "Aborting so you don't ship a broken APK."
+fi
+ok "Backend reachable → /api/health returned 200"
+
+VITE_BACKEND_URL="$BACKEND_URL" yarn build
 [[ -d "$FRONTEND_DIR/dist" ]] || die "vite build did not produce a dist/ folder"
 ok "Web bundle built → $FRONTEND_DIR/dist/"
 

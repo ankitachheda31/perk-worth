@@ -1,0 +1,22 @@
+{
+  "summary": "Verified build-android-apk.sh Step 3 preflight fix. Extracted preflight bash block, ran it against broken URL (perkworth.app → 404) and healthy URL (orbit-vouchers preview → 200). Both assertions pass: broken URL aborts with 'Preflight FAILED', 'Network error', and 'set VITE_BACKEND_URL' guidance + non-zero exit; healthy URL prints 'Backend reachable → /api/health returned 200' + exit 0. Backend /api/health on localhost:8001 returns 200 with {status:'ok', db:'up'}. Backend pytest regression: 210 passed, 2 skipped (unchanged from iter 23).",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": { "ui_bugs": [], "integration_issues": [], "design_issues": [] },
+  "test_report_links": [
+    "/app/test_reports/test_preflight.sh",
+    "/app/test_reports/pytest/iter24_regression.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Preflight uses curl -sL with --max-time 10 which is reasonable; if the URL is a redirect chain to a static site (perkworth.app returns 404 after redirect), HEALTH_CODE correctly reflects the final status.",
+    "Default fallback for BACKEND_URL is still https://perkworth.app — this is intentional so unset env vars trigger the preflight-abort with clear guidance, which is the exact desired UX. Good.",
+    "Minor: the preflight response body is saved to /tmp/perkworth-health.txt but never read/asserted on. Consider also validating body contains 'status' or db:'up' for extra safety, but not blocking."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "100% (210/210)", "frontend": "N/A (skipped per request)" },
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Preflight fix verified in isolation because full script requires JDK 17 + Android SDK (not present in container) — script dies at Step 1 'Java not installed' before reaching Step 3. Task note explicitly permits this approach. /app/test_reports/test_preflight.sh runs the extracted Step 3 preflight block against both URLs and can be re-used as regression.",
+  "rca of the issue": "User's APK showed 'Network error' because it was built with the default BACKEND_URL=https://perkworth.app which is a Vercel static site — /api/health returns 404, so all API calls from the mobile WebView fail. Fix (verified): Step 3 of build script now curls $BACKEND_URL/api/health up-front; if HTTP status != 200, die() aborts with actionable message telling user to set VITE_BACKEND_URL to a working backend (e.g., preview URL). This prevents shipping a broken APK. User can unblock immediately with: VITE_BACKEND_URL=https://orbit-vouchers.preview.emergentagent.com bash scripts/build-android-apk.sh"
+}

@@ -3,7 +3,7 @@ import axios from 'axios'
 const BACKEND = import.meta.env.VITE_BACKEND_URL || process.env.REACT_APP_BACKEND_URL
 const API = `${BACKEND}/api`
 
-export const api = axios.create({ baseURL: API, timeout: 60000, withCredentials: true })
+export const api = axios.create({ baseURL: API, timeout: 60000 })
 
 // Attach Bearer token from localStorage if present (mobile WebView cookie fallback)
 api.interceptors.request.use((config) => {

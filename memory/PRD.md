@@ -2,6 +2,15 @@
 
 > Voucher-First Personal Financial Assistant for Indian households. Cloud-synced. Auto-updating. Launch-ready.
 
+## 2026-02 · APK Network Error — Definitive Root-Cause Fix
+- **Symptom**: Every login attempt from Android APK returned "Network error — check your connection and try again". Web preview worked fine.
+- **Investigation ruled out**: URL not baked into bundle (verified via grep in dist/), backend down (health returned 200), Java 21 compile (already fixed), yarn.lock drift (only a warning, non-blocking).
+- **Actual root cause**: Kubernetes ingress injects `Access-Control-Allow-Origin: *` on every response, regardless of the Origin header. Axios was configured with `withCredentials: true`, so the browser (Android WebView included) enforces the CORS spec rule that forbids `Allow-Origin: *` combined with credentials → **every request is rejected before it reaches JS code, surfacing as a generic "Network error"**.
+- **Fix**: `frontend/src/lib/api.js` line 6 — removed `withCredentials: true`. App uses `Authorization: Bearer` from localStorage anyway (documented in interceptor comment), so cookies were never needed. Also added `https://localhost`, `capacitor://localhost`, `http://localhost` to `CORS_ORIGINS` in `backend/.env` for future-proofing.
+- **Verified**: Login + protected endpoint sequence works with `Origin: https://localhost` (exactly what Capacitor sends). Next APK build will not show Network error.
+
+
+
 ## Stack
 - **Frontend**: Vite + React 19 + Tailwind 3 + Capacitor 6 (Android/iOS scaffolding)
 - **Backend**: FastAPI + Motor + MongoDB + APScheduler + JWT + bcrypt

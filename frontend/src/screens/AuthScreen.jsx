@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { Eye, EyeOff } from 'lucide-react'
 import { Card, PrimaryButton } from '../components/ui'
 import { Auth } from '../lib/api'
 
@@ -6,6 +7,7 @@ export default function AuthScreen({ onAuthed, existingPin }) {
   const [mode, setMode] = useState('login') // login | signup | forgot
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
@@ -55,18 +57,30 @@ export default function AuthScreen({ onAuthed, existingPin }) {
       } else if (e.response?.status === 409) {
         msg = 'This email is already registered. Try signing in instead.'
       } else {
-        // Diagnostic: surface the actual HTTP status / axios error so we can
-        // debug in-APK failures instead of showing a generic "try again".
+        // Diagnostic: surface HTTP status + actual request URL + axios error so
+        // we can debug in-APK failures instead of showing a generic "try again".
         const st = e.response?.status
         const raw = e.message || e.code || 'unknown'
+        const reqUrl = (e.config?.baseURL || '') + (e.config?.url || '')
         const action = mode === 'login' ? 'sign in' : mode === 'signup' ? 'create account' : 'send reset link'
         msg = st
-          ? `Could not ${action} (HTTP ${st}). ${raw}`
-          : `Could not ${action}. ${raw}`
+          ? `Could not ${action} (HTTP ${st}). ${raw}\nURL: ${reqUrl || '(unknown)'}`
+          : `Could not ${action}. ${raw}\nURL: ${reqUrl || '(unknown)'}`
       }
       // Persist last error for on-device inspection (Chrome DevTools remote
       // debugging or the "About" screen readout). Cleared on next attempt.
-      try { window.__perk_last_auth_error__ = { status: e.response?.status, code: e.code, message: e.message, data: e.response?.data } } catch { /* noop */ }
+      try {
+        window.__perk_last_auth_error__ = {
+          status: e.response?.status,
+          code: e.code,
+          message: e.message,
+          data: e.response?.data,
+          baseURL: e.config?.baseURL,
+          url: e.config?.url,
+          method: e.config?.method,
+          fullUrl: (e.config?.baseURL || '') + (e.config?.url || ''),
+        }
+      } catch { /* noop */ }
       setErr(msg)
     } finally { setBusy(false) }
   }
@@ -116,10 +130,29 @@ export default function AuthScreen({ onAuthed, existingPin }) {
               {mode !== 'forgot' ? (
                 <div>
                   <label className="text-[11px] font-bold text-ink-500 uppercase tracking-wider">Password</label>
-                  <input data-testid="auth-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1.5 w-full bg-ink-50 border border-ink-200 rounded-2xl px-3 py-3 text-sm" placeholder="At least 6 characters" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
+                  <div className="mt-1.5 relative">
+                    <input
+                      data-testid="auth-password"
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full bg-ink-50 border border-ink-200 rounded-2xl pl-3 pr-11 py-3 text-sm"
+                      placeholder="At least 6 characters"
+                      autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                    />
+                    <button
+                      type="button"
+                      data-testid="auth-password-toggle"
+                      onClick={() => setShowPassword(v => !v)}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      className="absolute inset-y-0 right-0 flex items-center justify-center w-11 text-ink-500 hover:text-ink-800 active:scale-90 transition"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
               ) : null}
-              {err ? <p data-testid="auth-error" className="text-xs text-terracotta-700">{err}</p> : null}
+              {err ? <p data-testid="auth-error" className="text-xs text-terracotta-700 whitespace-pre-wrap break-words">{err}</p> : null}
               <PrimaryButton data-testid="auth-submit" onClick={submit} disabled={busy || !email || (mode !== 'forgot' && !password)}>
                 {busy ? '…' : mode === 'login' ? 'Sign in' : mode === 'signup' ? 'Create account' : 'Send reset link'}
               </PrimaryButton>

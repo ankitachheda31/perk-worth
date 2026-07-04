@@ -78,8 +78,18 @@ export default function App() {
   )
   const [bioCanPrompt, setBioCanPrompt] = useState(false)
   useEffect(() => {
+    // Try TWICE with a 15s timeout each. MIUI / ColorOS devices often take
+    // 8-12s to warm up the Capacitor plugin bridge on cold start. Without
+    // this retry, users get skipped past the first-run prompt.
     let alive = true
-    isBiometricAvailable().then(ok => { if (alive) setBioCanPrompt(!!ok) })
+    ;(async () => {
+      let ok = await isBiometricAvailable()
+      if (!ok) {
+        await new Promise(r => setTimeout(r, 800))
+        ok = await isBiometricAvailable()
+      }
+      if (alive) setBioCanPrompt(!!ok)
+    })()
     return () => { alive = false }
   }, [])
 

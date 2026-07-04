@@ -98,7 +98,7 @@ export async function isBiometricAvailable() {
  * Also console.logs the full payload so you can inspect it via Chrome remote
  * debugging (chrome://inspect) even in a released APK.
  */
-export async function getBiometricDiagnostic({ timeoutMs = 5000 } = {}) {
+export async function getBiometricDiagnostic({ timeoutMs = 15000 } = {}) {
   const t0 = Date.now()
   const backend = getBiometricBackend()
   const base = { backend, isAvailable: false, biometryType: null, reason: '', code: '', deviceIsSecure: null, elapsedMs: 0, diagnostic: '' }

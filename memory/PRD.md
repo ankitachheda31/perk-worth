@@ -2,6 +2,17 @@
 
 > Voucher-First Personal Financial Assistant for Indian households. Cloud-synced. Auto-updating. Launch-ready.
 
+## 2026-02 · Biometric Plugin Bridge Timeout — Root Cause + Retry Fix
+- **Symptom**: Settings → Biometric card stuck on "CHECKING…" indefinitely; first-run biometric prompt didn't appear after PIN setup. Diagnostic JSON showed `elapsedMs: 5001, diagnostic: "Native checkBiometry() did not respond within 5000ms"` on Xiaomi/Redmi (MIUI) device.
+- **Investigation ruled out**: plugin registration (`capacitor.plugins.json` correctly lists `com.aparajita.capacitor.biometricauth.BiometricAuthNative`), plugin version compat (`@aparajita/capacitor-biometric-auth@8.0.2` correctly requires `@capacitor/core: ^6.1.0`, installed is 6.2.1), Gradle deps (all wired via `cap sync android`), Java implementation (trivial synchronous `BiometricManager.canAuthenticate()` call).
+- **Root cause**: MIUI (and ColorOS / FunTouchOS on Oppo/Vivo) aggressively throttle app initialization to save battery. The Capacitor plugin bridge takes 8-12 seconds to become responsive on cold start — longer than the original 5s timeout.
+- **Fix**:
+  - `frontend/src/lib/biometric.js` — `getBiometricDiagnostic()` default timeout bumped from 5000ms → 15000ms
+  - `frontend/src/screens/SettingsPage.jsx` — automatic single retry (500ms delay) if first attempt times out on native backend; manual "↻ Retry biometric check" link visible when unavailable; specific MIUI/battery-optimization instructions in the amber diagnostic box
+  - `frontend/src/App.jsx` — first-run prompt gate now retries `isBiometricAvailable()` once after 800ms delay before deciding to skip the prompt
+
+
+
 ## 2026-02 · APK 404 Root Cause + Vercel API Proxy Fix
 - **Symptom**: Every APK login attempt returned HTTP 404 with a Vercel "NOT_FOUND" body. Backend at `orbit-vouchers.preview.emergentagent.com/api/auth/login` returned 200 for the same credentials via curl.
 - **Diagnosis**: Old APK was built when `secrets.VITE_BACKEND_URL` (or a default) pointed to `https://www.perkworth.com`. That URL was baked into the JS bundle's axios baseURL. Since www.perkworth.com is served by Vercel as the landing page, every `/api/*` call returned Vercel's 404. Curl to `https://www.perkworth.com/api/auth/login` confirmed the 404 origin.

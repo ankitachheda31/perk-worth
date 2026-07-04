@@ -22,47 +22,61 @@ export default function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpen
   const [notifBusy, setNotifBusy] = useState(false)
 
   useEffect(() => {
-    // Async detection with rich diagnostic. We ALWAYS render the card + show
-    // the raw plugin response so the user can screenshot it if it fails,
-    // instead of the card silently disappearing or hanging on "Checking…".
+    // Async detection with rich diagnostic + one automatic retry. Some Android
+    // devices (especially MIUI / ColorOS with aggressive process throttling)
+    // take 8-12s to initialize the Capacitor plugin bridge on cold start, so
+    // we retry once with a longer timeout before giving up.
     let alive = true
-    ;(async () => {
-      let ok = false
-      let reason = ''
-      let diag = null
-      try {
-        diag = await getBiometricDiagnostic({ timeoutMs: 5000 })
-        ok = !!diag.isAvailable
-        if (!ok) {
-          if (diag.backend === 'none') {
-            reason = 'This device does not report any biometric hardware or platform authenticator.'
-          } else if (diag.backend === 'native') {
-            if (/timed out|did not respond/i.test(diag.diagnostic)) {
-              reason = 'The native biometric plugin did not respond within 5 seconds. This usually means the plugin was not synced into the APK (npx cap sync android was skipped) or the app process needs a full restart. Try force-stopping PerkWorth in Android Settings and reopening.'
-            } else if (diag.code === 'biometryNotEnrolled' || /not enrolled|no fingerprint|not been set up/i.test(diag.reason || '')) {
-              reason = 'Your device has biometric hardware, but no fingerprint or face is enrolled at the Android system level. Open Android Settings → Security → Fingerprint / Face unlock, enroll one, then reopen PerkWorth.'
-            } else if (diag.code === 'biometryNotAvailable' || diag.deviceIsSecure === false) {
-              reason = diag.deviceIsSecure === false
-                ? 'Your device lock (PIN / pattern / password) is not set at the Android system level. Enable device lock in Android Settings first, then biometric unlock will become available.'
-                : 'Biometric hardware is not available on this device.'
-            } else {
-              reason = `${diag.diagnostic || 'Biometric unavailable'} (code=${diag.code || 'unknown'})`
-            }
-          } else if (diag.backend === 'web') {
-            reason = 'This browser does not expose a platform authenticator. Try Chrome or Safari with the device unlock set up.'
-          }
-        }
-      } catch (e) {
-        reason = `Detection failed: ${e?.message || e?.name || 'unknown error'}`
-      }
-      if (!alive) return
-      setBioSupported(ok)
-      setBioReason(reason)
-      setBioDiag(diag)
-      setBioCheckDone(true)
-    })()
+    runBioCheck(alive, false)
     return () => { alive = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const runBioCheck = async (aliveFlag, isManualRetry) => {
+    setBioCheckDone(false)
+    setBioReason('')
+    let ok = false
+    let reason = ''
+    let diag = null
+    try {
+      diag = await getBiometricDiagnostic({ timeoutMs: 15000 })
+      ok = !!diag.isAvailable
+
+      // Auto-retry once if the first attempt timed out (plugin bridge cold start).
+      if (!ok && !isManualRetry && diag.backend === 'native' && /timed out|did not respond/i.test(diag.diagnostic)) {
+        await new Promise(r => setTimeout(r, 500))
+        diag = await getBiometricDiagnostic({ timeoutMs: 15000 })
+        ok = !!diag.isAvailable
+      }
+
+      if (!ok) {
+        if (diag.backend === 'none') {
+          reason = 'This device does not report any biometric hardware or platform authenticator.'
+        } else if (diag.backend === 'native') {
+          if (/timed out|did not respond/i.test(diag.diagnostic)) {
+            reason = 'The native biometric bridge is not responding on this device. This is common on MIUI / Xiaomi / Oppo / Vivo phones with aggressive background limits. Try: 1) Open Android Settings → Apps → PerkWorth → Battery → set to "Unrestricted" or "No restrictions". 2) Force-stop PerkWorth and reopen. 3) If still failing, your device may not support Capacitor biometric plugins — you can still use the app with a 4-digit PIN.'
+          } else if (diag.code === 'biometryNotEnrolled' || /not enrolled|no fingerprint|not been set up/i.test(diag.reason || '')) {
+            reason = 'Your device has biometric hardware, but no fingerprint or face is enrolled at the Android system level. Open Android Settings → Security → Fingerprint / Face unlock, enroll one, then reopen PerkWorth.'
+          } else if (diag.code === 'biometryNotAvailable' || diag.deviceIsSecure === false) {
+            reason = diag.deviceIsSecure === false
+              ? 'Your device lock (PIN / pattern / password) is not set at the Android system level. Enable device lock in Android Settings first, then biometric unlock will become available.'
+              : 'Biometric hardware is not available on this device.'
+          } else {
+            reason = `${diag.diagnostic || 'Biometric unavailable'} (code=${diag.code || 'unknown'})`
+          }
+        } else if (diag.backend === 'web') {
+          reason = 'This browser does not expose a platform authenticator. Try Chrome or Safari with the device unlock set up.'
+        }
+      }
+    } catch (e) {
+      reason = `Detection failed: ${e?.message || e?.name || 'unknown error'}`
+    }
+    if (!aliveFlag) return
+    setBioSupported(ok)
+    setBioReason(reason)
+    setBioDiag(diag)
+    setBioCheckDone(true)
+  }
 
   const toggleNotifs = async () => {
     if (notifBusy) return
@@ -221,6 +235,15 @@ export default function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpen
                 <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2 mt-2 leading-relaxed" data-testid="biometric-unavailable-reason">
                   {bioReason}
                 </p>
+              )}
+              {bioCheckDone && !bioSupported && (
+                <button
+                  data-testid="biometric-retry"
+                  onClick={() => runBioCheck(true, true)}
+                  className="mt-2 text-[11px] font-bold text-emerald-800 underline decoration-dotted underline-offset-2 active:scale-95 transition"
+                >
+                  ↻ Retry biometric check
+                </button>
               )}
               {bioCheckDone && bioDiag && (
                 <details className="mt-2" data-testid="biometric-diagnostic-details">

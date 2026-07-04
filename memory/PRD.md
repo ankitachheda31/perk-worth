@@ -2,6 +2,15 @@
 
 > Voucher-First Personal Financial Assistant for Indian households. Cloud-synced. Auto-updating. Launch-ready.
 
+## 2026-02 · APK 404 Root Cause + Vercel API Proxy Fix
+- **Symptom**: Every APK login attempt returned HTTP 404 with a Vercel "NOT_FOUND" body. Backend at `orbit-vouchers.preview.emergentagent.com/api/auth/login` returned 200 for the same credentials via curl.
+- **Diagnosis**: Old APK was built when `secrets.VITE_BACKEND_URL` (or a default) pointed to `https://www.perkworth.com`. That URL was baked into the JS bundle's axios baseURL. Since www.perkworth.com is served by Vercel as the landing page, every `/api/*` call returned Vercel's 404. Curl to `https://www.perkworth.com/api/auth/login` confirmed the 404 origin.
+- **Fix (permanent)**: Added a Vercel rewrite in `/app/vercel.json` that proxies `/api/:path*` on any perkworth.com domain to `https://orbit-vouchers.preview.emergentagent.com/api/:path*`. This makes ALL APKs (past, present, future) work regardless of which base URL was baked in — provided the URL points to a perkworth.com domain.
+- **Also added**: Login error message now includes the full request URL (`baseURL + url`) so any future URL-mismatch bug is diagnosable from the error screen in one glance.
+- **Also added**: Password show/hide toggle (Eye/EyeOff icons) on the login and signup screens.
+
+
+
 ## 2026-02 · First-Run Biometric Prompt (PhonePe/GPay Pattern)
 - **New screen**: `frontend/src/screens/BiometricPromptScreen.jsx` — appears ONCE per user, right after PIN setup, before the walkthrough.
 - **Gates in `App.jsx`**: shown only when device reports biometric hardware (`isBiometricAvailable()` returns true) AND user hasn't already enrolled AND hasn't dismissed the prompt (persisted via `perk_biometric_prompt_shown` in localStorage).

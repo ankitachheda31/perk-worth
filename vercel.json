@@ -6,6 +6,10 @@
   "installCommand": "echo 'Install handled by buildCommand'",
   "devCommand": "cd frontend && yarn dev",
   "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://orbit-vouchers.preview.emergentagent.com/api/:path*"
+    },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "headers": [

@@ -23,6 +23,21 @@
  *    getBiometricBackend()  -> 'native'|'web'|'none' — diagnostics
  */
 
+/**
+ * Biometric unlock — unified facade.
+ *
+ * ⚠️ FEATURE FLAG (2026-02): `BIOMETRIC_UI_ENABLED` is currently `false`.
+ * The `@aparajita/capacitor-biometric-auth` plugin bridge times out on MIUI /
+ * ColorOS / FunTouch OS devices even with a 15s timeout (elapsedMs: 15001 in
+ * production diagnostics), suggesting a deep OS-level restriction we can't
+ * work around from JS. We're shipping with the 4-digit PIN as the primary
+ * security method and hiding all biometric UI. To re-enable in a future build
+ * (e.g. after switching to `capacitor-native-biometric` or shipping to devices
+ * confirmed working), flip this flag to `true`. All the code paths below are
+ * preserved so this is a one-line reversal.
+ */
+const BIOMETRIC_UI_ENABLED = false
+
 const STORAGE_KEY = 'perk_biometric_v1'
 const RP_NAME = 'PerkWorth'
 
@@ -80,7 +95,12 @@ const random = (n = 32) => crypto.getRandomValues(new Uint8Array(n))
 // ---------------------------------------------------------------------------
 //  Public API
 // ---------------------------------------------------------------------------
+export function isBiometricUiEnabled() {
+  return BIOMETRIC_UI_ENABLED
+}
+
 export function getBiometricBackend() {
+  if (!BIOMETRIC_UI_ENABLED) return 'none'
   if (isCapacitorNative()) return 'native'
   if (typeof window !== 'undefined' && window.PublicKeyCredential) return 'web'
   return 'none'
@@ -88,6 +108,7 @@ export function getBiometricBackend() {
 
 /** Does this device support any biometric? */
 export async function isBiometricAvailable() {
+  if (!BIOMETRIC_UI_ENABLED) return false
   const d = await getBiometricDiagnostic()
   return !!d.isAvailable
 }

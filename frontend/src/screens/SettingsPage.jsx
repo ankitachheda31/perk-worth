@@ -4,7 +4,7 @@ import { Card, GhostButton, TopBar } from '../components/ui'
 import MonthlySavingsRollup from '../components/MonthlySavingsRollup'
 import { Auth } from '../lib/api'
 import { setStoredPin, setProfile } from '../lib/store'
-import { isBiometricAvailable, isBiometricEnrolled, enrollBiometric, disableBiometric, getBiometricBackend, verifyBiometric, getBiometricDiagnostic } from '../lib/biometric'
+import { isBiometricAvailable, isBiometricEnrolled, enrollBiometric, disableBiometric, getBiometricBackend, verifyBiometric, getBiometricDiagnostic, isBiometricUiEnabled } from '../lib/biometric'
 import { isNotifOptedIn, setNotifOptIn, requestNotificationPermission } from '../lib/push'
 
 export default function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpenPrivacy, onOpenFAQ, onOpenPrivacyControl, onOpenPerkTips, onReplayTour, onWipe, onLogout, toast }) {
@@ -214,9 +214,11 @@ export default function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpen
           </div>
         </Card>
 
-        {/* Biometric — ALWAYS visible so users can see setup status even when
-            unavailable. Previously this card was hidden when the plugin returned
-            isAvailable=false, which made users think the feature was missing. */}
+        {/* Biometric — hidden entirely via feature flag (2026-02) because the
+            native plugin bridge times out on MIUI/ColorOS devices even at 15s.
+            Shipping with PIN as the primary security method. Flip the flag in
+            frontend/src/lib/biometric.js to re-enable when we swap plugins. */}
+        {isBiometricUiEnabled() && (
         <Card className="p-5" data-testid="settings-biometric-card">
           <div className="flex items-start gap-3">
             <div className={`w-10 h-10 rounded-2xl grid place-items-center shrink-0 ${bioSupported ? 'bg-emerald-50' : 'bg-ink-100'}`}>
@@ -278,6 +280,7 @@ export default function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpen
             </div>
           </div>
         </Card>
+        )}
 
         <Card className="p-5">
           <p className="font-display font-bold text-ink-900 mb-2">Privacy & legal</p>

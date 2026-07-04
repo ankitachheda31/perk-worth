@@ -2,6 +2,14 @@
 
 > Voucher-First Personal Financial Assistant for Indian households. Cloud-synced. Auto-updating. Launch-ready.
 
+## 2026-02 · Biometric Feature Disabled + Play Store Focus
+- **Decision**: After 3 rounds of debugging, `@aparajita/capacitor-biometric-auth` bridge times out on the target MIUI device even at 15s. Root cause is deep OS-level throttling. Rather than block launch, we're **shipping with 4-digit PIN as the sole security method** and hiding the biometric UI via a one-line feature flag.
+- **Change**: `BIOMETRIC_UI_ENABLED = false` in `frontend/src/lib/biometric.js`. Flipping to `true` restores the full feature (Settings card + first-run prompt + PinLock unlock button). All code paths preserved for zero-effort revival once we swap to a more robust plugin.
+- **Verified backend health** (7/7 endpoints pass with reviewer credentials): login, /auth/me, /vouchers, /membership/status (active PerkWorth Pro), /points/summary, /circle/members, /notifications.
+- **Pivoted to Play Store publishing** — 5 tracks answered inline in the chat. Overall launch readiness: **64%** per `/app/LAUNCH_CHECKLIST.md`. Play Store track is the largest gap at 21%.
+
+
+
 ## 2026-02 · Biometric Plugin Bridge Timeout — Root Cause + Retry Fix
 - **Symptom**: Settings → Biometric card stuck on "CHECKING…" indefinitely; first-run biometric prompt didn't appear after PIN setup. Diagnostic JSON showed `elapsedMs: 5001, diagnostic: "Native checkBiometry() did not respond within 5000ms"` on Xiaomi/Redmi (MIUI) device.
 - **Investigation ruled out**: plugin registration (`capacitor.plugins.json` correctly lists `com.aparajita.capacitor.biometricauth.BiometricAuthNative`), plugin version compat (`@aparajita/capacitor-biometric-auth@8.0.2` correctly requires `@capacitor/core: ^6.1.0`, installed is 6.2.1), Gradle deps (all wired via `cap sync android`), Java implementation (trivial synchronous `BiometricManager.canAuthenticate()` call).

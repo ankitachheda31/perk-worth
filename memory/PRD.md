@@ -2,6 +2,23 @@
 
 > Voucher-First Personal Financial Assistant for Indian households. Cloud-synced. Auto-updating. Launch-ready.
 
+## 2026-02 · Play Store Screenshots — 6 Captured at 1080×1920
+- **Location**: `/app/store_screenshots/*.png`
+- **Reusable script**: `/app/scripts/capture-store-screenshots.js` (Node + Playwright, self-contained, ~200 lines)
+- **Captured screens**:
+  1. `01_home.png` — PerkWorth home with active PRO membership badge + peaceful "All clear" expiry summary
+  2. `02_wallet.png` — Rich wallet with 7 vouchers, Best Card widgets showing HDFC Millennia / SBI cashback stacking, "5 days left" urgency indicator
+  3. `03_add_voucher.png` — Add Voucher bottom sheet showing Manual/Scan/SMS/Voice tabs + 15 family-relation "Owned By" chips (uniquely Indian design)
+  4. `04_how_to_redeem.png` — How-to-redeem sheet with 4 numbered steps + privacy tag ("All steps happen inside PerkWorth — no redirects to external browsers")
+  5. `05_family_circle.png` — Family Circle with Priya/Rajesh/Aarti members + selective sharing form
+  6. `06_my_points.png` — My Points dark green hero card showing "3,240 points · ₹810 value · By brand: HDFC SmartBuy"
+- **Bootstrap sequence** (idempotent seed via API, all under reviewer's user_id `6a4280243453b5f66e6b7ed5`):
+  - 7 vouchers: Zomato, Amazon, Swiggy, BookMyShow, HDFC SmartBuy points, Myntra, Cult.Fit membership
+  - 3 circle members: Priya (Wife), Rajesh (Father), Aarti (Mother)
+- **How to re-run**: `cd /app && node scripts/capture-store-screenshots.js` (env vars `SS_EMAIL`, `SS_PASSWORD`, `SS_OUT_DIR` optional)
+
+
+
 ## 2026-02 · Biometric Feature Disabled + Play Store Focus
 - **Decision**: After 3 rounds of debugging, `@aparajita/capacitor-biometric-auth` bridge times out on the target MIUI device even at 15s. Root cause is deep OS-level throttling. Rather than block launch, we're **shipping with 4-digit PIN as the sole security method** and hiding the biometric UI via a one-line feature flag.
 - **Change**: `BIOMETRIC_UI_ENABLED = false` in `frontend/src/lib/biometric.js`. Flipping to `true` restores the full feature (Settings card + first-run prompt + PinLock unlock button). All code paths preserved for zero-effort revival once we swap to a more robust plugin.

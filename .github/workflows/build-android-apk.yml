@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Android APK / AAB
 
 # Trigger: every push to main OR manual dispatch from the Actions tab
 on:
@@ -11,7 +11,7 @@ on:
         required: false
         default: 'debug'
         type: choice
-        options: [debug, release]
+        options: [debug, release, release-aab]
       clean_cache:
         description: 'Wipe all caches (Gradle, Yarn, node_modules) before building'
         required: false
@@ -178,6 +178,87 @@ jobs:
         run: npx cap sync android
 
       # -----------------------------------------------------------------
+      # Release signing — only when building release or release-aab.
+      # Decodes the base64 keystore from GitHub secrets, writes it into the
+      # Android project, and injects a signingConfig into app/build.gradle so
+      # Gradle's assembleRelease / bundleRelease produce a signed artifact.
+      # No-op for debug builds (Android Studio's default debug key is used).
+      # -----------------------------------------------------------------
+      - name: Inject release signing config (release + release-aab only)
+        if: github.event.inputs.build_type == 'release' || github.event.inputs.build_type == 'release-aab'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        working-directory: frontend/android
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo "::error::Release build requires all 4 signing secrets (KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD)."
+            echo "::error::Set them at https://github.com/${{ github.repository }}/settings/secrets/actions"
+            exit 1
+          fi
+
+          echo "▸ Decoding keystore into app/perkworth-release.keystore"
+          echo "$KEYSTORE_BASE64" | base64 -d > app/perkworth-release.keystore
+          KS_SIZE=$(stat -c%s app/perkworth-release.keystore)
+          if [ "$KS_SIZE" -lt 500 ]; then
+            echo "::error::Decoded keystore is only $KS_SIZE bytes — likely corrupted or wrong secret."
+            exit 1
+          fi
+          echo "✓ Keystore decoded ($KS_SIZE bytes)"
+
+          echo "▸ Writing keystore.properties (Gradle picks these up)"
+          cat > keystore.properties <<EOF
+          storeFile=perkworth-release.keystore
+          storePassword=$KEYSTORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          EOF
+          chmod 600 keystore.properties
+
+          echo "▸ Injecting signingConfig into app/build.gradle if not present"
+          if ! grep -q "signingConfigs\.release" app/build.gradle; then
+            # Insert signing config just after the `android {` block opener.
+            python3 <<'PYEOF'
+          import re, pathlib
+          p = pathlib.Path("app/build.gradle")
+          src = p.read_text()
+          inject = '''
+              def keystorePropertiesFile = rootProject.file("app/keystore.properties")
+              def keystoreProperties = new Properties()
+              if (keystorePropertiesFile.exists()) {
+                  keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+              }
+
+              signingConfigs {
+                  release {
+                      if (keystorePropertiesFile.exists()) {
+                          storeFile file(keystoreProperties['storeFile'])
+                          storePassword keystoreProperties['storePassword']
+                          keyAlias keystoreProperties['keyAlias']
+                          keyPassword keystoreProperties['keyPassword']
+                      }
+                  }
+              }
+
+          '''
+            # Insert after first `android {` line
+            new = re.sub(r'(android\s*\{)', r'\1\n' + inject, src, count=1)
+            # Also add signingConfig to buildTypes.release
+            new = re.sub(
+                r'(buildTypes\s*\{[^}]*release\s*\{)',
+                r'\1\n            signingConfig signingConfigs.release',
+                new, count=1, flags=re.DOTALL,
+            )
+            p.write_text(new)
+            print("✓ Signing config injected into app/build.gradle")
+          PYEOF
+          else
+            echo "✓ signingConfigs.release already present in app/build.gradle"
+          fi
+
+      # -----------------------------------------------------------------
       # THE ACTUAL BUILD — verbose, no daemon, no cache reuse, stacktrace on
       # -----------------------------------------------------------------
       - name: Print Gradle wrapper version
@@ -186,12 +267,17 @@ jobs:
           chmod +x gradlew
           ./gradlew --version || true
 
-      - name: Assemble APK (clean, verbose, no cache)
+      - name: Assemble APK / AAB (clean, verbose, no cache)
         id: assemble
         working-directory: frontend/android
         run: |
           BUILD_TYPE="${{ github.event.inputs.build_type || 'debug' }}"
-          TASK=$([[ "$BUILD_TYPE" == "release" ]] && echo "assembleRelease" || echo "assembleDebug")
+          case "$BUILD_TYPE" in
+            release-aab) TASK="bundleRelease"   ;;   # Google Play requires AAB
+            release)     TASK="assembleRelease" ;;   # Signed APK — sideload only
+            *)           TASK="assembleDebug"   ;;   # Debug — dev testing only
+          esac
+          echo "▸ BUILD_TYPE=$BUILD_TYPE → gradle task=$TASK"
 
           echo "▸ Running: ./gradlew clean :app:$TASK --no-daemon --no-build-cache --refresh-dependencies --info --stacktrace --warning-mode=all"
 
@@ -248,29 +334,37 @@ jobs:
           if-no-files-found: warn
 
       # -----------------------------------------------------------------
-      # Success path — locate + upload the APK
+      # Success path — locate + upload the APK or AAB
       # -----------------------------------------------------------------
-      - name: Locate produced APK
+      - name: Locate produced APK / AAB
         if: success()
         id: locate
         working-directory: frontend/android
         run: |
-          APK=$(find app/build/outputs/apk -name "*.apk" | head -1)
-          if [ -z "$APK" ]; then
-            echo "::error::Gradle reported success but no APK was produced. Check outputs directory."
+          BUILD_TYPE="${{ github.event.inputs.build_type || 'debug' }}"
+          if [ "$BUILD_TYPE" = "release-aab" ]; then
+            OUT=$(find app/build/outputs/bundle -name "*.aab" | head -1)
+            KIND="aab"
+          else
+            OUT=$(find app/build/outputs/apk -name "*.apk" | head -1)
+            KIND="apk"
+          fi
+          if [ -z "$OUT" ]; then
+            echo "::error::Gradle reported success but no $KIND was produced."
             ls -R app/build/outputs || true
             exit 1
           fi
-          echo "apk_path=frontend/android/$APK" >> "$GITHUB_OUTPUT"
-          echo "Built: frontend/android/$APK"
-          ls -lh "$APK"
+          echo "out_path=frontend/android/$OUT"       >> "$GITHUB_OUTPUT"
+          echo "out_kind=$KIND"                       >> "$GITHUB_OUTPUT"
+          echo "Built: frontend/android/$OUT"
+          ls -lh "$OUT"
 
-      - name: Upload APK artifact
+      - name: Upload build artifact (APK or AAB)
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: PerkWorth-APK-${{ github.sha }}
-          path: ${{ steps.locate.outputs.apk_path }}
+          name: PerkWorth-${{ steps.locate.outputs.out_kind }}-${{ github.sha }}
+          path: ${{ steps.locate.outputs.out_path }}
           retention-days: 30
           if-no-files-found: error
 
@@ -278,12 +372,23 @@ jobs:
         if: always()
         run: |
           if [ "${{ job.status }}" = "success" ]; then
+            KIND="${{ steps.locate.outputs.out_kind }}"
             {
-              echo "## 🎉 APK build complete"
+              echo "## 🎉 Build complete ($KIND)"
               echo ""
-              echo "**Download**: scroll down to the **Artifacts** section of this run and click **PerkWorth-APK-${{ github.sha }}**."
-              echo ""
-              echo "**Sideload**: Send the .apk to your phone (Google Drive / WhatsApp Web / email), tap to install."
+              if [ "$KIND" = "aab" ]; then
+                echo "**Download**: scroll to the **Artifacts** section and click **PerkWorth-aab-${{ github.sha }}**."
+                echo ""
+                echo "**Upload to Google Play**:"
+                echo "1. Go to Play Console → your app → Testing → **Internal testing** (fastest for first upload)"
+                echo "2. **Create new release** → drag-drop the .aab"
+                echo "3. Fill release notes → **Save** → **Review release** → **Start rollout**"
+                echo ""
+                echo "First submission also requires: Content rating (IARC questionnaire), Data safety form, Store listing (screenshots + description), Target audience."
+              else
+                echo "**Download**: click **PerkWorth-apk-${{ github.sha }}** in Artifacts."
+                echo "**Sideload**: transfer to phone (Drive / WhatsApp / email), tap to install."
+              fi
             } >> $GITHUB_STEP_SUMMARY
           else
             {

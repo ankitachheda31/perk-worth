@@ -2,6 +2,17 @@
 
 > Voucher-First Personal Financial Assistant for Indian households. Cloud-synced. Auto-updating. Launch-ready.
 
+## 2026-02 · Release Signing + AAB Build Pipeline
+- **Keystore**: RSA 2048, 10,000-day validity, alias `perkworth`, JKS format. Generated at `/app/keystore-secure/perkworth-release.keystore`. Metadata: `CN=PerkWorth, OU=Mobile, O=PerkWorth Technologies, L=Mumbai, ST=Maharashtra, C=IN`. Fingerprints:
+  - SHA-256: `32:C4:81:97:C7:BA:07:85:88:9E:23:66:83:FE:7A:94:3A:A5:74:1F:89:F0:D6:77:92:D6:63:81:BB:50:DC:88`
+  - SHA-1: `9B:FC:31:EC:A6:87:C8:D0:CA:93:4F:4F:C6:A0:4A:FA:A4:26:DE:1E`
+- **Gitignore hardened**: `keystore-secure/`, `*.keystore`, `*.jks` added. Keystore CANNOT accidentally be committed.
+- **Workflow**: `.github/workflows/build-android-apk.yml` renamed to "Build Android APK / AAB". New `build_type` option `release-aab` runs `bundleRelease` and produces a signed `.aab` (Google Play requires AAB). Existing `release` and `debug` options preserved. Release signing config is injected only when 4 required secrets are present.
+- **GitHub secrets needed** (user must add): `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD` — full values in `/app/keystore-secure/SECRETS.txt`.
+- **Artifact naming**: `PerkWorth-aab-<sha>` or `PerkWorth-apk-<sha>` depending on build type.
+
+
+
 ## 2026-02 · Play Store Screenshots — 6 Captured at 1080×1920
 - **Location**: `/app/store_screenshots/*.png`
 - **Reusable script**: `/app/scripts/capture-store-screenshots.js` (Node + Playwright, self-contained, ~200 lines)

@@ -5,3 +5,10 @@ credentials.json
 *.pem
 *.key
 .credentials
+
+# Signing keystores — MUST NEVER be committed. If lost, we can never update the
+# Play Store app. Store in a password manager + 2 offline backups instead.
+keystore-secure/
+*.keystore
+*.jks
+

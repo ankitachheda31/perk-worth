@@ -11,6 +11,7 @@ import AuthScreen from './screens/AuthScreen'
 import ResetPasswordScreen from './screens/ResetPasswordScreen'
 import Walkthrough from './screens/Walkthrough'
 import BiometricPromptScreen from './screens/BiometricPromptScreen'
+import BackendHealthBanner from './components/BackendHealthBanner'
 import SmartDiscoveryScreen from './screens/SmartDiscoveryScreen'
 import PerkTipsScreen from './screens/PerkTipsScreen'
 import SecurityFAQScreen from './screens/SecurityFAQScreen'
@@ -238,15 +239,23 @@ export default function App() {
   // Password reset deep link (?reset_token=...) — render BEFORE the auth gate so unauthed users can complete the reset
   if (resetToken) {
     return (
-      <ResetPasswordScreen
-        token={resetToken}
-        onAuthed={(u) => { setResetToken(null); setAuthUser({ id: u.id, email: u.email, name: u.name || '', phone: u.phone || '', role: u.role }); setLocked(false) }}
-        onCancel={() => { setResetToken(null); try { const url = new URL(window.location.href); url.searchParams.delete('reset_token'); window.history.replaceState({}, '', url.toString()) } catch { /* ignore */ } }}
-      />
+      <>
+        <BackendHealthBanner />
+        <ResetPasswordScreen
+          token={resetToken}
+          onAuthed={(u) => { setResetToken(null); setAuthUser({ id: u.id, email: u.email, name: u.name || '', phone: u.phone || '', role: u.role }); setLocked(false) }}
+          onCancel={() => { setResetToken(null); try { const url = new URL(window.location.href); url.searchParams.delete('reset_token'); window.history.replaceState({}, '', url.toString()) } catch { /* ignore */ } }}
+        />
+      </>
     )
   }
   if (!authUser) {
-    return <AuthScreen existingPin={pin} onAuthed={(u) => { setAuthUser({ id: u.id, email: u.email, name: u.name, phone: u.phone, role: u.role }); setLocked(false) }} />
+    return (
+      <>
+        <BackendHealthBanner />
+        <AuthScreen existingPin={pin} onAuthed={(u) => { setAuthUser({ id: u.id, email: u.email, name: u.name, phone: u.phone, role: u.role }); setLocked(false) }} />
+      </>
+    )
   }
   if (!pin) {
     return <PinLock mode="set" onSuccess={(p) => { setStoredPin(p); setPin(p); setLocked(false) }} />

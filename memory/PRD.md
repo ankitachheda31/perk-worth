@@ -2,6 +2,41 @@
 
 > Voucher-First Personal Financial Assistant for Indian households. Cloud-synced. Auto-updating. Launch-ready.
 
+## 2026-02 · Complete Launch Preparation Sweep
+Delivered everything shippable without user action:
+
+### Store Assets
+- **Feature graphic** (`store_screenshots/feature_graphic_1024x500.png`) — 1024×500 brand-consistent dark emerald + gold with tilted phone mockup showing real vouchers with best-card stacking. Generated via `scripts/generate-feature-graphic.js`.
+- **7-inch tablet screenshots** (6 × 1200×1920) at `store_screenshots/tablet_7in/`.
+- **10-inch tablet screenshots** (6 × 1600×2560) at `store_screenshots/tablet_10in/`.
+- Generator scripts: `scripts/capture-tablet-screenshots.js` (both sizes in one run).
+
+### Play Console Answer Bank
+`/app/PLAY_CONSOLE_CHEAT_SHEET.md` (500+ lines):
+  1. App Basics (name, language, category)
+  2. App Content (privacy policy URL, app access with reviewer creds, ads=No)
+  3. Content Rating IARC (question-by-question answers → Everyone 3+)
+  4. Target Audience (18+)
+  5. Data Safety (complete data-type-by-purpose matrix — 11 categories declared, all others explicitly unchecked)
+  6. Store Listing (app name, short desc 63 chars, full desc 2650 chars)
+  7. Categorization (Finance + 5 tags)
+  8. Pricing & Distribution (India only for launch)
+  9. In-app product setup (`perkworth_pro_quarterly` @ ₹99/90d)
+  10. Testing track ladder (Internal → Closed 20 testers 14 days → Prod)
+  11. First release notes
+  12. Common rejection reasons with citations to which section prevents them
+
+### Cold-Start Health Diagnostic
+- New `frontend/src/components/BackendHealthBanner.jsx` — mounts on Auth/Reset screens BEFORE user tries to log in. Pings `/api/health` on load + every 30s. Shows a persistent red banner with the exact configured URL if unreachable. Silent on happy path. Prevents future "network error" mystery-debug loops.
+
+### Regression Verification
+- ✅ ESLint clean on new code (`BackendHealthBanner.jsx`, `generate-feature-graphic.js`, `capture-tablet-screenshots.js`)
+- ✅ Vite production build: 2.4s, no errors
+- ✅ Backend `/api/health` returns 200
+- ✅ 7 backend endpoints previously verified in same session
+
+
+
 ## 2026-02 · Release Signing + AAB Build Pipeline
 - **Keystore**: RSA 2048, 10,000-day validity, alias `perkworth`, JKS format. Generated at `/app/keystore-secure/perkworth-release.keystore`. Metadata: `CN=PerkWorth, OU=Mobile, O=PerkWorth Technologies, L=Mumbai, ST=Maharashtra, C=IN`. Fingerprints:
   - SHA-256: `32:C4:81:97:C7:BA:07:85:88:9E:23:66:83:FE:7A:94:3A:A5:74:1F:89:F0:D6:77:92:D6:63:81:BB:50:DC:88`

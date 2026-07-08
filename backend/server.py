@@ -77,6 +77,7 @@ from routes.vouchers import build_vouchers_router  # noqa: E402
 from routes.extraction import build_extraction_router  # noqa: E402
 from routes.circle import build_circle_router  # noqa: E402
 from routes.billing import build_billing_router  # noqa: E402
+from routes.razorpay_webhook import build_webhook_router as build_razorpay_webhook_router  # noqa: E402
 from routes.notifications import build_notifications_router  # noqa: E402
 from routes.whatsapp_webhook import build_whatsapp_webhook_router  # noqa: E402
 
@@ -84,6 +85,7 @@ app.include_router(build_vouchers_router(db))
 app.include_router(build_extraction_router())
 app.include_router(build_circle_router(db))
 app.include_router(build_billing_router(db))
+app.include_router(build_razorpay_webhook_router(db))
 app.include_router(build_notifications_router(db))
 app.include_router(build_whatsapp_webhook_router(db))
 
@@ -127,6 +129,9 @@ async def _on_startup():
         # Compound index for forgot-password cooldown lookup (iter 25 flood fix)
         await db.password_resets.create_index([("email", 1), ("created_at", -1)])
         await db.brand_programs.create_index("brand", unique=True)
+        # Razorpay webhook idempotency — a unique index on event_id ensures
+        # even if two webhook deliveries race, only one processes.
+        await db.webhook_events.create_index("event_id", unique=True)
     except Exception as e:
         log.warning("Index init: %s", e)
     # Seed program registry

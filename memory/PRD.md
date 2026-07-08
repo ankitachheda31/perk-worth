@@ -2,6 +2,26 @@
 
 > Voucher-First Personal Financial Assistant for Indian households. Cloud-synced. Auto-updating. Launch-ready.
 
+## 2026-02 · Razorpay Webhook Endpoint (Payment Reliability Fallback)
+- **New route**: `POST /api/webhooks/razorpay` in `backend/routes/razorpay_webhook.py` (~180 lines)
+- **Why**: The existing `/api/payments/verify` flow relies on the frontend callback firing after checkout. If the user's tab crashes / phone rings / network dies AFTER payment but BEFORE callback, they've paid but never receive their membership. Webhooks are Razorpay's guaranteed delivery — retried up to 24h until we return 200.
+- **Events handled**:
+  - `payment.captured` → activate membership as fallback (only if `/verify` didn't already run) + push notification
+  - `payment.failed` → mark order failed with error reason
+  - `refund.processed` / `refund.created` → deactivate membership + push notification
+- **Security**: HMAC-SHA256 signature verification over RAW body bytes using `RAZORPAY_WEBHOOK_SECRET` (server-side only, never in APK). Tampered payloads → HTTP 400.
+- **Idempotency**: Unique index on `webhook_events.event_id` (via `X-Razorpay-Event-Id` header) — Razorpay retries the same event on our 5xx/timeout; each event processed exactly once. Replay returns `{"status":"already_processed"}` HTTP 200.
+- **Verified end-to-end**:
+  - Valid signature → HTTP 200, `{"status":"ok"}`, payment doc updated with `verified_via: "webhook"`
+  - Replay same event → HTTP 200, `{"status":"already_processed"}` (idempotency confirmed)
+  - Tampered body → HTTP 400, `{"detail":"Invalid signature"}` (security confirmed)
+- **User action required**: In Razorpay Dashboard → Settings → Webhooks → Create webhook:
+  - URL: `https://orbit-vouchers.preview.emergentagent.com/api/webhooks/razorpay`
+  - Secret: paste the value in `backend/.env` → `RAZORPAY_WEBHOOK_SECRET`
+  - Events: subscribe to `payment.captured`, `payment.failed`, `refund.processed`
+
+
+
 ## 2026-02 · Razorpay Migrated to LIVE Mode
 - **Backend** `/app/backend/.env`:
   - `RAZORPAY_KEY_ID`: `rzp_test_T4iuN2WERDhz0S` → `rzp_live_TAtfKCD0rejxSC`

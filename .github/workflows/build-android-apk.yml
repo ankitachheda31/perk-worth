@@ -131,6 +131,10 @@ jobs:
           # SAME hardcoded URL as preflight — never fall back to a secret
           # so we can't ship an APK pointing at a broken URL.
           VITE_BACKEND_URL: 'https://orbit-vouchers.preview.emergentagent.com'
+          # Razorpay LIVE key_id — this is the PUBLIC identifier, safe to
+          # hardcode. The corresponding key_secret stays server-side only
+          # (backend/.env → RAZORPAY_KEY_SECRET, not shipped in APK).
+          VITE_RAZORPAY_KEY_ID: 'rzp_live_TAtfKCD0rejxSC'
         run: yarn build
 
       - name: Verify baked-in URL matches expectation

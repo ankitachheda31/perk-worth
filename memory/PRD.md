@@ -2,6 +2,17 @@
 
 > Voucher-First Personal Financial Assistant for Indian households. Cloud-synced. Auto-updating. Launch-ready.
 
+## 2026-02 · Razorpay Migrated to LIVE Mode
+- **Backend** `/app/backend/.env`:
+  - `RAZORPAY_KEY_ID`: `rzp_test_T4iuN2WERDhz0S` → `rzp_live_TAtfKCD0rejxSC`
+  - `RAZORPAY_KEY_SECRET`: rotated to live secret (server-side only, never in APK)
+- **Frontend** `/app/frontend/.env` (dev preview): `VITE_RAZORPAY_KEY_ID` updated to live key_id
+- **Workflow** `.github/workflows/build-android-apk.yml`: added `VITE_RAZORPAY_KEY_ID: 'rzp_live_TAtfKCD0rejxSC'` to the vite build step's env. Since `frontend/.env` is gitignored, CI must set VITE_ vars explicitly or the APK build would ship with an undefined key.
+- **Verified live**: `POST /api/payments/order` returns `{"key_id":"rzp_live_TAtfKCD0rejxSC","order_id":"order_TAtiuN3FPHjpdL","amount":9900,"currency":"INR"}` — real live order created on Razorpay production, HTTP 200. Signature verification will succeed on customer completion.
+- **⚠️ Production caveat**: Real customer payments will now hit real bank accounts. Every ₹99 test transaction will incur MDR fees (~₹2). Do NOT test with your own card unless you've cancelled any test scripts.
+
+
+
 ## 2026-02 · Complete Launch Preparation Sweep
 Delivered everything shippable without user action:
 

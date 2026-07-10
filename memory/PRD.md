@@ -2,6 +2,44 @@
 
 > Voucher-First Personal Financial Assistant for Indian households. Cloud-synced. Auto-updating. Launch-ready.
 
+## 2026-02 · Apple App Store Submission Bundle Ready
+Everything needed to submit to App Store — all assets + cheat sheet complete:
+
+### iOS Screenshots (all Apple-required sizes)
+- **iPhone 6.9" Pro Max** — 6 × 1320×2868 → `store_screenshots/ios_6_9in/`
+- **iPhone 6.5" Plus** — 6 × 1242×2688 → `store_screenshots/ios_6_5in/`
+- **iPhone 5.5" Plus (legacy)** — 6 × 1242×2208 → `store_screenshots/ios_5_5in/`
+- **iPad 12.9" Pro** — 6 × 2048×2732 → `store_screenshots/ios_ipad_129/`
+- Generator: `scripts/capture-ios-screenshots.js`
+
+### App Store Icon
+- 1024×1024 PNG, no alpha, no rounded corners (Apple rounds at render): `store_screenshots/app_store_icon_1024x1024.png`
+- Design: Dark emerald gradient background with radial gold coin motif + "Pw" wordmark (P white, w gold italic Playfair)
+- Generator: `scripts/generate-app-store-icon.js`
+
+### App Store Connect Cheat Sheet (350+ lines)
+- `/app/APP_STORE_CHEAT_SHEET.md` — 13 sections covering:
+  1. App creation (bundle ID, primary language, SKU)
+  2. App info + age rating (Q&A → 4+)
+  3. Pricing (India only launch)
+  4. Auto-renewable subscription config (₹99/3mo, same product ID as Play for future receipt validation)
+  5. Privacy nutrition label (Apple's format, mapped to actual code — Contact/User Content/Identifiers/Purchases/Financial/Usage/Diagnostics; explicit "Not Tracking" declaration to skip ATT prompt)
+  6. App Review information with reviewer creds + step-by-step notes
+  7. Version release notes
+  8. Localizations (English India: name, subtitle 28 chars, promo text 129 chars, keywords 100 chars, URLs)
+  9. Media (screenshot upload order for max conversion)
+  10. Xcode/Capacitor build steps
+  11. TestFlight pre-submission checklist
+  12. Delivery status table (what I've done vs what needs the user)
+  13. Cross-store consistency table (Play vs App Store — same product IDs, same price, same policy URLs)
+
+### Deliverables Total
+- 44 store screenshots across 8 sizes (6 phone Play + 6 tablet 7" + 6 tablet 10" + 6 iOS 6.9" + 6 iOS 6.5" + 6 iOS 5.5" + 6 iPad + 2 loose icons)
+- 3 cheat sheets: Play Console (335 lines), App Store Connect (353 lines), iOS Build Guide (278 lines)
+- All Apple requirements met without needing an Apple Developer account (that's the user's ₹8,300/yr step)
+
+
+
 ## 2026-02 · Razorpay Webhook Endpoint (Payment Reliability Fallback)
 - **New route**: `POST /api/webhooks/razorpay` in `backend/routes/razorpay_webhook.py` (~180 lines)
 - **Why**: The existing `/api/payments/verify` flow relies on the frontend callback firing after checkout. If the user's tab crashes / phone rings / network dies AFTER payment but BEFORE callback, they've paid but never receive their membership. Webhooks are Razorpay's guaranteed delivery — retried up to 24h until we return 200.

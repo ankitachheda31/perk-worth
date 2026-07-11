@@ -2,6 +2,21 @@
 
 > Voucher-First Personal Financial Assistant for Indian households. Cloud-synced. Auto-updating. Launch-ready.
 
+## 2026-02 · One-Page Press Kit PDF
+- **PDF**: `/app/store_screenshots/PerkWorth_PressKit.pdf` (935 KB, A4)
+- **Preview**: `/app/store_screenshots/PerkWorth_PressKit_preview.png` (visual sanity check)
+- **Generator**: `/app/scripts/generate-press-kit.js` (regenerates when screenshots change)
+- **Layout** (single A4 page):
+  1. Feature graphic banner (42mm tall)
+  2. "PerkWorth" wordmark + tagline "Voucher-first personal finance for Indian households"
+  3. Meta row: Launch 2026 · Finance · Android/iOS/Web · Free / ₹99 Pro
+  4. 200-word product description (left) + dark emerald "Voucher-first, not card-first" differentiator card (right)
+  5. Three screenshot thumbnails: "One Wallet" · "Rewards ROI" · "Family Circle" — each with 2-line caption
+  6. Three QR codes: perkworth.com / press@perkworth.com / support@perkworth.com — brand-tinted (emerald on cream)
+- **Uses**: WhatsApp forward to bloggers, Product Hunt launch attachment, email pitches to fintech reporters, angel investor cold outreach.
+
+
+
 ## 2026-02 · Apple App Store Submission Bundle Ready
 Everything needed to submit to App Store — all assets + cheat sheet complete:
 

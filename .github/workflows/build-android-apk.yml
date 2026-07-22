@@ -213,13 +213,17 @@ jobs:
           echo "✓ Keystore decoded ($KS_SIZE bytes)"
 
           echo "▸ Writing keystore.properties (Gradle picks these up)"
-          cat > keystore.properties <<EOF
+          cat > app/keystore.properties <<EOF
           storeFile=perkworth-release.keystore
           storePassword=$KEYSTORE_PASSWORD
           keyAlias=$KEY_ALIAS
           keyPassword=$KEY_PASSWORD
           EOF
-          chmod 600 keystore.properties
+          chmod 600 app/keystore.properties
+          echo "▸ Verifying keystore.properties was written to app/"
+          ls -la app/keystore.properties
+          echo "  (sensitive values redacted below — showing only keys present)"
+          grep -oE '^[a-zA-Z]+=' app/keystore.properties | sort
 
           echo "▸ Injecting signingConfig into app/build.gradle if not present"
           if ! grep -q "signingConfigs\.release" app/build.gradle; then

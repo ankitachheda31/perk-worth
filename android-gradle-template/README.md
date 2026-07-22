@@ -35,7 +35,7 @@ If the build fails on a plugin version mismatch, run `npx cap sync android` agai
 ## What changed vs Gradle 2.13 (your current version)
 
 - **Gradle 2.13 → 8.7** — 8+ years of tooling improvements; 2.13 predates Android Gradle Plugin 3.0 entirely and can't build any modern Android app.
-- **AGP 8.5.x** — required for `compileSdk 34` and Java 17 toolchain.
+- **AGP 8.5.x** — required for `compileSdk 35` and Java 17 toolchain.
 - **JDK 8 → 17** — Capacitor 6 minimum, and required by AGP 8.
 - **Gradle Kotlin DSL not switched to** — kept Groovy DSL because the Capacitor CLI still generates `.gradle` files (not `.gradle.kts`). Migrating is possible but out of scope for a "just get the build working" upgrade.
 

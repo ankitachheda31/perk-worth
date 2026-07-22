@@ -224,6 +224,9 @@ jobs:
           echo "▸ Injecting signingConfig into app/build.gradle if not present"
           if ! grep -q "signingConfigs\.release" app/build.gradle; then
             # Insert signing config just after the `android {` block opener.
+            # NOTE: python3 heredoc body MUST be flush-left (column 0) after YAML
+            # strips the block-scalar indent, otherwise Python raises
+            # IndentationError: unexpected indent.
             python3 <<'PYEOF'
           import re, pathlib
           p = pathlib.Path("app/build.gradle")
@@ -247,16 +250,16 @@ jobs:
               }
 
           '''
-            # Insert after first `android {` line
-            new = re.sub(r'(android\s*\{)', r'\1\n' + inject, src, count=1)
-            # Also add signingConfig to buildTypes.release
-            new = re.sub(
-                r'(buildTypes\s*\{[^}]*release\s*\{)',
-                r'\1\n            signingConfig signingConfigs.release',
-                new, count=1, flags=re.DOTALL,
-            )
-            p.write_text(new)
-            print("✓ Signing config injected into app/build.gradle")
+          # Insert after first `android {` line
+          new = re.sub(r'(android\s*\{)', r'\1\n' + inject, src, count=1)
+          # Also add signingConfig to buildTypes.release
+          new = re.sub(
+              r'(buildTypes\s*\{[^}]*release\s*\{)',
+              r'\1\n            signingConfig signingConfigs.release',
+              new, count=1, flags=re.DOTALL,
+          )
+          p.write_text(new)
+          print("✓ Signing config injected into app/build.gradle")
           PYEOF
           else
             echo "✓ signingConfigs.release already present in app/build.gradle"

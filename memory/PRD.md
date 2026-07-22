@@ -2,6 +2,18 @@
 
 > Voucher-First Personal Financial Assistant for Indian households. Cloud-synced. Auto-updating. Launch-ready.
 
+## 2026-02 · CI/CD Lockfile Fix (P0 Unblocker)
+- **Problem**: GitHub Actions APK/AAB pipeline (`.github/workflows/build-android-apk.yml`) was falling back to unfrozen `yarn install` because `frontend/yarn.lock` was not tracked in git while `frontend/package-lock.json` was. Mixed-lockfile state also triggered Vercel warnings.
+- **Fix applied**:
+  - Deleted `frontend/package-lock.json` (removed from working tree; staged as deletion in git index)
+  - Regenerated `frontend/yarn.lock` via `yarn install` (already in sync with `package.json`, 98,750 bytes)
+  - Verified `yarn install --frozen-lockfile` passes cleanly (matches exact CI command on line 94 of workflow)
+  - Verified `yarn build` (vite production build) succeeds → `dist/` output valid, 1699 modules transformed in 2.68s
+  - Confirmed no `.gitignore` rule blocks `yarn.lock`
+- **Standard going forward**: Yarn 1.22.22 + Node 20 (matches CI). Do NOT reintroduce `package-lock.json`. Never commit both lockfiles.
+- **User action required**: Hit "Save to Github" to push the deletion of `package-lock.json` + addition of `yarn.lock`. Next Action run will then execute the frozen-lockfile path (line 92–94 in workflow) instead of the fallback warning path.
+
+
 ## 2026-02 · One-Page Press Kit PDF
 - **PDF**: `/app/store_screenshots/PerkWorth_PressKit.pdf` (935 KB, A4)
 - **Preview**: `/app/store_screenshots/PerkWorth_PressKit_preview.png` (visual sanity check)

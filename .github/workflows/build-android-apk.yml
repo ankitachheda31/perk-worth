@@ -182,6 +182,31 @@ jobs:
         run: npx cap sync android
 
       # -----------------------------------------------------------------
+      # Auto-bump versionCode + versionName so Play Console accepts every
+      # upload as a new release. GitHub Actions provides a monotonically
+      # increasing github.run_number per repo — perfect for versionCode.
+      # versionName is derived from run_number too so testers can see it.
+      # -----------------------------------------------------------------
+      - name: Bump versionCode + versionName for Play Console
+        working-directory: frontend/android
+        env:
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          # Play Console requires versionCode > any previously uploaded build.
+          # Starting from 1000 gives headroom for local Android Studio builds
+          # (versionCode 1..999) without collision.
+          NEW_CODE=$(( 1000 + RUN_NUMBER ))
+          NEW_NAME="1.0.$RUN_NUMBER"
+
+          echo "▸ Setting versionCode=$NEW_CODE, versionName=\"$NEW_NAME\" in app/build.gradle"
+          # Match `versionCode <digits>` and `versionName "<anything>"` (Capacitor default template)
+          sed -i -E "s/versionCode[[:space:]]+[0-9]+/versionCode $NEW_CODE/" app/build.gradle
+          sed -i -E "s/versionName[[:space:]]+\"[^\"]*\"/versionName \"$NEW_NAME\"/" app/build.gradle
+
+          echo "▸ Verifying patched values:"
+          grep -E "versionCode|versionName" app/build.gradle | head -5
+
+      # -----------------------------------------------------------------
       # Release signing — only when building release or release-aab.
       # Decodes the base64 keystore from GitHub secrets, writes it into the
       # Android project, and injects a signingConfig into app/build.gradle so

@@ -2,7 +2,7 @@
 
 **Purpose**: Every field Play Console asks you to fill, pre-filled with production-ready answers you can copy-paste. Follow top-to-bottom.
 
-_Last updated: 2026-07-06 · Applies to Play Console web UI as of 2026._
+_Last updated: 2026-07-23 · Applies to Play Console web UI as of 2026._
 
 ---
 
@@ -26,6 +26,12 @@ Once app is created, package name locks to **`com.perkworth.app`** — do not ch
 | Field | Value |
 |---|---|
 | Privacy policy URL | `https://www.perkworth.com/privacy.html` |
+| Terms of Service URL | `https://www.perkworth.com/terms.html` |
+| **Data / Account Deletion URL** ⭐ (Data Safety form + optional in App Content) | `https://www.perkworth.com/delete-account.html` |
+
+> **The Delete Account page covers BOTH Data Safety questions with one URL:**
+> - ✅ "Do you provide a way for users to request that their data be deleted?" → **Yes**
+> - ✅ "Do you provide a way for users to request that some or all of their data be deleted, without requiring them to delete their account?" → **Yes** (page lists 9 specific things users can delete in-app without wiping the account: vouchers, cards, memberships, family circle exits, SMS history, photos, support chats, phone number, referral code)
 
 ### 1.2 App Access
 | Question | Answer |
@@ -104,31 +110,78 @@ Take your time here — this section shows on your listing and Google audits it.
 → **Yes** (all API traffic is HTTPS via Kubernetes ingress with TLS)
 
 **Do you provide a way for users to request that their data is deleted?**
-→ **Yes** (in-app: Settings → "Delete my account" — verified in `/api/account/delete`)
+→ **Yes** — deletion URL: `https://www.perkworth.com/delete-account.html` (+ in-app Settings → "Clear All My Data")
 
-#### Data types collected
+**Do you provide a way for users to request that some or all of their data be deleted, without requiring them to delete their account?**
+→ **Yes** — same URL; the page lists 9 selective-deletion paths (per-voucher, per-card, per-membership, leave family circle, SMS history, photos, support chats, phone number, referral code)
 
-| Category | Data type | Collected? | Optional? | Purposes | Shared with 3rd parties? |
+#### Data types collected — the exact per-type answers
+
+For **each** data type below, Play Console asks 3 sub-questions. Use this matrix verbatim:
+
+| Data type | Collected? | Ephemeral? | Required or Optional? | Purposes | Shared with 3rd parties? |
 |---|---|---|---|---|---|
-| **Personal info** | Name | Yes | Optional (at signup) | Account mgmt, personalization | No |
-| **Personal info** | Email | Yes | Required | Account mgmt, communications | No |
-| **Personal info** | User IDs | Yes | Required | Account mgmt, analytics | No |
-| **Financial info** | Purchase history | Yes | Required | Account mgmt, app functionality | Razorpay (payment processing only) |
-| **Financial info** | Other financial info (voucher codes, points balances) | Yes | Required | App functionality | No |
-| **App activity** | App interactions | Yes | Required | Analytics, app functionality | No |
-| **App activity** | In-app search history | Yes | Required | App functionality | No |
-| **Device or other IDs** | Device or other IDs | Yes | Required | Fraud prevention, security | No |
-| **Photos and videos** | Photos | Yes (only if user uses OCR feature) | Optional | App functionality (extract voucher from photo) | Google (Vision API via Emergent LLM) — image is not stored, processed in-memory only |
-| **Messages** | SMS/MMS | Yes (only if user grants permission) | Optional | App functionality (auto-extract vouchers from SMS) | No |
-| **Audio** | Voice or sound recordings | Yes (only if user uses voice-input) | Optional | App functionality (voice-to-voucher) | Google (Whisper transcription via Emergent LLM) — audio not stored after transcription |
+| **Personal info → Name** | Yes | No (stored) | 🔒 Required | Account mgmt, personalization | No |
+| **Personal info → Email address** | Yes | No (stored) | 🔒 Required | Account mgmt, communications | No |
+| **Personal info → User IDs** | Yes | No (stored) | 🔒 Required | Account mgmt | No |
+| **Personal info → Phone number** | Yes | No (stored) | 🎚️ Optional (user can skip at signup) | Account mgmt | No |
+| **Financial info → Purchase history** | Yes | No (stored 7 yrs) | 🔒 Required | Fulfil purchases | Razorpay (payment processing only, PCI-DSS scope) |
+| **Financial info → Other financial info** (voucher codes, points balances) | Yes | No (stored) | 🔒 Required | App functionality | No |
+| **Messages → SMS or MMS** | Yes (Android only, permission-gated) | ✅ **YES, ephemeral** | 🎚️ Optional | App functionality (parse coupons on-device) | No |
+| **Photos and videos → Photos** | Yes (only if user taps "OCR from photo") | No (image stored server-side for re-OCR) | 🎚️ Optional | App functionality (extract voucher from photo) | Google/Emergent (Vision API, no model training) |
+| **Audio → Voice or sound recordings** | Yes (only if user uses voice-input) | ✅ **YES, ephemeral** (audio dropped after transcription) | 🎚️ Optional | App functionality (voice-to-voucher) | Google/Emergent (Whisper transcription, no model training) |
+| **App activity → In-app search history** | Yes | No | 🔒 Required | App functionality | No |
+| **App activity → Other user-generated content** (support messages) | Yes | No | 🎚️ Optional | Support | No |
+| **Device or other IDs → Device or other IDs** | Yes | No | 🔒 Required | Fraud prevention, security | No |
 
-**Data types NOT collected** (uncheck all): Location, Contacts, Calendar, Health & fitness, Web browsing, Installed apps, Files & docs, Race/ethnicity, Political/religious beliefs, Sexual orientation.
+**Rules of thumb (memorise these — Play Console asks per data type):**
+1. **"Ephemeral" = YES only if** the raw data is used in RAM and never written to your database or disk. For PerkWorth that's SMS (on-device parse) and Voice (transcribed then discarded). Everything else is stored → "No".
+2. **"Required" = YES only if** signup/core flow breaks without it (email, name, user IDs, purchase history for the ₹99 Pro, voucher codes themselves).
+3. **"Optional" = YES if** the user can skip and still use the app (phone, photos, SMS scan, voice, support chat).
+
+**Data types NOT collected** (Play Console will show ~30 checkboxes — uncheck all EXCEPT the ones in the table above). Explicitly leave these OFF:
+Location · Contacts · Calendar · Health & fitness · Web browsing · Installed apps · Files & docs · Race/ethnicity · Political/religious beliefs · Sexual orientation · Biometrics · Government IDs · Precise location · Approximate location · Diagnostics · Crash logs (unless you install Crashlytics later)
 
 **Security practices declarations** (tick all that apply):
 - ✅ Data is encrypted in transit
 - ✅ You can request that data be deleted
-- ✅ Committed to follow Play Families Policy (not applicable — you're not targeting children, so leave blank if the checkbox exists)
+- ✅ Follows Play Families Policy — **leave unchecked** (you're not targeting children)
 - ✅ Independent security review — **leave unchecked** unless you have a formal audit certificate
+
+### 1.9 Financial Features Declaration (Monetise → Financial features)
+
+Play Console asks you to declare exactly which financial features your app provides. For PerkWorth, **tick ONE checkbox only**:
+
+- ✅ **Payments and transfers → Rewards, points, frequent flier miles, and other incentives**
+
+**Do NOT tick these** (they sound close but don't apply):
+
+| Category | Why NOT to tick |
+|---|---|
+| Mobile payments and digital wallets | You don't move money. PerkWorth stores voucher **codes**, not currency users can spend through you. |
+| Money transfer / wire services | No P2P transfers happen inside PerkWorth. |
+| Purchase agreements | You don't sell physical/digital goods on behalf of merchants. |
+| Cryptocurrency (wallet / exchange / NFT / tokens) | No crypto features at all. |
+| Buy now, pay later | You don't extend credit. |
+| Banking / Loans / Line of credit / Payday | Not applicable. |
+| Trading / Stocks / Crowdfunding / Prediction markets | Not applicable. |
+| Credit monitoring / Financial advice / Insurance | Not applicable. |
+
+**About the ₹99/quarter Razorpay subscription:** that's your app's own monetization (same category as Netflix's ₹149/month subscription). Google does **not** treat this as a "financial feature". Do not declare it here.
+
+### 1.10 Technical Configuration (auto-handled by the CI pipeline)
+
+You never touch these manually — the GitHub Actions workflow (`build-android-apk.yml`) sets them per build:
+
+| Property | Value | Notes |
+|---|---|---|
+| `compileSdkVersion` | **35** | Meets Google's 2026 API 35 target requirement |
+| `targetSdkVersion` | **35** | Same — required for new uploads after Aug 2026 |
+| `minSdkVersion` | 23 (Android 6.0) | Covers 98%+ of Indian devices |
+| `versionCode` | Auto-bumped: `1000 + github.run_number` (e.g. run #36 → **1036**) | Guarantees no "versionCode already used" rejection |
+| `versionName` | Auto-bumped: `1.0.<run_number>` (e.g. `1.0.36`) | Visible to testers so they know which build they have |
+| Signing | Release keystore auto-injected from GitHub Secrets (`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`) | Written to `app/keystore.properties` at build time |
+| Build tool | AGP 8.5.2 + Gradle 8.7 + JDK 17 + Android SDK 35 | All fixed in `.github/workflows/build-android-apk.yml` |
 
 ---
 
@@ -285,6 +338,26 @@ This is our first internal test. Please try:
 Reply to support@perkworth.com with anything that feels off.
 ```
 
+### 4.3 Warnings you WILL see after upload (and how to answer them)
+
+Play Console shows warnings on almost every first-time submission. Most are non-blocking. Here's the exact response for each:
+
+| Warning | Blocking? | What to do |
+|---|---|---|
+| ⚠️ **"This release will not be available to any users because you haven't specified any testers"** | Yes for testers to install | Go to Testing → Internal testing → **Testers** tab → **Create email list** → paste your + testers' Gmail addresses → Save → **Review release** → **Start rollout** → copy the **opt-in link** → send to testers via WhatsApp. |
+| ⚠️ **"There is no deobfuscation file associated with this App Bundle"** | ❌ No | **Ignore for v1**. You're not using R8/ProGuard yet, so there's no `mapping.txt` to upload. This warning will always show until you enable code shrinking. |
+| ⚠️ **"You uploaded an APK/AAB signed with a debug certificate"** | Yes | Shouldn't happen — the CI workflow always signs release builds. If you see this, your GitHub Secrets (`KEYSTORE_BASE64` etc.) are missing. Re-add them at https://github.com/YOUR_ORG/perk-worth/settings/secrets/actions and re-run the workflow. |
+| ⚠️ **"Version code X has already been used"** | Yes | Shouldn't happen — CI auto-bumps versionCode by `github.run_number`. If you see this, someone uploaded a build outside CI. Just re-run the workflow (which will produce a higher versionCode) and upload the new AAB. |
+| ⚠️ **"Your app targets API level 34 (or lower)"** | Yes (post Aug 2026) | Shouldn't happen — CI now targets API 35. If you see this, the workflow ran on an old commit. Push the latest code and re-run. |
+
+### 4.4 Closed testing requirement (new Google policy for personal Play accounts, Nov 2023+)
+
+If your Play account was created after 13 Nov 2023, Google requires:
+- **20 opted-in testers** in a Closed testing track
+- **14 continuous days** of testing before you can promote to Production
+
+**Fastest way to hit 20 testers:** post the opt-in link in 2-3 WhatsApp groups (family, college, work). Ask for genuine feedback in return. First 20 to opt in count.
+
 ---
 
 ## 5. What I've Prepared vs What Needs You
@@ -294,25 +367,28 @@ Reply to support@perkworth.com with anything that feels off.
 | Package name reserved | ✅ `com.perkworth.app` |
 | Privacy Policy | ✅ Live at perkworth.com/privacy.html |
 | Terms of Service | ✅ Live at perkworth.com/terms.html |
+| **Delete Account / Data Deletion URL** | ✅ Live at perkworth.com/delete-account.html (covers full + partial deletion) |
 | App icon (all densities) | ✅ In APK |
 | Feature graphic 1024×500 | ✅ `/app/store_screenshots/feature_graphic_1024x500.png` |
 | Phone screenshots (6 × 1080×1920) | ✅ `/app/store_screenshots/*.png` |
 | 7-inch tablet screenshots | ✅ `/app/store_screenshots/tablet_7in/*.png` |
 | 10-inch tablet screenshots | ✅ `/app/store_screenshots/tablet_10in/*.png` |
-| Content rating answers | ✅ Section 1.4 above (copy in) |
-| Data safety answers | ✅ Section 1.8 above (copy in) |
-| Store listing description | ✅ Section 2.2 above (copy in) |
+| Content rating answers | ✅ Section 1.4 above |
+| Data safety answers (per-type ephemeral + required matrix) | ✅ Section 1.8 above |
+| **Financial features declaration** | ✅ Section 1.9 above (tick only "Rewards, points, frequent flier miles…") |
+| **API 35 targeting + versionCode auto-bump** | ✅ Section 1.10 (CI pipeline handles both automatically) |
+| Store listing description | ✅ Section 2.2 above |
 | Categorization / tags | ✅ Section 2.4 above |
-| Release-signed AAB | ✅ Workflow ready (run `release-aab` build) |
+| Release-signed AAB (build 1036 uploaded successfully) | ✅ Workflow verified end-to-end |
 | Reviewer test account | ✅ `reviewer@perkworth.com / PerkReview@2026` (in test_credentials.md) |
 | First release notes | ✅ Section 4.2 above |
+| **Post-upload warnings guide** | ✅ Section 4.3 above |
 | **Google Play Console account** | 🟢 You paid the $25 |
-| **Paste 4 GitHub secrets** | 🔴 You (5 minutes) |
-| **Run release-aab workflow** | 🔴 You (1 click, 7 min wait) |
+| **Paste 4 GitHub secrets** | 🟢 Done (build 1036 signed successfully) |
+| **Run release-aab workflow** | 🟢 Done (build 1036 in Play Console) |
 | **Fill Play Console listing** | 🔴 You (copy-paste from this doc, ~30 min) |
-| **Upload AAB to Internal testing** | 🔴 You (~5 min) |
-| **Recruit 20 closed testers** | 🔴 You (14 days) |
-| **Submit Razorpay KYC** | 🔴 You (3-5 business days) |
+| **Add 20 testers to Internal/Closed track** | 🔴 You (14-day timer starts on rollout) |
+| **Submit Razorpay KYC for live production keys** | 🟢 Done (live keys wired) |
 
 ---
 
@@ -321,14 +397,20 @@ Reply to support@perkworth.com with anything that feels off.
 | Common rejection | Prevented by |
 |---|---|
 | No privacy policy URL | Section 1.1 ✓ |
-| Privacy policy doesn't match Data Safety | Section 1.8 mirrors PRIVACY_POLICY.md ✓ |
-| Missing "Delete account" feature | Already implemented (`Settings → Delete my account`) ✓ |
-| Data Safety missing photo/audio permissions | Section 1.8 declares OCR + Voice ✓ |
-| Financial app without KYC-ready policies | perkworth.com/privacy.html + terms.html live ✓ |
+| No data-deletion URL | Section 1.1 (`delete-account.html`) ✓ |
+| No "partial data deletion" pathway | Section 1.1 — same URL lists 9 selective options ✓ |
+| Privacy policy doesn't match Data Safety | Section 1.8 mirrors privacy.html + explicitly marks ephemeral (SMS, Voice) ✓ |
+| Missing "Delete account" feature | In-app Settings + web URL both live ✓ |
+| Data Safety missing photo/audio permissions | Section 1.8 declares OCR + Voice with correct 3rd-party disclosure ✓ |
+| Financial app without KYC-ready policies | privacy.html + terms.html + refund.html live ✓ |
 | App name too similar to another finance brand | `PerkWorth` is unique on Play (search verified) ✓ |
-| Reviewer can't login | Test account creds + step-by-step in 1.2 ✓ |
+| Reviewer can't login | Test account creds + step-by-step in Section 1.2 ✓ |
 | Screenshots contain other-app branding | Ours are 100% PerkWorth UI ✓ |
 | No target age declared | Section 1.5: 18+ ✓ |
+| **Targets API level < 35** | CI targets API 35 (Section 1.10) ✓ |
+| **versionCode already used** | CI auto-bumps to `1000 + run_number` (Section 1.10) ✓ |
+| **Financial feature undeclared** | Section 1.9 pre-selects "Rewards / points / miles" ✓ |
+| **Debug-signed AAB uploaded** | GitHub Secrets pipeline signs every release build ✓ |
 
 ---
 

@@ -2,8 +2,10 @@ import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // Hard fallback so production never inlines the literal string "undefined"
-// when the Vercel env var is missing. Update only if backend host changes.
-const DEFAULT_BACKEND_URL = 'http://localhost:8001'
+// when the Vercel env var is missing. This URL is what Vercel and the Android
+// APK both point at in production. Update only if backend host changes.
+// (Local dev overrides via frontend/.env → REACT_APP_BACKEND_URL=http://localhost:8001)
+const DEFAULT_BACKEND_URL = 'https://orbit-vouchers.preview.emergentagent.com'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Delete Your Account & Data · PerkWorth</title>
+  <meta name="description" content="Request permanent deletion of your PerkWorth account and all associated data. Two methods: in-app one-tap wipe, or email request answered within 7 days." />
+  <link rel="canonical" href="https://perkworth.com/delete-account.html" />
+  <link href="https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@600;800&family=Inter:wght@400;500;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+  <style>
+    body { background: #FBFAF6; font-family: Inter, system-ui, sans-serif; color: #1B2333; }
+    h1, h2, h3 { font-family: 'Cabinet Grotesk', system-ui; color: #0F172A; }
+    .prose a { color: #065F46; text-decoration: underline; text-underline-offset: 3px; }
+    .cta {
+      background: #065F46; color: #FBFAF6; padding: 14px 22px; border-radius: 12px;
+      font-weight: 700; font-family: 'Cabinet Grotesk', system-ui; letter-spacing: 0.2px;
+      display: inline-block; text-decoration: none; box-shadow: 0 6px 18px rgba(6,95,70,0.24);
+    }
+    .cta:hover { background: #054C39; }
+    .card { background: #fff; border: 1px solid #E5E7EB; border-radius: 16px; padding: 22px; }
+    .kbd { background:#F3F4F6; padding: 2px 8px; border-radius: 6px; font-family: ui-monospace, monospace; font-size: 0.85em; }
+  </style>
+</head>
+<body class="antialiased">
+  <header class="border-b bg-white">
+    <div class="max-w-3xl mx-auto px-5 py-4 flex items-center justify-between">
+      <a href="./index.html" class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg grid place-items-center font-extrabold text-sm" style="background:#065F46;color:#fff">P</div>
+        <span class="font-extrabold text-lg" style="font-family:'Cabinet Grotesk'">PerkWorth</span>
+      </a>
+      <a href="./index.html" class="text-xs font-semibold" style="color:#065F46">← Home</a>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-5 py-12 prose prose-sm sm:prose-base">
+    <h1>Delete Your Account &amp; Data</h1>
+    <p class="text-sm text-gray-500">
+      <strong>Operator:</strong> (Legal Entity Name Pending) &middot;
+      <strong>Contact:</strong> <a href="mailto:support@perkworth.com">support@perkworth.com</a> &middot;
+      <strong>Last updated:</strong> February 2026
+    </p>
+
+    <p>You are in full control of your data. This page tells you exactly <strong>how to delete your PerkWorth account</strong>, what gets erased, and what (if anything) we are legally required to retain.</p>
+
+    <h2>Method 1 — Instant, in-app (recommended)</h2>
+    <div class="card not-prose">
+      <ol class="list-decimal ml-5 space-y-2 text-sm sm:text-base">
+        <li>Open <strong>PerkWorth</strong> on your phone.</li>
+        <li>Tap <span class="kbd">Profile</span> → <span class="kbd">Settings</span>.</li>
+        <li>Scroll to the red <strong>&ldquo;Clear All My Data&rdquo;</strong> button at the bottom.</li>
+        <li>Confirm. Your account, wallet, payments, referrals and family-circle records are deleted from our servers immediately.</li>
+      </ol>
+      <p class="text-xs text-gray-500 mt-4 mb-0">This is a one-tap, irreversible action. No email round-trip. You&rsquo;ll see the confirmation toast the moment your data is gone.</p>
+    </div>
+
+    <h2>Method 2 — By email (if you uninstalled the app)</h2>
+    <p>If you no longer have the app installed, send a deletion request to <a href="mailto:support@perkworth.com?subject=Account%20Deletion%20Request&amp;body=Hi%20PerkWorth%20team%2C%0A%0APlease%20delete%20my%20account%20and%20all%20associated%20data.%0A%0ARegistered%20email%3A%20%0APhone%20(optional)%3A%20%0A%0AThanks.">support@perkworth.com</a> with the subject line <strong>&ldquo;Account Deletion Request&rdquo;</strong> from the email address you signed up with.</p>
+
+    <p style="margin: 26px 0;">
+      <a class="cta" href="mailto:support@perkworth.com?subject=Account%20Deletion%20Request&amp;body=Hi%20PerkWorth%20team%2C%0A%0APlease%20delete%20my%20account%20and%20all%20associated%20data.%0A%0ARegistered%20email%3A%20%0APhone%20(optional)%3A%20%0A%0AThanks.">
+        Email support to delete my account →
+      </a>
+    </p>
+
+    <p>We will confirm receipt within <strong>2 working days</strong> and complete deletion within <strong>7 days</strong>. If we cannot verify that you own the account (e.g. the request comes from a different email), we may ask a single verification question before proceeding.</p>
+
+    <h2>What gets deleted</h2>
+    <ul>
+      <li>Your account credentials (email, name, phone, bcrypt password hash).</li>
+      <li>Your entire voucher wallet: codes, expiries, brands, screenshots, OCR text.</li>
+      <li>All membership / ROI tracker entries.</li>
+      <li>All Family Circle memberships you created or joined.</li>
+      <li>All referral codes issued or redeemed by you.</li>
+      <li>All in-app support conversations you sent.</li>
+      <li>Notification tokens (push / email) so you stop receiving anything from us.</li>
+    </ul>
+
+    <h2>What we keep &mdash; and for how long</h2>
+    <p>We keep the <strong>minimum</strong> data required by Indian tax and payment-services law:</p>
+    <ul>
+      <li><strong>Razorpay payment records</strong> (order_id, payment_id, amount, GST invoice) &mdash; retained for <strong>7 years</strong> as required by the Indian Income Tax Act &amp; RBI payment aggregator rules. These records do <em>not</em> include your name, email or any wallet data &mdash; only the anonymised transaction hash.</li>
+      <li><strong>Server access logs</strong> &mdash; retained for <strong>90 days</strong> for security auditing, then automatically purged.</li>
+    </ul>
+    <p>Nothing else is kept. No shadow copies, no analytics profile, no ad graph, no data broker syndication.</p>
+
+    <h2>Backups</h2>
+    <p>Encrypted MongoDB Atlas backups roll forward on a <strong>30-day</strong> retention window. Your deleted account is purged from every backup snapshot within 30 days of the request.</p>
+
+    <h2>Deleting from Google Play only</h2>
+    <p>Uninstalling the app from your phone does <strong>not</strong> delete your server-side account &mdash; it only removes the app binary. Use Method 1 or Method 2 above to actually erase your data.</p>
+
+    <h2>Questions?</h2>
+    <p>Write to <a href="mailto:support@perkworth.com">support@perkworth.com</a> and a human will reply within 2 working days.</p>
+
+    <p class="text-xs text-gray-500 mt-10">Published in accordance with Google Play&rsquo;s User Data policy and the Digital Personal Data Protection Act, 2023 (India). Also aligns with GDPR Article 17 (Right to Erasure) for EU users.</p>
+  </main>
+
+  <footer class="border-t bg-white mt-10">
+    <div class="max-w-3xl mx-auto px-5 py-6 text-xs text-gray-500 flex flex-wrap gap-4 justify-between">
+      <span>&copy; 2026 PerkWorth</span>
+      <span class="flex gap-4">
+        <a href="./privacy.html" style="color:#065F46">Privacy</a>
+        <a href="./terms.html" style="color:#065F46">Terms</a>
+        <a href="./refund.html" style="color:#065F46">Refunds</a>
+      </span>
+    </div>
+  </footer>
+</body>
+</html>

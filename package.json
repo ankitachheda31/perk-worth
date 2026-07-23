@@ -10,7 +10,7 @@
     "preview": "cd frontend && yarn preview"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0 <23.0.0"
   },
   "devDependencies": {
     "playwright": "^1.61.1"

@@ -40,9 +40,11 @@ export const Auth = {
   signup: (body) => api.post('/auth/signup', body).then(r => r.data),
   login: (body) => api.post('/auth/login', body).then(r => r.data),
   me: () => api.get('/auth/me').then(r => r.data),
+  updateMe: (body) => api.patch('/auth/me', body).then(r => r.data),
   logout: () => api.post('/auth/logout').then(r => r.data),
   claimPin: (pin) => api.post('/auth/claim-pin', { pin }).then(r => r.data),
   wipe: () => api.post('/auth/wipe').then(r => r.data),
+  restoreAccount: (body) => api.post('/auth/restore-account', body).then(r => r.data),
   forgotPassword: (email) => api.post('/auth/forgot-password', { email }).then(r => r.data),
   resetPassword: (token, new_password) => api.post('/auth/reset-password', { token, new_password }).then(r => r.data),
   // DPDP §13 / GDPR Art.15+20 self-service export → triggers a file download.
@@ -163,6 +165,16 @@ export const Spend = {
     api.post('/spend/infer', { sms_text, user_pin, persist }).then(r => r.data),
   profile: (pin) => api.get('/spend/profile', { params: { user_pin: pin } }).then(r => r.data).catch(() => ({ exists: false })),
   clear: (pin) => api.delete('/spend/profile', { params: { user_pin: pin } }).then(r => r.data),
+}
+
+export const Permissions = {
+  get: () => api.get('/permissions/state').then(r => r.data),
+  set: (body) => api.post('/permissions/state', body).then(r => r.data),
+}
+
+export const Onboarding = {
+  scanSms: (messages) => api.post('/onboarding/scan-sms', { messages }).then(r => r.data),
+  markComplete: () => api.post('/onboarding/complete').then(r => r.data),
 }
 
 export default api

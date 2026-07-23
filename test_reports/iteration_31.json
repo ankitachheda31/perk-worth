@@ -1,0 +1,63 @@
+{
+  "summary": "Iter 31: Verified 48h soft-delete + restore + SMS batch scan + permissions state + onboarding wizard + settings profile & permissions + PermissionsBanner. 14/14 backend tests pass. Frontend end-to-end (signup → PIN → onboarding wizard w/ warm greeting → walkthrough → dashboard with permissions banner → Settings profile card + permissions rows + danger zone → wipe → login shows pending-deletion panel with hours remaining → Restore button → logged back in) all functional.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_soft_delete_and_onboarding.py",
+    "/app/test_reports/pytest/iter31_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "auth_intel.py wipe endpoint: subscription reactivation on restore uses filter {deactivated_by_soft_delete_at: {$exists: true}} — correct, only reactivates subscriptions deactivated by the soft-delete (not ones the user cancelled independently). Solid.",
+    "auth_intel.py signup: on stale ghost (grace elapsed but purge not yet run) inline hard-purge before allowing fresh signup — good, prevents Pro tier inheritance.",
+    "onboarding.py permissions: POST /permissions/state persists per-field {field}_updated_at timestamps as ISO strings — nice audit trail.",
+    "OnboardingPermissions.jsx step 4: onboarding-finish only marks server-side complete via Onboarding.markComplete(). If that fails silently the localStorage flag still sets, which is intentional (client is source of truth for the wizard visibility)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_soft_delete_and_onboarding.py (new)"
+  ],
+  "success_rate": {"backend": "100% (14/14)", "frontend": "100% (all critical flows verified)"},
+  "test_credentials": "Ad-hoc TEST_*@example.com throwaway users created via /api/auth/signup; reviewer@perkworth.com was NOT touched.",
+  "seed_data_creation": "Multiple TEST_* accounts created during pytest; several were wiped in tests. No cleanup needed — 48h purge cron will hard-delete them.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend tests live at /app/backend/tests/test_soft_delete_and_onboarding.py (loads BASE_URL from /app/frontend/.env directly since REACT_APP_BACKEND_URL isn't in shell env). To reproduce frontend flow: clear localStorage first (page.evaluate('localStorage.clear()')) then reload BEFORE testing onboarding — otherwise stale perk_orbit_perms_onboarded flag skips the wizard. IMPORTANT: The onboarding-skip-all button uses the text 'Skip' — do NOT click by 'Skip' text alone (also matches Walkthrough's 'Skip tour'). Use data-testid selectors exclusively.",
+  "verified_flows": {
+    "backend": [
+      "signup → PATCH /auth/me name+phone",
+      "wipe → mode=soft_delete, grace_hours=48, scheduled_purge_at",
+      "login post-wipe → pending_deletion=true, hours_remaining, NO access_token",
+      "signup same email → 409 'pending deletion'",
+      "restore-account correct pwd → restored=true + access_token; subsequent login normal",
+      "restore-account wrong pwd → 401",
+      "restore-account non-existent email → 401",
+      "restore-account for active user → already_active=true + access_token",
+      "GET /permissions/state → shape with permissions{} + onboarding_completed bool",
+      "POST /permissions/state {sms:true,notifications:false} → persists with *_updated_at",
+      "POST /permissions/state {} → 400",
+      "POST /onboarding/complete → GET returns onboarding_completed=true",
+      "POST /onboarding/scan-sms with mixed messages → filters personal 10-digit sender, returns keyword_hits + new_candidates"
+    ],
+    "frontend": [
+      "AuthScreen signup with name",
+      "PIN set flow (1234 twice)",
+      "OnboardingPermissions screen appears with 'Welcome, Priya.' greeting",
+      "onboarding-start → perm-sms → perm-sms-secondary → perm-notif → perm-notif-secondary → onboarding-finish all wire up correctly",
+      "onboarding-skip-all short-circuits wizard",
+      "PermissionsBanner shows on dashboard when SMS=false with 'we can't auto-scan' copy + Enable/Not now/Don't ask again",
+      "SettingsPage 'Hi, Priya 👋' greeting + name field prepopulated + Save",
+      "Settings permissions card with perm-row-sms/notif/photos + toggles that POST to /permissions/state",
+      "Settings danger zone with 48-hour grace period copy and Restore my account language",
+      "Wipe → returns to auth screen",
+      "Login post-wipe → pending-deletion-panel showing '47 hours left' + Restore/Keep deleted buttons",
+      "restore-account-btn → user is logged back in"
+    ]
+  }
+}

@@ -13,6 +13,8 @@ import Walkthrough from './screens/Walkthrough'
 import BiometricPromptScreen from './screens/BiometricPromptScreen'
 import BackendHealthBanner from './components/BackendHealthBanner'
 import SmartDiscoveryScreen from './screens/SmartDiscoveryScreen'
+import OnboardingPermissions from './screens/OnboardingPermissions'
+import PermissionsBanner from './components/PermissionsBanner'
 import PerkTipsScreen from './screens/PerkTipsScreen'
 import SecurityFAQScreen from './screens/SecurityFAQScreen'
 import PrivacyControlScreen from './screens/PrivacyControlScreen'
@@ -70,6 +72,8 @@ export default function App() {
   const [protectOpen, setProtectOpen] = useState(false)
   const [tourDone, setTourDone] = useState(() => localStorage.getItem('perk_orbit_tour_done') === '1')
   const [discoveryDone, setDiscoveryDone] = useState(() => localStorage.getItem('perk_orbit_discovery_done') === '1')
+  // Feature 2c — Permission wizard shown ONCE after signup, before dashboard.
+  const [permsOnboarded, setPermsOnboarded] = useState(() => localStorage.getItem('perk_orbit_perms_onboarded') === '1')
   // Biometric first-run prompt state — shown ONCE right after PIN setup,
   // before the walkthrough. Modeled on PhonePe / GPay onboarding.
   //   - `bioPromptDismissed`: user tapped "Not now" or already enrolled elsewhere → skip
@@ -278,6 +282,20 @@ export default function App() {
       />
     )
   }
+  // Post-signup permission wizard (Feature 2c) — runs BEFORE walkthrough so
+  // permissions are granted upfront and the auto-scan populates the wallet.
+  if (!permsOnboarded) {
+    return (
+      <OnboardingPermissions
+        user={authUser}
+        toast={toast}
+        onDone={() => {
+          localStorage.setItem('perk_orbit_perms_onboarded', '1')
+          setPermsOnboarded(true)
+        }}
+      />
+    )
+  }
   if (!tourDone) {
     return <Walkthrough onComplete={() => {
       // Set BOTH flags — if the user skips the tour we also skip discovery
@@ -340,6 +358,16 @@ export default function App() {
     setPin(null)
     setLocked(true)
     setMemberStatus(null)
+    // Reset onboarding gates so a fresh signup (after 48h grace) runs the
+    // permission wizard again and doesn't inherit stale state.
+    localStorage.removeItem('perk_orbit_perms_onboarded')
+    localStorage.removeItem('perk_orbit_tour_done')
+    localStorage.removeItem('perk_orbit_discovery_done')
+    sessionStorage.removeItem('perkworth_perm_banner_dismissed')
+    localStorage.removeItem('perkworth_perm_banner_muted')
+    setPermsOnboarded(false)
+    setTourDone(false)
+    setDiscoveryDone(false)
     setStack([{ screen: 'home' }])
   }
 
@@ -351,6 +379,7 @@ export default function App() {
   return (
     <Shell>
       <OfflineBanner online={online} />
+      <PermissionsBanner onOpenSettings={() => push('settings')} />
 
       <div key={current.screen} className="page-enter">
         {current.screen === 'home' && (

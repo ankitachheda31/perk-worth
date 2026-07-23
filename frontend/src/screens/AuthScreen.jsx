@@ -12,6 +12,9 @@ export default function AuthScreen({ onAuthed, existingPin }) {
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const [forgotSent, setForgotSent] = useState(false)
+  // 48h soft-delete grace: if the server tells us this account is pending
+  // deletion, we surface a restore prompt with the exact same email+password.
+  const [pendingDeletion, setPendingDeletion] = useState(null)
 
   const submit = async () => {
     setErr(''); setBusy(true)
@@ -27,6 +30,11 @@ export default function AuthScreen({ onAuthed, existingPin }) {
         ? { email: cleanEmail, password }
         : { email: cleanEmail, password, name: name.trim(), pin_to_claim: existingPin || undefined }
       const res = await fn(body)
+      // ── Detect 48h soft-delete pending state ────────────────────────
+      if (res && res.pending_deletion) {
+        setPendingDeletion({ ...res, email: cleanEmail })
+        return
+      }
       if (res.access_token) localStorage.setItem('perk_orbit_token', res.access_token)
       localStorage.setItem('perk_orbit_user', JSON.stringify({ id: res.id, email: res.email, name: res.name, phone: res.phone }))
       onAuthed(res)
@@ -85,7 +93,23 @@ export default function AuthScreen({ onAuthed, existingPin }) {
     } finally { setBusy(false) }
   }
 
-  const switchMode = (next) => { setMode(next); setErr(''); setForgotSent(false) }
+  const restoreAccount = async () => {
+    setErr(''); setBusy(true)
+    try {
+      const res = await Auth.restoreAccount({ email: pendingDeletion.email, password })
+      if (res.access_token) localStorage.setItem('perk_orbit_token', res.access_token)
+      localStorage.setItem('perk_orbit_user', JSON.stringify({ id: res.id, email: res.email, name: res.name, phone: res.phone }))
+      setPendingDeletion(null)
+      onAuthed(res)
+    } catch (e) {
+      const s = e.response?.status
+      if (s === 410) setErr('The 48-hour restore window has expired. Please sign up as a new account.')
+      else if (s === 401) setErr('Password check failed. Try again.')
+      else setErr('Could not restore account. Try again in a moment.')
+    } finally { setBusy(false) }
+  }
+
+  const switchMode = (next) => { setMode(next); setErr(''); setForgotSent(false); setPendingDeletion(null) }
 
   const title = mode === 'login' ? 'Welcome back' : mode === 'signup' ? 'Create your account' : 'Reset your password'
   const sub = mode === 'login'
@@ -110,7 +134,33 @@ export default function AuthScreen({ onAuthed, existingPin }) {
         </div>
 
         <Card className="p-5 space-y-3">
-          {mode === 'forgot' && forgotSent ? (
+          {pendingDeletion ? (
+            <div data-testid="pending-deletion-panel" className="space-y-3 py-2">
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 grid place-items-center mx-auto">
+                <span className="text-2xl">⏳</span>
+              </div>
+              <h2 className="font-display text-lg font-bold text-center text-ink-900">Your account is scheduled for deletion</h2>
+              <p className="text-sm text-ink-700 text-center leading-relaxed">
+                You have <span className="font-bold">{pendingDeletion.hours_remaining} hours</span> left in the 48-hour grace period to change your mind and bring everything back — vouchers, memberships, Pro subscription, family circle.
+              </p>
+              <button
+                data-testid="restore-account-btn"
+                onClick={restoreAccount}
+                disabled={busy}
+                className="w-full py-3.5 rounded-full font-bold text-white shadow-lg disabled:opacity-50"
+                style={{ background: '#065F46' }}>
+                {busy ? 'Restoring…' : 'Restore my account'}
+              </button>
+              <button
+                data-testid="cancel-restore-btn"
+                onClick={() => setPendingDeletion(null)}
+                className="w-full py-3 rounded-full border border-neutral-300 text-sm font-semibold text-ink-700">
+                Keep it deleted
+              </button>
+              {err && <p className="text-xs text-terracotta-700 text-center">{err}</p>}
+              <p className="text-[10px] text-ink-500 text-center">After the 48-hour window, everything is permanently erased and cannot be recovered.</p>
+            </div>
+          ) : mode === 'forgot' && forgotSent ? (
             <div data-testid="forgot-sent" className="space-y-2 text-center py-3">
               <p className="text-sm text-emerald-800 font-semibold">If an account exists for that email, a reset link is on its way.</p>
               <p className="text-xs text-ink-500">Check your inbox (and spam folder). The link expires in 60 minutes.</p>

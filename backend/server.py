@@ -97,6 +97,7 @@ from auth_intel import (  # noqa: E402
     make_get_current_user,
     seed_programs,
     start_intelligence_cron,
+    start_soft_delete_purge_cron,
 )
 from optimizer import build_optimizer_router  # noqa: E402
 from webhook_export import build_webhook_router  # noqa: E402
@@ -106,6 +107,7 @@ from loyalty_registry import build_loyalty_router  # noqa: E402
 from registry_service import ensure_admins, start_registry_intel_cron  # noqa: E402
 from admin_routes import build_admin_router  # noqa: E402
 from routes.admin_dashboard import build_admin_dashboard_router  # noqa: E402
+from routes.onboarding import build_onboarding_router  # noqa: E402
 
 app.include_router(build_auth_router(db))
 app.include_router(build_intelligence_router(db, EMERGENT_LLM_KEY))
@@ -116,6 +118,7 @@ app.include_router(build_spend_router(db, EMERGENT_LLM_KEY))
 app.include_router(build_loyalty_router(db))
 app.include_router(build_admin_router(db, EMERGENT_LLM_KEY, make_get_current_user(db)))
 app.include_router(build_admin_dashboard_router(db, make_get_current_user(db)))
+app.include_router(build_onboarding_router(db, make_get_current_user(db), EMERGENT_LLM_KEY))
 
 
 @app.on_event("startup")
@@ -142,6 +145,8 @@ async def _on_startup():
     start_intelligence_cron(db, EMERGENT_LLM_KEY)
     # Schedule the Registry Intelligence cron (Mon/Wed/Fri 04:00 IST)
     start_registry_intel_cron(db, EMERGENT_LLM_KEY)
+    # Hourly sweep of soft-deleted accounts past their 48h grace window
+    start_soft_delete_purge_cron(db)
     # Indexes for the registry-intel collections
     try:
         await db.registry_pending.create_index(

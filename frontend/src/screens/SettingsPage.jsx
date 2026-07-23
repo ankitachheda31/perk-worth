@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react'
-import { ShieldCheck, KeyRound, ChevronRight, FileText, MessageCircle, Lock, Sparkles, LogOut, Trash2, AlertTriangle, Fingerprint, Bell } from 'lucide-react'
+import { ShieldCheck, KeyRound, ChevronRight, FileText, MessageCircle, Lock, Sparkles, LogOut, Trash2, AlertTriangle, Fingerprint, Bell, User, MessageSquare, Image as ImageIcon } from 'lucide-react'
 import { Card, GhostButton, TopBar } from '../components/ui'
 import MonthlySavingsRollup from '../components/MonthlySavingsRollup'
-import { Auth } from '../lib/api'
-import { setStoredPin, setProfile } from '../lib/store'
+import { Auth, Permissions } from '../lib/api'
+import { setStoredPin, setProfile, getProfile } from '../lib/store'
 import { isBiometricAvailable, isBiometricEnrolled, enrollBiometric, disableBiometric, getBiometricBackend, verifyBiometric, getBiometricDiagnostic, isBiometricUiEnabled } from '../lib/biometric'
 import { isNotifOptedIn, setNotifOptIn, requestNotificationPermission } from '../lib/push'
+import { isNativeSmsAvailable, requestSmsPermission } from '../lib/smsScanner'
 
 export default function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpenPrivacy, onOpenFAQ, onOpenPrivacyControl, onOpenPerkTips, onReplayTour, onWipe, onLogout, toast }) {
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -20,6 +21,84 @@ export default function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpen
   const [bioBackend, setBioBackend] = useState(getBiometricBackend())
   const [notifOn, setNotifOn] = useState(isNotifOptedIn())
   const [notifBusy, setNotifBusy] = useState(false)
+
+  // ---- Profile auto-fill from server /me (source of truth) ------------
+  // Populate the greeting + name/phone fields with the authenticated user
+  // instead of asking the user to re-type what we already know.
+  const [profile, setProfileLocal] = useState(() => getProfile() || { name: '', email: '', phone: '' })
+  const [nameEdit, setNameEdit] = useState('')
+  const [phoneEdit, setPhoneEdit] = useState('')
+  const [profSaving, setProfSaving] = useState(false)
+
+  // ---- Permissions state (server-authoritative) -----------------------
+  const [perms, setPerms] = useState({})  // { sms, notifications, photos, voice }
+  const [permBusy, setPermBusy] = useState(null)  // which key is being toggled
+
+  useEffect(() => {
+    let alive = true
+    Auth.me().then(me => {
+      if (!alive || !me) return
+      const p = { name: me.name || '', email: me.email || '', phone: me.phone || '' }
+      setProfileLocal(p)
+      setProfile(p)  // sync local store
+      setNameEdit(p.name)
+      setPhoneEdit(p.phone)
+    }).catch(() => null)
+    Permissions.get().then(s => {
+      if (!alive) return
+      setPerms(s?.permissions || {})
+    }).catch(() => null)
+    return () => { alive = false }
+  }, [])
+
+  const saveProfile = async () => {
+    setProfSaving(true)
+    try {
+      const updated = await Auth.updateMe({ name: nameEdit.trim(), phone: phoneEdit.trim() })
+      const p = { name: updated.name || '', email: updated.email || profile.email, phone: updated.phone || '' }
+      setProfileLocal(p)
+      setProfile(p)
+      toast?.('Profile updated')
+    } catch {
+      toast?.('Could not save profile')
+    } finally {
+      setProfSaving(false)
+    }
+  }
+
+  const togglePerm = async (key) => {
+    setPermBusy(key)
+    try {
+      let granted = !perms[key]
+      // For OS-gated permissions we actually re-request the OS prompt on
+      // "enable" so the user sees a real system dialog. On "disable" we just
+      // record the intent (OS-level revoke happens in device Settings).
+      if (granted) {
+        if (key === 'sms') {
+          if (!isNativeSmsAvailable()) {
+            toast?.('SMS access is only available on Android')
+            setPermBusy(null); return
+          }
+          const res = await requestSmsPermission()
+          granted = !!res.granted
+          if (!granted) {
+            toast?.('SMS access denied — you can enable it later in device Settings')
+          }
+        } else if (key === 'notifications') {
+          const res = await requestNotificationPermission()
+          granted = res === 'granted' || res === true
+          if (granted) setNotifOptIn(true)
+          if (!granted) toast?.('Notification permission was not granted')
+        }
+      }
+      const next = await Permissions.set({ [key]: granted })
+      setPerms(next?.permissions || {})
+    } catch {
+      toast?.('Could not update permission')
+    } finally {
+      setPermBusy(null)
+    }
+  }
 
   useEffect(() => {
     // Async detection with rich diagnostic + one automatic retry. Some Android
@@ -136,11 +215,12 @@ export default function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpen
     }
     setBusy(true)
     try {
-      await Auth.wipe()
+      const res = await Auth.wipe()
       localStorage.removeItem('perk_orbit_token')
       setStoredPin(null)
       setProfile({ name: '', email: '', phone: '' })
-      toast?.('All your data has been deleted')
+      const hrs = res?.grace_hours || 48
+      toast?.(`Deletion scheduled — log in within ${hrs}h to restore`)
       onWipe?.()
     } catch {
       toast?.('Could not delete · try again')
@@ -166,6 +246,93 @@ export default function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpen
       <TopBar title="Settings" onBack={onBack} />
       <main className="px-5 space-y-3 pb-10">
         <MonthlySavingsRollup onToast={toast} />
+
+        {/* Profile — greet the user by name, allow inline edits (auto-filled
+            from /me on mount, saves via PATCH /api/auth/me on Save). */}
+        <Card className="p-5" data-testid="settings-profile-card">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-11 h-11 rounded-full grid place-items-center font-extrabold text-white text-lg" style={{ background: '#065F46' }}>
+              {(profile.name || profile.email || 'P').trim().charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-display font-bold text-ink-900 truncate" data-testid="settings-profile-greeting">
+                Hi{profile.name ? `, ${profile.name.split(' ')[0]}` : ''} 👋
+              </p>
+              <p className="text-xs text-ink-500 truncate" data-testid="settings-profile-email">{profile.email || 'No email on file'}</p>
+            </div>
+          </div>
+          <label className="block text-[11px] font-semibold text-ink-500 uppercase tracking-wide mb-1">Full name</label>
+          <input
+            data-testid="settings-profile-name"
+            value={nameEdit}
+            onChange={(e) => setNameEdit(e.target.value)}
+            placeholder="Your name"
+            className="w-full bg-ink-50 border border-ink-200 rounded-xl px-3 py-2.5 text-sm mb-3"
+            maxLength={80}
+          />
+          <label className="block text-[11px] font-semibold text-ink-500 uppercase tracking-wide mb-1">Phone (optional)</label>
+          <input
+            data-testid="settings-profile-phone"
+            value={phoneEdit}
+            onChange={(e) => setPhoneEdit(e.target.value)}
+            placeholder="+91 98xxxxxxxx"
+            inputMode="tel"
+            className="w-full bg-ink-50 border border-ink-200 rounded-xl px-3 py-2.5 text-sm mb-3"
+            maxLength={20}
+          />
+          <button
+            data-testid="settings-profile-save"
+            onClick={saveProfile}
+            disabled={profSaving || (nameEdit === profile.name && phoneEdit === profile.phone)}
+            className="w-full py-2.5 rounded-xl font-bold text-white text-sm disabled:opacity-50"
+            style={{ background: '#065F46' }}>
+            {profSaving ? 'Saving…' : 'Save profile'}
+          </button>
+        </Card>
+
+        {/* Permissions — dedicated toggle panel. See product spec item #3.
+            Each toggle re-requests OS permission on enable + records the
+            answer to /api/permissions/state so the backend can nudge later. */}
+        <Card className="p-5" data-testid="settings-permissions-card">
+          <div className="flex items-center gap-2 mb-2">
+            <Lock className="w-4 h-4 text-emerald-800" />
+            <p className="font-display font-bold text-ink-900">Permissions</p>
+          </div>
+          <p className="text-xs text-ink-500 mb-3 leading-relaxed">
+            Control what PerkWorth can access. You can turn any of these on or off at any time — no re-installation needed.
+          </p>
+          <PermRow
+            testid="perm-row-sms"
+            icon={<MessageSquare className="w-4 h-4 text-emerald-800" />}
+            label="Read voucher SMS"
+            help={isNativeSmsAvailable()
+              ? 'Auto-import coupons and memberships from brand SMS. Personal messages are ignored on-device.'
+              : 'Available only on the Android app.'}
+            on={!!perms.sms}
+            busy={permBusy === 'sms'}
+            disabled={!isNativeSmsAvailable() && !perms.sms}
+            onToggle={() => togglePerm('sms')}
+          />
+          <PermRow
+            testid="perm-row-notif"
+            icon={<Bell className="w-4 h-4 text-emerald-800" />}
+            label="Expiry alerts"
+            help="Ping me 7 days before any voucher expires and when family members share perks."
+            on={!!perms.notifications}
+            busy={permBusy === 'notifications'}
+            onToggle={() => togglePerm('notifications')}
+          />
+          <PermRow
+            testid="perm-row-photos"
+            icon={<ImageIcon className="w-4 h-4 text-emerald-800" />}
+            label="Photo library (OCR)"
+            help="Attach voucher screenshots so I can extract the code automatically."
+            on={!!perms.photos}
+            busy={permBusy === 'photos'}
+            onToggle={() => togglePerm('photos')}
+            last
+          />
+        </Card>
 
         <Card className="p-5 bg-emerald-50/40 border-emerald-200" data-testid="settings-trust-card">
           <div className="flex items-center gap-3">
@@ -326,13 +493,13 @@ export default function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpen
             <p className="font-display font-bold text-terracotta-800">Delete my account</p>
           </div>
           <p className="text-xs text-ink-700 leading-relaxed mb-3">
-            Permanently delete <span className="font-bold">your account and ALL your data</span> — login, vouchers, points, family circle, Pro membership, payment history, referrals. This cannot be undone. After deletion you can sign up again with the same email and start fresh.
+            Your account will be marked for deletion and permanently removed after a <span className="font-bold">48-hour grace period</span>. During those 48 hours you can log back in and choose "Restore my account" to cancel. Your active Pro membership is deactivated immediately so no renewals fire.
           </p>
           <button data-testid="settings-wipe-open" onClick={() => setConfirmOpen(true)}
             className="w-full bg-terracotta-700 text-white font-semibold py-3 rounded-full active:scale-95 transition inline-flex items-center justify-center gap-2">
             <Trash2 className="w-4 h-4" /> Delete my account
           </button>
-          <p className="text-[10px] text-ink-500 text-center mt-2">DPDP 2023 §13 Right to Erasure · GDPR Art. 17</p>
+          <p className="text-[10px] text-ink-500 text-center mt-2">DPDP 2023 §13 Right to Erasure · GDPR Art. 17 · 48h grace</p>
         </Card>
 
         <Card className="p-5">
@@ -349,7 +516,7 @@ export default function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpen
               <h2 className="font-display text-xl font-bold text-ink-900">Delete everything?</h2>
             </div>
             <p className="text-sm text-ink-700 leading-relaxed mb-3">
-              This will permanently remove your account, vouchers, points, family circle, and history. It <span className="font-bold">cannot be undone</span>.
+              We'll mark your account for deletion. You have <span className="font-bold">48 hours</span> to change your mind — just log back in and choose "Restore my account". After 48 hours everything is <span className="font-bold">permanently erased</span> and cannot be recovered. Your Pro membership is paused immediately (no billing).
             </p>
             <p className="text-xs text-ink-600 mb-2">Type <span className="font-mono font-bold text-terracotta-700">DELETE</span> to confirm:</p>
             <input data-testid="wipe-confirm-input" value={confirmText} onChange={(e) => setConfirmText(e.target.value)} autoFocus
@@ -366,5 +533,36 @@ export default function SettingsPage({ onBack, onResetPin, onOpenProtect, onOpen
         </div>
       )}
     </>
+  )
+}
+
+/**
+ * Compact one-line toggle used by the Permissions section.
+ * When `on=true`, shows a filled emerald pill. When `on=false`, shows a
+ * grey pill. Click always calls onToggle (which will handle the OS prompt
+ * on enable and clear the flag on disable).
+ */
+function PermRow({ testid, icon, label, help, on, busy, disabled, onToggle, last }) {
+  return (
+    <div
+      data-testid={testid}
+      className={`flex items-start gap-3 py-3 ${last ? '' : 'border-b border-ink-100'}`}>
+      <div className="w-8 h-8 rounded-lg bg-emerald-50 grid place-items-center shrink-0 mt-0.5">
+        {icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-ink-800">{label}</p>
+        <p className="text-[11px] text-ink-500 leading-relaxed">{help}</p>
+      </div>
+      <button
+        data-testid={`${testid}-toggle`}
+        onClick={onToggle}
+        disabled={busy || disabled}
+        role="switch"
+        aria-checked={on}
+        className={`relative w-11 h-6 rounded-full transition-colors shrink-0 mt-1 disabled:opacity-40 ${on ? 'bg-emerald-700' : 'bg-ink-300'}`}>
+        <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${on ? 'translate-x-5' : 'translate-x-0.5'}`} />
+      </button>
+    </div>
   )
 }

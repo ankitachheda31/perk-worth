@@ -158,8 +158,27 @@ def build_auth_router(db) -> APIRouter:
     @limiter.limit("5/minute")
     async def signup(request: Request, response: Response, payload: SignupRequest = Body(...)):
         email = payload.email.lower()
-        if await db.users.find_one({"email": email}):
-            raise HTTPException(status_code=409, detail="Email already registered")
+        existing = await db.users.find_one({"email": email})
+        if existing:
+            # ── SOFT-DELETE COLLISION HANDLING ────────────────────────────
+            # If the existing record is a soft-deleted account still within its
+            # 48h grace window, refuse signup — the user should log in and hit
+            # /restore-account instead. If grace has fully elapsed but purge
+            # hasn't run, hard-purge inline so the fresh signup can proceed
+            # (and their old subscription/vouchers do NOT carry over).
+            if existing.get("is_deleted"):
+                drq = existing.get("deletion_requested_at")
+                if isinstance(drq, datetime):
+                    drq_utc = drq if drq.tzinfo else drq.replace(tzinfo=timezone.utc)
+                    if datetime.now(timezone.utc) < drq_utc + timedelta(hours=48):
+                        raise HTTPException(
+                            status_code=409,
+                            detail="This email is pending deletion. Log in and choose 'Restore my account' to cancel, or wait until the 48-hour grace period ends.",
+                        )
+                # Grace elapsed → purge stale record + cascades so the new user starts clean
+                await _hard_purge_user(db, str(existing["_id"]))
+            else:
+                raise HTTPException(status_code=409, detail="Email already registered")
         doc = {
             "email": email,
             "password_hash": hash_password(payload.password),
@@ -185,6 +204,32 @@ def build_auth_router(db) -> APIRouter:
         user = await db.users.find_one({"email": email})
         if not user or not verify_password(payload.password, user.get("password_hash", "")):
             raise HTTPException(status_code=401, detail="Invalid email or password")
+
+        # ── SOFT-DELETE GRACE PERIOD (48h) ────────────────────────────────
+        # If the user requested deletion but the 48h purge hasn't fired yet,
+        # do NOT log them in silently — return a special 200 with pending_deletion
+        # so the frontend can show a "Restore your account?" prompt. This design
+        # keeps auth cookies OFF until they explicitly confirm restore.
+        if user.get("is_deleted"):
+            drq = user.get("deletion_requested_at")
+            if isinstance(drq, datetime):
+                drq_utc = drq if drq.tzinfo else drq.replace(tzinfo=timezone.utc)
+                grace_end = drq_utc + timedelta(hours=48)
+                if datetime.now(timezone.utc) < grace_end:
+                    log.info("login: %s is in 48h deletion grace, offering restore", email)
+                    # Deliberately do NOT set cookies — user must call /restore-account explicitly
+                    return {
+                        "pending_deletion": True,
+                        "deletion_requested_at": drq_utc.isoformat(),
+                        "grace_end": grace_end.isoformat(),
+                        "hours_remaining": max(0, int((grace_end - datetime.now(timezone.utc)).total_seconds() // 3600)),
+                        "restore_endpoint": "/api/auth/restore-account",
+                        "message": "Your account is pending deletion. Log in via restore to cancel.",
+                    }
+            # Grace elapsed but purge hasn't run — refuse login and let the
+            # nightly purge (or next scan) sweep it. Behaves as if user doesn't exist.
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+
         uid = str(user["_id"])
         tv = int(user.get("token_version") or 0)
         access = create_access_token(uid, email, tv)
@@ -209,6 +254,28 @@ def build_auth_router(db) -> APIRouter:
     async def me(user=Depends(get_current_user)):
         return user
 
+    @router.patch("/me")
+    async def update_me(payload: dict = Body(...), user=Depends(get_current_user)):
+        """Update mutable profile fields (name, phone). Email/role/password are
+        handled by dedicated endpoints. Frontend Settings page calls this to
+        persist name/phone edits.
+        """
+        updates: dict = {}
+        if "name" in payload:
+            name = (payload.get("name") or "").strip()[:80]
+            updates["name"] = name
+        if "phone" in payload:
+            phone = (payload.get("phone") or "").strip()[:20]
+            updates["phone"] = phone
+        if not updates:
+            raise HTTPException(status_code=400, detail="No editable fields provided")
+        await db.users.update_one({"_id": ObjectId(user["_id"])}, {"$set": updates})
+        doc = await db.users.find_one({"_id": ObjectId(user["_id"])})
+        if doc:
+            doc["_id"] = str(doc["_id"])
+            doc.pop("password_hash", None)
+        return doc or {"ok": True}
+
     @router.post("/claim-pin")
     async def claim_pin(payload: dict, user=Depends(get_current_user)):
         pin = (payload or {}).get("pin")
@@ -219,33 +286,101 @@ def build_auth_router(db) -> APIRouter:
 
     @router.post("/wipe")
     async def wipe_all_data(response: Response, user=Depends(get_current_user)):
-        """DPDP/GDPR Article 17 — Right to erasure.
-        Deletes ALL user-scoped data (vouchers, circle members, memberships,
-        payments, notifications, referrals, support history) AND the user
-        account itself. Irreversible. Clears auth cookies.
+        """DPDP/GDPR Article 17 — Right to erasure (SOFT-DELETE with 48h grace).
+
+        Instead of an irreversible instant purge, we mark the account
+        `is_deleted=True` and stamp `deletion_requested_at`. The active
+        subscription is deactivated so no billing/renewals fire.
+        If the user logs in within 48h, they'll be offered a restore path.
+        A background job (see `start_soft_delete_purge_cron`) hard-purges
+        soft-deleted accounts once the 48h window closes.
         """
         uid = user["_id"]
-        deleted = {}
-        for coll in (
-            "vouchers", "circle_members", "app_membership", "payments",
-            "notifications", "referrals", "support_history",
-        ):
-            try:
-                # Account for both new (user_id) and legacy (user_pin / referrer_pin) scoping
-                res = await db[coll].delete_many({
-                    "$or": [{"user_pin": uid}, {"referrer_pin": uid}, {"referee_pin": uid}]
-                })
-                deleted[coll] = res.deleted_count
-            except Exception:
-                deleted[coll] = 0
-        # Finally delete the user record itself
-        try:
-            await db.users.delete_one({"_id": ObjectId(uid)})
-        except Exception:
-            pass
+        now = datetime.now(timezone.utc)
+        purge_at = now + timedelta(hours=48)
+
+        # Mark user as pending deletion + bump token_version to invalidate all
+        # existing JWTs (attacker with a stolen cookie can't undo this).
+        await db.users.update_one(
+            {"_id": ObjectId(uid)},
+            {"$set": {
+                "is_deleted": True,
+                "deletion_requested_at": now,
+                "scheduled_purge_at": purge_at,
+            },
+             "$inc": {"token_version": 1}},
+        )
+        # Deactivate active subscription so a re-signup with the same email
+        # (after grace elapses) does NOT inherit Pro tier from the ghost record.
+        await db.app_membership.update_many(
+            {"user_pin": uid, "active": True},
+            {"$set": {"active": False, "deactivated_by_soft_delete_at": now}},
+        )
         response.delete_cookie("access_token", path="/")
         response.delete_cookie("refresh_token", path="/")
-        return {"ok": True, "deleted": deleted}
+        return {
+            "ok": True,
+            "mode": "soft_delete",
+            "grace_hours": 48,
+            "scheduled_purge_at": purge_at.isoformat(),
+            "message": "Account marked for deletion in 48 hours. Log in within 48h to restore.",
+        }
+
+    @router.post("/restore-account")
+    @limiter.limit("5/minute")
+    async def restore_account(request: Request, response: Response, payload: LoginRequest = Body(...)):
+        """Cancel a pending soft-delete and log the user back in.
+
+        Requires email + password (same as login) to prevent hijack — a stolen
+        session or JWT is NOT sufficient because we bumped token_version at
+        wipe-time. Restores the user + reactivates their most recent Pro
+        subscription (if it was still valid before the wipe).
+        """
+        email = payload.email.lower()
+        user = await db.users.find_one({"email": email})
+        if not user or not verify_password(payload.password, user.get("password_hash", "")):
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+        if not user.get("is_deleted"):
+            # Nothing to restore — just log them in normally
+            uid = str(user["_id"])
+            tv = int(user.get("token_version") or 0)
+            access = create_access_token(uid, email, tv)
+            refresh = create_refresh_token(uid, tv)
+            _set_auth_cookies(response, access, refresh)
+            return {"ok": True, "already_active": True, "access_token": access, "id": uid, "email": email}
+
+        drq = user.get("deletion_requested_at")
+        if isinstance(drq, datetime):
+            drq_utc = drq if drq.tzinfo else drq.replace(tzinfo=timezone.utc)
+            if datetime.now(timezone.utc) >= drq_utc + timedelta(hours=48):
+                raise HTTPException(status_code=410, detail="Restoration window has expired. Please create a new account.")
+
+        # Unset the flags AND reactivate the most-recent subscription that was
+        # only deactivated by our soft-delete (not one the user cancelled first).
+        uid = str(user["_id"])
+        await db.users.update_one(
+            {"_id": ObjectId(uid)},
+            {"$unset": {"is_deleted": "", "deletion_requested_at": "", "scheduled_purge_at": ""}},
+        )
+        await db.app_membership.update_many(
+            {"user_pin": uid, "deactivated_by_soft_delete_at": {"$exists": True}},
+            {"$set": {"active": True}, "$unset": {"deactivated_by_soft_delete_at": ""}},
+        )
+        log.info("Restored soft-deleted account: %s", email)
+
+        tv = int(user.get("token_version") or 0)
+        access = create_access_token(uid, email, tv)
+        refresh = create_refresh_token(uid, tv)
+        _set_auth_cookies(response, access, refresh)
+        return {
+            "ok": True,
+            "restored": True,
+            "access_token": access,
+            "id": uid,
+            "email": email,
+            "name": user.get("name", ""),
+            "message": "Welcome back! Your account and subscription have been restored.",
+        }
 
     @router.post("/forgot-password")
     @limiter.limit("3/minute")
@@ -544,6 +679,75 @@ def build_intelligence_router(db, emergent_llm_key: str) -> APIRouter:
 # Scheduler bootstrap (called from server.py startup)
 # ---------------------------------------------------------------------------
 _scheduler: Optional[AsyncIOScheduler] = None
+_purge_scheduler: Optional[AsyncIOScheduler] = None
+
+
+async def _hard_purge_user(db, uid: str) -> dict:
+    """Physically delete a user + all cascading data. Used by both:
+      (a) the hourly soft-delete purge cron after 48h,
+      (b) inline signup collision when a stale ghost record exists.
+
+    Returns per-collection deletion counts for logging/observability.
+    """
+    deleted: dict = {}
+    for coll in (
+        "vouchers", "circle_members", "app_membership", "payments",
+        "notifications", "referrals", "support_history", "password_resets",
+    ):
+        try:
+            res = await db[coll].delete_many({
+                "$or": [{"user_pin": uid}, {"user_id": uid},
+                        {"referrer_pin": uid}, {"referee_pin": uid}]
+            })
+            deleted[coll] = res.deleted_count
+        except Exception:
+            deleted[coll] = 0
+    try:
+        await db.users.delete_one({"_id": ObjectId(uid)})
+        deleted["users"] = 1
+    except Exception:
+        deleted["users"] = 0
+    log.info("Hard-purged user %s: %s", uid, deleted)
+    return deleted
+
+
+def start_soft_delete_purge_cron(db):
+    """Sweeps soft-deleted accounts once per hour and hard-purges those past
+    their 48h grace window. Safe to leave running always — no-op when queue
+    is empty. Disabled by env DISABLE_SOFT_DELETE_PURGE_CRON=1 for tests.
+    """
+    global _purge_scheduler
+    if os.environ.get("DISABLE_SOFT_DELETE_PURGE_CRON") == "1":
+        log.info("Soft-delete purge cron disabled via env")
+        return
+    if _purge_scheduler:
+        return
+    _purge_scheduler = AsyncIOScheduler(timezone="UTC")
+
+    async def sweep():
+        try:
+            cutoff = datetime.now(timezone.utc) - timedelta(hours=48)
+            cursor = db.users.find({
+                "is_deleted": True,
+                "deletion_requested_at": {"$lte": cutoff},
+            }, {"_id": 1, "email": 1})
+            count = 0
+            async for u in cursor:
+                await _hard_purge_user(db, str(u["_id"]))
+                count += 1
+            if count:
+                log.info("Soft-delete sweep: purged %d expired accounts", count)
+        except Exception:
+            log.exception("Soft-delete purge sweep error")
+
+    # Every hour on the hour. First run happens 60s after startup so we don't
+    # block boot on a large sweep.
+    _purge_scheduler.add_job(sweep, "cron", minute=0, id="soft-delete-purge")
+    _purge_scheduler.add_job(sweep, "date",
+        run_date=datetime.now(timezone.utc) + timedelta(seconds=60),
+        id="soft-delete-purge-boot")
+    _purge_scheduler.start()
+    log.info("Soft-delete purge cron scheduled (hourly + 60s boot sweep)")
 
 
 def start_intelligence_cron(db, emergent_llm_key: str):

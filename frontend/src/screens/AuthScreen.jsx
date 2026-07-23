@@ -1,20 +1,72 @@
-import React, { useState } from 'react'
-import { Eye, EyeOff } from 'lucide-react'
+import React, { useEffect, useState } from 'react'
+import { Eye, EyeOff, CheckCircle2, XCircle } from 'lucide-react'
 import { Card, PrimaryButton } from '../components/ui'
-import { Auth } from '../lib/api'
+import { Auth, api } from '../lib/api'
+
+/**
+ * Capture ?ref=CODE from the URL and stash in localStorage so it survives
+ * the user navigating away from the sign-up screen (Play Store install,
+ * email verification, etc.) and can be pre-filled the next time they land.
+ */
+function captureReferralFromUrl() {
+  try {
+    const url = new URL(window.location.href)
+    const ref = (url.searchParams.get('ref') || url.searchParams.get('referral') || '').trim().toUpperCase()
+    if (ref && /^[A-Z0-9-]{4,20}$/.test(ref)) {
+      localStorage.setItem('perk_orbit_pending_referral', ref)
+      return ref
+    }
+  } catch { /* invalid URL — ignore */ }
+  return localStorage.getItem('perk_orbit_pending_referral') || ''
+}
 
 export default function AuthScreen({ onAuthed, existingPin }) {
-  const [mode, setMode] = useState('login') // login | signup | forgot
+  const [mode, setMode] = useState(() => {
+    // If URL has ?ref=, default to signup so the referral is captured.
+    try {
+      const u = new URL(window.location.href)
+      if (u.searchParams.get('ref') || u.searchParams.get('referral')) return 'signup'
+    } catch { /* ignore */ }
+    return 'login'
+  })
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [name, setName] = useState('')
+  const [referralCode, setReferralCode] = useState(() => captureReferralFromUrl())
+  const [refStatus, setRefStatus] = useState(null)  // null | 'valid' | 'invalid' | 'checking'
+  const [refMessage, setRefMessage] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const [forgotSent, setForgotSent] = useState(false)
   // 48h soft-delete grace: if the server tells us this account is pending
   // deletion, we surface a restore prompt with the exact same email+password.
   const [pendingDeletion, setPendingDeletion] = useState(null)
+
+  // Debounced live validation of the referral code against the DB.
+  useEffect(() => {
+    const code = referralCode.trim().toUpperCase()
+    if (!code) { setRefStatus(null); setRefMessage(''); return }
+    if (code.length < 4) { setRefStatus(null); setRefMessage(''); return }
+    setRefStatus('checking')
+    setRefMessage('')
+    const timer = setTimeout(async () => {
+      try {
+        const { data } = await api.get('/referrals/preview', { params: { code } })
+        if (data?.valid) {
+          setRefStatus('valid')
+          setRefMessage(data.message || `+${data.bonus_days || 90} bonus days when you upgrade to Pro`)
+        } else {
+          setRefStatus('invalid')
+          setRefMessage(data?.message || "That code isn't recognised.")
+        }
+      } catch {
+        setRefStatus('invalid')
+        setRefMessage("Couldn't verify code. You can still sign up without it.")
+      }
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [referralCode])
 
   const submit = async () => {
     setErr(''); setBusy(true)
@@ -28,12 +80,25 @@ export default function AuthScreen({ onAuthed, existingPin }) {
       const cleanEmail = email.trim().toLowerCase()
       const body = mode === 'login'
         ? { email: cleanEmail, password }
-        : { email: cleanEmail, password, name: name.trim(), pin_to_claim: existingPin || undefined }
+        : {
+            email: cleanEmail,
+            password,
+            name: name.trim(),
+            pin_to_claim: existingPin || undefined,
+            // Only send code if it validated successfully — don't upload
+            // junk to the backend that will just be ignored.
+            referral_code: (mode === 'signup' && refStatus === 'valid') ? referralCode.trim().toUpperCase() : undefined,
+          }
       const res = await fn(body)
       // ── Detect 48h soft-delete pending state ────────────────────────
       if (res && res.pending_deletion) {
         setPendingDeletion({ ...res, email: cleanEmail })
         return
+      }
+      // Successful signup with a valid referral — clear localStorage so a
+      // future signup on the same device doesn't re-apply the same code.
+      if (mode === 'signup' && res?.pending_referral_code) {
+        localStorage.removeItem('perk_orbit_pending_referral')
       }
       if (res.access_token) localStorage.setItem('perk_orbit_token', res.access_token)
       localStorage.setItem('perk_orbit_user', JSON.stringify({ id: res.id, email: res.email, name: res.name, phone: res.phone }))
@@ -203,6 +268,52 @@ export default function AuthScreen({ onAuthed, existingPin }) {
                 </div>
               ) : null}
               {err ? <p data-testid="auth-error" className="text-xs text-terracotta-700 whitespace-pre-wrap break-words">{err}</p> : null}
+
+              {/* Referral code — signup only. Auto-prefilled from ?ref= URL
+                  or localStorage; validates against DB on every keystroke.
+                  Never blocks signup; a bad code just skips the bonus. */}
+              {mode === 'signup' ? (
+                <div data-testid="referral-field-wrapper">
+                  <label className="text-[11px] font-bold text-ink-500 uppercase tracking-wider flex items-center justify-between">
+                    <span>Referral code (optional)</span>
+                    {refStatus === 'valid' && <span className="text-[10px] font-bold text-emerald-700">✓ VALID</span>}
+                    {refStatus === 'invalid' && <span className="text-[10px] font-bold text-terracotta-700">✗ INVALID</span>}
+                    {refStatus === 'checking' && <span className="text-[10px] font-semibold text-ink-500">checking…</span>}
+                  </label>
+                  <div className="mt-1.5 relative">
+                    <input
+                      data-testid="auth-referral"
+                      value={referralCode}
+                      onChange={(e) => setReferralCode(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, ''))}
+                      className={`w-full bg-ink-50 rounded-2xl pl-3 pr-11 py-3 text-sm font-mono tracking-widest border ${
+                        refStatus === 'valid' ? 'border-emerald-500' :
+                        refStatus === 'invalid' ? 'border-terracotta-400' :
+                        'border-ink-200'}`}
+                      placeholder="PERK-XXX or friend's code"
+                      autoComplete="off"
+                      maxLength={20}
+                    />
+                    {refStatus === 'valid' && (
+                      <CheckCircle2 className="absolute inset-y-0 right-3 w-5 h-5 my-auto text-emerald-600" />
+                    )}
+                    {refStatus === 'invalid' && (
+                      <XCircle className="absolute inset-y-0 right-3 w-5 h-5 my-auto text-terracotta-500" />
+                    )}
+                  </div>
+                  {refMessage ? (
+                    <p data-testid="referral-message" className={`text-[11px] mt-1 font-semibold ${
+                      refStatus === 'valid' ? 'text-emerald-700' :
+                      refStatus === 'invalid' ? 'text-terracotta-700' :
+                      'text-ink-500'
+                    }`}>
+                      {refMessage}
+                    </p>
+                  ) : (
+                    <p className="text-[10px] mt-1 text-ink-500">Got a friend's code? Enter it to earn bonus Pro days when you upgrade.</p>
+                  )}
+                </div>
+              ) : null}
+
               <PrimaryButton data-testid="auth-submit" onClick={submit} disabled={busy || !email || (mode !== 'forgot' && !password)}>
                 {busy ? '…' : mode === 'login' ? 'Sign in' : mode === 'signup' ? 'Create account' : 'Send reset link'}
               </PrimaryButton>

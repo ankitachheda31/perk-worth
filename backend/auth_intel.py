@@ -119,6 +119,7 @@ class SignupRequest(BaseModel):
     name: Optional[str] = None
     phone: Optional[str] = None
     pin_to_claim: Optional[str] = None  # legacy `user_pin` to migrate into this account
+    referral_code: Optional[str] = None  # captured at signup; auto-applied on Pro upgrade
 
 
 class LoginRequest(BaseModel):
@@ -188,6 +189,21 @@ def build_auth_router(db) -> APIRouter:
             "token_version": 0,
             "created_at": datetime.now(timezone.utc),
         }
+        # Referral capture at signup — validate against active memberships,
+        # store the pending code on the user record. It gets auto-applied
+        # when the user upgrades to Pro (see /api/membership/activate).
+        # Silent-fail on invalid codes (never block signup).
+        ref_code = (payload.referral_code or "").strip().upper()
+        if ref_code:
+            referrer = await db.app_membership.find_one(
+                {"referral_code": ref_code, "active": True},
+                {"user_pin": 1},
+            )
+            if referrer and str(referrer.get("user_pin")) != "":
+                doc["pending_referral_code"] = ref_code
+                doc["referred_by"] = str(referrer.get("user_pin"))
+                doc["referral_captured_at"] = datetime.now(timezone.utc).isoformat()
+                log.info("Referral captured at signup: %s → new user %s", ref_code, email)
         res = await db.users.insert_one(doc)
         uid = str(res.inserted_id)
         if payload.pin_to_claim:
@@ -195,7 +211,11 @@ def build_auth_router(db) -> APIRouter:
         access = create_access_token(uid, email, 0)
         refresh = create_refresh_token(uid, 0)
         _set_auth_cookies(response, access, refresh)
-        return {"id": uid, "email": email, "name": doc["name"], "phone": doc["phone"], "role": doc.get("role", "user"), "access_token": access}
+        return {
+            "id": uid, "email": email, "name": doc["name"], "phone": doc["phone"],
+            "role": doc.get("role", "user"), "access_token": access,
+            "pending_referral_code": doc.get("pending_referral_code"),
+        }
 
     @router.post("/login")
     @limiter.limit("5/minute")

@@ -6,7 +6,23 @@ import os
 import secrets
 from datetime import datetime, timedelta, timezone
 
+from bson import ObjectId
+from bson.errors import InvalidId
 from fastapi import APIRouter, HTTPException, Query
+
+
+def _oid_ok(s: str) -> bool:
+    """Return True if `s` is a plausible ObjectId (24 hex chars).
+    Used before .find({_id: ObjectId(s)}) so legacy PIN-based user_pins
+    (which aren't ObjectIds) don't raise InvalidId errors.
+    """
+    if not s or not isinstance(s, str) or len(s) != 24:
+        return False
+    try:
+        ObjectId(s)
+        return True
+    except InvalidId:
+        return False
 
 from models import RzpOrderRequest, RzpVerifyRequest
 from services.billing_logic import (
@@ -124,11 +140,29 @@ def build_billing_router(db) -> APIRouter:
         )
 
         bonus_days = 0
+        # Auto-fallback: if the client didn't pass a referral_code but this
+        # user had one captured at signup (via ?ref=CODE URL), use that. The
+        # captured code is cleared from the user record on successful apply
+        # so it never gets double-credited on renewal.
+        effective_referral = (payload.referral_code or "").strip()
+        if not effective_referral:
+            user_doc = await db.users.find_one(
+                {"_id": ObjectId(payload.user_pin)},
+                {"pending_referral_code": 1},
+            ) if _oid_ok(payload.user_pin) else None
+            if user_doc and user_doc.get("pending_referral_code"):
+                effective_referral = user_doc["pending_referral_code"]
         referral_outcome = await apply_referral_bonus(
-            db, payload.user_pin, payload.referral_code or ""
+            db, payload.user_pin, effective_referral
         )
         if referral_outcome.get("applied"):
             bonus_days = REFERRAL_BONUS_DAYS
+            # Clear the pending code so it won't be re-applied on renewals.
+            if _oid_ok(payload.user_pin):
+                await db.users.update_one(
+                    {"_id": ObjectId(payload.user_pin)},
+                    {"$unset": {"pending_referral_code": ""}},
+                )
         expires = (
             datetime.now(timezone.utc) + timedelta(days=PLAN_BASE_DAYS + bonus_days)
         ).isoformat()
@@ -142,7 +176,7 @@ def build_billing_router(db) -> APIRouter:
             "activated_at": datetime.now(timezone.utc).isoformat(),
             "last_payment_id": payload.razorpay_payment_id,
             "last_order_id": payload.razorpay_order_id,
-            "applied_referral": payload.referral_code or None,
+            "applied_referral": effective_referral or None,
         }
         await db.app_membership.update_one(
             {"user_pin": payload.user_pin}, {"$set": doc}, upsert=True
@@ -165,7 +199,6 @@ def build_billing_router(db) -> APIRouter:
         })
         # Best-effort WhatsApp confirmation — stub-safe (no-op if disabled)
         try:
-            from bson import ObjectId
             from services.whatsapp import send_pro_membership_activated
             user = None
             try:

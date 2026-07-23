@@ -190,7 +190,7 @@ function OwnerPicker({ value, onChange }) {
 export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast, editing }) {
   const [mode, setMode] = useState('manual')
   const [busy, setBusy] = useState(false)
-  const [form, setForm] = useState({ brand: '', title: '', code: '', value: '', expiry: '', start_date: '', category: 'vouchers', membership_kind: '', fee_paid: '', benefit_rate: '', how_to_redeem: '', notes: '', owner: 'Self', membership_number: '', program_type: '' })
+  const [form, setForm] = useState({ brand: '', title: '', code: '', value: '', expiry: '', start_date: '', category: 'vouchers', membership_kind: '', fee_paid: '', benefit_rate: '', initial_utilization: '', initial_savings: '', how_to_redeem: '', notes: '', owner: 'Self', membership_number: '', program_type: '' })
   const [smsText, setSmsText] = useState('')
   const [imagePreview, setImagePreview] = useState(null)
   const [parentBrand, setParentBrand] = useState(null)
@@ -282,7 +282,7 @@ export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast, ed
   }, [form.start_date, form.expiry, form.category])
 
   const reset = () => {
-    setForm({ brand: '', title: '', code: '', value: '', expiry: '', start_date: '', category: 'vouchers', membership_kind: '', fee_paid: '', benefit_rate: '', how_to_redeem: '', notes: '', owner: 'Self', membership_number: '', program_type: '' })
+    setForm({ brand: '', title: '', code: '', value: '', expiry: '', start_date: '', category: 'vouchers', membership_kind: '', fee_paid: '', benefit_rate: '', initial_utilization: '', initial_savings: '', how_to_redeem: '', notes: '', owner: 'Self', membership_number: '', program_type: '' })
     setSmsText(''); setImagePreview(null); setMode('manual'); setParentBrand(null); setDateError('')
     setLoyalty(null); setAutoApplied(false); setOverrideActive(false)
   }
@@ -303,6 +303,8 @@ export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast, ed
         fee_paid: editing.fee_paid != null ? String(editing.fee_paid) : '',
         // benefit_rate stored as decimal (0-1); UI uses percent (0-100)
         benefit_rate: editing.benefit_rate != null ? String(Math.round(editing.benefit_rate * 100)) : '',
+        initial_utilization: editing.total_spend != null ? String(editing.total_spend) : '',
+        initial_savings: editing.savings_realized != null ? String(editing.savings_realized) : '',
         how_to_redeem: editing.how_to_redeem || '',
         notes: editing.notes || '',
         owner: editing.owner || 'Self',
@@ -325,6 +327,17 @@ export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast, ed
     }
     setBusy(true)
     try {
+      // Historical backfill (Feature 3): if user is adding a membership that
+      // started in the past AND they've already used it, seed total_spend and
+      // savings_realized so the dashboard shows the real number from day one.
+      const rate = (form.category === 'memberships' && form.benefit_rate)
+        ? Number(form.benefit_rate) / 100 : null
+      const seedSpend = form.initial_utilization ? Number(form.initial_utilization) : null
+      // Prefer explicit initial_savings; otherwise derive from spend × rate.
+      let seedSavings = form.initial_savings ? Number(form.initial_savings) : null
+      if (seedSavings == null && seedSpend != null && rate) {
+        seedSavings = Math.round(seedSpend * rate * 100) / 100
+      }
       const payload = {
         user_pin: pin,
         type: form.category === 'memberships' ? 'membership' : 'voucher',
@@ -337,7 +350,9 @@ export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast, ed
         category: form.category,
         membership_kind: form.category === 'memberships' ? (form.membership_kind || 'asset') : null,
         fee_paid: form.fee_paid ? Number(form.fee_paid) : null,
-        benefit_rate: (form.category === 'memberships' && form.benefit_rate) ? (Number(form.benefit_rate) / 100) : null,
+        benefit_rate: rate,
+        total_spend: form.category === 'memberships' && seedSpend != null ? seedSpend : 0,
+        savings_realized: form.category === 'memberships' && seedSavings != null ? seedSavings : 0,
         how_to_redeem: form.how_to_redeem || null,
         notes: form.notes || null,
         owner: form.owner || 'Self',
@@ -802,14 +817,61 @@ export default function AddVoucherSheet({ open, onClose, pin, onSaved, toast, ed
                 <FormField label="Start date *" testid="field-start-date" type="date" value={form.start_date} onChange={(v) => setForm({ ...form, start_date: v })} />
                 <FormField label="End date *" testid="field-end-date" type="date" value={form.expiry} onChange={(v) => setForm({ ...form, expiry: v })} />
               </div>
+              <p className="text-[11px] text-ink-500 -mt-1" data-testid="start-date-hint">
+                💡 Adding a membership that started in the past? Pick the real historical start date — we'll prorate the remaining days correctly.
+              </p>
               {dateError ? (
                 <p data-testid="date-validation-error" className="text-[11px] text-terracotta-700 font-semibold -mt-1">⚠️ {dateError}</p>
               ) : (form.start_date && form.expiry && !dateError ? (
-                <p data-testid="date-duration-preview" className="text-[11px] text-emerald-800 font-semibold -mt-1">
-                  ✓ Valid · {Math.round((new Date(form.expiry) - new Date(form.start_date)) / 86400000)} days total
-                  {form.fee_paid ? ` · ₹${(Number(form.fee_paid) / Math.max(1, Math.round((new Date(form.expiry) - new Date(form.start_date)) / 86400000))).toFixed(2)}/day` : ''}
-                </p>
+                <>
+                  <p data-testid="date-duration-preview" className="text-[11px] text-emerald-800 font-semibold -mt-1">
+                    ✓ Valid · {Math.round((new Date(form.expiry) - new Date(form.start_date)) / 86400000)} days total
+                    {form.fee_paid ? ` · ₹${(Number(form.fee_paid) / Math.max(1, Math.round((new Date(form.expiry) - new Date(form.start_date)) / 86400000))).toFixed(2)}/day` : ''}
+                  </p>
+                  {/* Elapsed days preview — helps user visualize how much of the
+                      membership period has already passed based on their chosen
+                      start date. Only shown when start is in the past. */}
+                  {(() => {
+                    const elapsedDays = Math.floor((Date.now() - new Date(form.start_date).getTime()) / 86400000)
+                    if (elapsedDays <= 0) return null
+                    return (
+                      <p className="text-[11px] text-ink-600 -mt-1" data-testid="elapsed-preview">
+                        📅 {elapsedDays} day{elapsedDays !== 1 ? 's' : ''} already elapsed since start
+                      </p>
+                    )
+                  })()}
+                </>
               ) : null)}
+
+              {/* Historical backfill fields — only relevant for memberships
+                  added mid-cycle. Both optional. If left blank, the dashboard
+                  starts counting from zero at creation time. */}
+              <div className="rounded-xl bg-emerald-50/40 border border-emerald-200 p-3 space-y-3 mt-2" data-testid="historical-backfill-section">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">
+                  Already using this membership? (optional)
+                </p>
+                <p className="text-[11px] text-ink-600 -mt-2">
+                  Fill these only if you've been using this membership <em>before</em> adding it here. Your dashboard will show the real ROI from day one instead of starting at ₹0.
+                </p>
+                <FormField
+                  label="Spent so far under this membership (₹)"
+                  testid="field-initial-utilization"
+                  type="number"
+                  value={form.initial_utilization}
+                  onChange={(v) => setForm({ ...form, initial_utilization: v })}
+                  placeholder="e.g. 3000"
+                />
+                <FormField
+                  label={form.benefit_rate && Number(form.benefit_rate) > 0
+                    ? `Savings so far (auto-computed ₹${form.initial_utilization ? ((Number(form.initial_utilization) * Number(form.benefit_rate)) / 100).toFixed(0) : '0'} — override if needed)`
+                    : 'Savings realized so far (₹)'}
+                  testid="field-initial-savings"
+                  type="number"
+                  value={form.initial_savings}
+                  onChange={(v) => setForm({ ...form, initial_savings: v })}
+                  placeholder="e.g. 300"
+                />
+              </div>
             </div>
           )}
 
